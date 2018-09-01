@@ -1,3 +1,4 @@
-/*.suo
-/*.sdf
-/*.opensdf
+*.suo
+*.sdf
+*.opensdf
+/build/Debug

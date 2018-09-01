@@ -18,22 +18,22 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="uvHttp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="typedef.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
+    <ClCompile Include="..\uvHttp\uvHttp.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uvHttp\error.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uvHttp\agent.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="agent.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="error.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="uvHttp.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
+    <ClInclude Include="..\uvHttp\typedef.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uvHttp\uvHttp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
