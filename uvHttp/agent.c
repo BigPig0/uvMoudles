@@ -1,9 +1,6 @@
 #include "uvHttp.h"
 #include "typedef.h"
 
-map_t*  agents = nullptr;
-uv_timer_t  timeout_timer;
-extern uv_loop_t* uv_loop;
 
 /** 检测连接超时的定时器 */
 void uv_timer_cb(uv_timer_t* handle) {
@@ -18,12 +15,14 @@ static void agent_map_compare(const void* cpv_first, const void* cpv_second, voi
 void agents_init(http_t* h) {
     h->agents = create_map(string_t*, agent_t*);
     map_init_ex(h->agents, agent_map_compare);
-    int ret = uv_timer_init(uv_loop, &timeout_timer);
-    ret = uv_timer_start(&timeout_timer, uv_timer_cb, 10000, 10000);
+    int ret = uv_timer_init(h->uv, &h->timeout_timer);
+	h->timeout_timer.data = h;
+    ret = uv_timer_start(&h->timeout_timer, uv_timer_cb, 10000, 10000);
 }
 
 /** 模块销毁 */
 void agents_destory(http_t* h) {
+	uv_timer_stop(&h->timeout_timer);
     map_destroy(h->agents);
 }
 
@@ -51,7 +50,17 @@ agent_t* get_agent(http_t* h, string_t* addr) {
 }
 
 /** 在agent中创建一个请求 */
-int creat_request(agent_t* agent, option_t* o) {
+int agents_request(request_p_t* req) {
+	//首先需要创建或获取一个agent
+	string_t* addr = create_string();
+	string_init(addr);
+	string_connect(addr, req->str_addr);
+	string_connect_char(addr, ':');
+	string_connect(addr, req->str_port);
+	agent_t* agent = get_agent(req->handle, addr);
+	string_destroy(addr);
+
+	//创建或者获取一个已经存在连接，如果连接数达到最大值则需要将请求放到队列中
     int sockets_num = set_size(agent->sockets);
     if (sockets_num >= agent->handle->conf.max_sockets){
         //将请求放到队列中

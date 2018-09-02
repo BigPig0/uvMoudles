@@ -1,4 +1,5 @@
 *.suo
 *.sdf
 *.opensdf
+*.vs/
 /build/Debug
