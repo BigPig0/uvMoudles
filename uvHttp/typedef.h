@@ -65,6 +65,12 @@ typedef struct _agent_
     bool        keep_alive;
 }agent_t;
 
+/** tcp连接数据结构 */
+typedef struct _socket_
+{
+
+}socket_t;
+
 /** 错误码 */
 typedef enum _err_code_
 {

@@ -4,6 +4,7 @@
 extern void agents_init(http_t* h);
 extern void agents_destory(http_t* h);
 extern int agents_request(request_p_t* req);
+extern void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_output);
 
 char* url_encode(char* src) {
     string_t* tmp = create_string();
@@ -93,9 +94,15 @@ void uvHttpClose(http_t* h) {
 	
 }
 
-request_t* creat_request(http_t* h) {
+request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
 	request_p_t* req = (request_p_t*)malloc(sizeof(request_t));
-	req->handle = h;
+    memset(req, 0 , sizeof(request_p_t));
+    req->handle = h;
+    req->req_cb = req_cb;
+    req->res_data = res_data;
+    req->res_cb = res_cb;
+    req->headers = create_map(string_t*, string_t*);
+    map_init_ex(req->headers, string_map_compare);
 
 	return (request_t*)req;
 }
@@ -183,11 +190,8 @@ void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	agents_request(req_p);
 }
 
-int request(request_t* req, request_cb req_cb, response_data res_data, response_cb res_cb) {
+int request(request_t* req) {
 	request_p_t* req_p = (request_p_t*)req;
-	req_p->req_cb = req_cb;
-	req_p->res_data = res_data;
-	req_p->res_cb = res_cb;
 	//½âÎöurl
 	string_t* str_url = create_string();
 	string_init_cstr(str_url, req_p->url);
@@ -250,13 +254,5 @@ int request(request_t* req, request_cb req_cb, response_data res_data, response_
 }
 
 int request_write(request_t* req, char* data, int len) {
-
-}
-
-int on_response_data(response_t* res, response_data cb) {
-
-}
-
-int on_response_end(response_t* res, response_end cb) {
 
 }

@@ -83,6 +83,7 @@
     <ClCompile Include="..\uvHttp\uvHttp.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\uvHttp\public_type.h" />
     <ClInclude Include="..\uvHttp\typedef.h" />
     <ClInclude Include="..\uvHttp\uvHttp.h" />
   </ItemGroup>

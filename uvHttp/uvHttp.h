@@ -32,9 +32,12 @@ extern void uvHttpClose(http_t* h);
 /**
  * 建立一个http客户端请求
  * @param h http环境句柄
+ * @param req_cb 请求发送后的回调函数
+ * @param res_data 收到应答的body的回调
+ * @param res_cb 应答接收完成后的回调
  * @return http请求句柄
  */
-extern request_t* creat_request(http_t* h);
+extern request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb);
 
 /**
  * 添加http头内容
@@ -84,12 +87,9 @@ extern char* get_res_header(response_t* res, const char* key);
 /**
  * 发送http请求
  * @param req http请求的句柄
- * @param req_cb 请求发送后的回调函数
- * @param res_data 收到应答的body的回调
- * @param res_cb 应答接收完成后的回调
  * @return 错误码
  */
-extern int request(request_t* req, request_cb req_cb, response_data res_data, response_cb res_cb);
+extern int request(request_t* req);
 
 /**
  * 继续发送http请求的body内容
