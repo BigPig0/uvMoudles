@@ -36,6 +36,7 @@ typedef struct _request_p_ {
 	string_t*      str_path;    //uri的path部分
     http_t*        handle;
     map_t*         headers;
+	list_t*        body;
 
 	request_cb     req_cb;
 	response_data  res_data; 
@@ -60,8 +61,9 @@ typedef struct _agent_
 {
     http_t*     handle;
     list_t*     req_list;
-    set_t*      sockets;
-    set_t*      free_sockets;
+    set_t*      sockets;		//工作中的连接
+    set_t*      free_sockets;   //空闲可用连接
+	list_t*     requests;       //任务链表
     bool        keep_alive;
 }agent_t;
 
@@ -70,6 +72,13 @@ typedef struct _socket_
 {
 
 }socket_t;
+
+/** 内存数据结构 */
+typedef struct _membuff_
+{
+	unsigned char* data;
+	unsigned int len;
+}membuff_t;
 
 /** 错误码 */
 typedef enum _err_code_

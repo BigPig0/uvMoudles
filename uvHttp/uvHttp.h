@@ -35,7 +35,7 @@ extern void uvHttpClose(http_t* h);
  * @param req_cb 请求发送后的回调函数
  * @param res_data 收到应答的body的回调
  * @param res_cb 应答接收完成后的回调
- * @return http请求句柄
+ * @return http请求句柄。该句柄由uvhttp调度完成后自动释放
  */
 extern request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb);
 
@@ -50,7 +50,7 @@ extern void add_req_header(request_t* req, const char* key, const char* value);
 /**
  * 向请求中添加http body内容，仅POST时才需要
  * @param req http请求句柄
- * @param data body内容
+ * @param data body内容。指针的内容有调用者维护释放
  * @param len body的长度
  * @return 错误码
  * @note  该方法在request之前使用,可以调用多次；也可在request的回调方法中使用request_write继续写入

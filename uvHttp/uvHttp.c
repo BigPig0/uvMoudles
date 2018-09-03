@@ -101,27 +101,29 @@ request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, r
     req->req_cb = req_cb;
     req->res_data = res_data;
     req->res_cb = res_cb;
-    req->headers = create_map(string_t*, string_t*);
-    map_init_ex(req->headers, string_map_compare);
 
 	return (request_t*)req;
 }
 
 void add_req_header(request_t* req, const char* key, const char* value) {
 	request_p_t* req_p = (request_p_t*)req;
+	if (req_p->headers == NULL) {
+		req_p->headers = create_map(void*, void*);
+		map_init_ex(req_p->headers, string_map_compare);
+	}
 	string_t* str_key = create_string();
 	string_init_cstr(str_key, key);
 	map_iterator_t it_pos = map_find(req_p->headers, str_key);
 	if (iterator_equal(it_pos, map_end(req_p->headers))) {
 		string_t* str_value = create_string();
 		string_init_cstr(str_value, value);
-		pair_t* pt_pair = create_pair(string_t*, string_t*);
+		pair_t* pt_pair = create_pair(void*, void*);
 		pair_init_elem(pt_pair, str_key, str_value);
 		map_insert(req_p->headers, pt_pair);
 		pair_destroy(pt_pair);
 	} else {
 		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
-		string_t* str_value = (string_t*)pair_second(pt_pair);
+		string_t* str_value = *(string_t**)pair_second(pt_pair);
 		string_clear(str_value);
 		string_copy(str_value, value, strlen(value), 0);
 		string_destroy(str_key);
@@ -130,6 +132,16 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 
 int add_req_body(request_t* req, const char* data, int len) {
 	request_p_t* req_p = (request_p_t*)req;
+	membuff_t buf;
+	buf.data = data;
+	buf.len = len;
+	if (req_p->body == NULL) {
+		req_p->body = create_list(membuff_t);
+		list_init_elem(req_p->body, 1, buf);
+	} else {
+		list_push_back(req_p->body, buf);
+	}
+	return uv_http_ok;
 }
 
 int get_res_header_count(response_t* res) {
@@ -140,14 +152,14 @@ int get_res_header_count(response_t* res) {
 char* get_res_header_name(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
-	string_t* str_name = (string_t*)pair_first(pt_pair);
+	string_t* str_name = *(string_t**)pair_first(pt_pair);
 	return string_c_str(str_name);
 }
 
 char* get_res_header_value(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
-	string_t* str_value = (string_t*)pair_second(pt_pair);
+	string_t* str_value = *(string_t**)pair_second(pt_pair);
 	return string_c_str(str_value);
 }
 
@@ -160,7 +172,7 @@ char* get_res_header(response_t* res, const char* key) {
 		return NULL;
 	} else {
 		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
-		string_t* str_value = (string_t*)pair_second(pt_pair);
+		string_t* str_value = *(string_t**)pair_second(pt_pair);
 		return string_c_str(str_value);
 	}
 }

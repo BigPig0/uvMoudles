@@ -67,8 +67,15 @@ int agents_request(request_p_t* req) {
     int sockets_num = set_size(agent->sockets);
     if (sockets_num >= agent->handle->conf.max_sockets){
         //将请求放到队列中
-    } else if (set_empty(agent->free_sockets)) {
+		if (agent->requests == NULL) {
+			agent->requests = create_list(void*);
+			list_init_elem(agent->requests, 1, req);
+		} else {
+			list_push_back(agent->requests, req);
+		}
+    } else if (agent->free_sockets == NULL || set_empty(agent->free_sockets)) {
         //新建一个连接来处理请求
+		socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
     } else {
         //从空闲请求中取出一个来处理请求
     }
