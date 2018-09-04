@@ -9,14 +9,19 @@
 extern "C" {
 #endif
 
-#define OPTIONS "OPTIONS"
-#define HEAD    "HEAD"
-#define GET     "GET"
-#define POST    "POST"
-#define PUT     "PUT"
-#define DELETE  "DELETE"
-#define TRACE   "TRACE"
-#define CONNECT "CONNECT"
+
+
+typedef enum _HTTP_METHOD_
+{
+	METHOD_OPTIONS = 0,
+	METHOD_HEAD,
+	METHOD_GET,
+	METHOD_POST,
+	METHOD_PUT,
+	METHOD_DELETE,
+	METHOD_TRACE,
+	METHOD_CONNECT
+}HTTP_METHOD;
 
 typedef struct _config_
 {
@@ -29,8 +34,8 @@ typedef struct _http_ http_t;
 typedef struct _response_ response_t;
 
 typedef struct _request_ {
+	HTTP_METHOD method;		    //http请求方法
 	const char* url;		    //一个完整的http地址("http://"可以省略)
-	const char* method;		    //http请求方法
 	const char* host;			//http请求优先使用host作为目标地址，当host为空时从url中获取目标地址
 	int         keep_alive;     //0表示Connection为close，非0表示keep-alive
 	int         chunked;        //POST使用 0表示不使用chuncked，非0表示Transfer-Encoding: "chunked"

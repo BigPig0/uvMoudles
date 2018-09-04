@@ -1,5 +1,11 @@
 #include "uvHttp.h"
 #include "typedef.h"
+#ifdef WIN32
+#define fieldcmp _stricmp
+#else
+#include <strings.h>
+#define fieldcmp strcasecmp
+#endif
 
 extern void agents_init(http_t* h);
 extern void agents_destory(http_t* h);
@@ -12,7 +18,7 @@ char* url_encode(char* src) {
     size_t len = strlen(src);
     for (size_t i=0; i<len; ++i)
     {
-        char c = *string_at(src, i);
+        char c = src[i];
         if(c>='0' && c<='9' || c>='a'&&c<='z' || c>='A' && c<='Z' || c=='-' || c=='_' || c=='.')
         {
             string_push_back(tmp, c);
@@ -24,7 +30,7 @@ char* url_encode(char* src) {
         else
         {
             char cCode[3]={0};  
-            sprintf_s(cCode,"%02X",c); 
+            sprintf_s(cCode, 2,"%02X",c); 
             string_push_back(tmp, '%');
             string_connect_cstr(tmp, cCode);
         }
@@ -80,6 +86,7 @@ http_t* uvHttp(config_t cof, void* uv) {
 #endif
 	}
     agents_init(h);
+	return h;
 }
 
 void uvHttpClose(http_t* h) {
@@ -97,6 +104,7 @@ void uvHttpClose(http_t* h) {
 request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
 	request_p_t* req = (request_p_t*)malloc(sizeof(request_t));
     memset(req, 0 , sizeof(request_p_t));
+	req->keep_alive = 1;
     req->handle = h;
     req->req_cb = req_cb;
     req->res_data = res_data;
@@ -107,6 +115,22 @@ request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, r
 
 void add_req_header(request_t* req, const char* key, const char* value) {
 	request_p_t* req_p = (request_p_t*)req;
+	if (!fieldcmp("Content-Length", key)) {
+		req_p->content_length = atoi(value);
+		return;
+	}
+	if (!fieldcmp("Connection", key)) {
+		if (!fieldcmp("Close", value)) {
+			req_p->keep_alive = 0;
+		}
+		return;
+	}
+	if (!fieldcmp("Transfer-Encoding", key)) {
+		if (!fieldcmp("chunked", value)) {
+			req_p->chunked = 1;
+		}
+		return;
+	}
 	if (req_p->headers == NULL) {
 		req_p->headers = create_map(void*, void*);
 		map_init_ex(req_p->headers, string_map_compare);
@@ -133,7 +157,7 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 int add_req_body(request_t* req, const char* data, int len) {
 	request_p_t* req_p = (request_p_t*)req;
 	membuff_t buf;
-	buf.data = data;
+	buf.data = (unsigned char*)data;
 	buf.len = len;
 	if (req_p->body == NULL) {
 		req_p->body = create_list(membuff_t);
@@ -153,14 +177,14 @@ char* get_res_header_name(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
 	string_t* str_name = *(string_t**)pair_first(pt_pair);
-	return string_c_str(str_name);
+	return (char*)string_c_str(str_name);
 }
 
 char* get_res_header_value(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
 	string_t* str_value = *(string_t**)pair_second(pt_pair);
-	return string_c_str(str_value);
+	return (char*)string_c_str(str_value);
 }
 
 char* get_res_header(response_t* res, const char* key) {
@@ -173,11 +197,61 @@ char* get_res_header(response_t* res, const char* key) {
 	} else {
 		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
 		string_t* str_value = *(string_t**)pair_second(pt_pair);
-		return string_c_str(str_value);
+		return (char*)string_c_str(str_value);
 	}
 }
 
-void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
+static const char* http_method[] = {
+	"OPTIONS",
+	"HEAD",
+	"GET",
+	"POST",
+	"PUT",
+	"DELETE",
+	"TRACE",
+	"CONNECT"
+};
+
+static void generic_header(request_p_t* req) {
+	req->str_header = create_string();
+	string_init(req->str_header);
+	string_connect_cstr(req->str_header, http_method[req->method]);
+	string_push_back(req->str_header, ' ');
+	string_connect(req->str_header, req->str_path);
+	string_connect_cstr(req->str_header, " HTTP/1.1\r\nHost: ");
+	string_connect(req->str_header, req->str_host);
+	string_connect_cstr(req->str_header, "\r\nConnection: ");
+	if (req->keep_alive) {
+		string_connect_cstr(req->str_header, "Keep-Alive\r\n");
+	} else {
+		string_connect_cstr(req->str_header, "Close\r\n");
+	}
+	if (req->chunked) {
+		string_connect_cstr(req->str_header, "Transfer-Encoding: Chunked\r\n");
+	} else {
+		string_connect_cstr(req->str_header, "Content-Length: ");
+		char clen[20] = { 0 };
+		sprintf(clen, "%d", req->content_length);
+		string_connect_cstr(req->str_header, clen);
+		string_connect_cstr(req->str_header, "\r\n");
+	}
+
+	map_iterator_t it = map_begin(req->headers);
+	map_iterator_t end = map_end(req->headers);
+	for (; iterator_not_equal(it, end); it = iterator_next(it))
+	{
+		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
+		string_t* name = *(string_t**)pair_first(pt_pair);
+		string_t* value = *(string_t**)pair_second(pt_pair);
+		string_connect_cstr(req->str_header, string_c_str(name));
+		string_connect_cstr(req->str_header, ": ");
+		string_connect_cstr(req->str_header, string_c_str(value));
+		string_connect_cstr(req->str_header, "\r\n");
+	}
+	string_connect_cstr(req->str_header, "\r\n");
+}
+
+static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	request_p_t* req_p = (request_p_t*)resolver->data;
 	free(resolver);
 	if (status < 0) {
@@ -200,6 +274,7 @@ void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	uv_freeaddrinfo(res);
 	free(res);
 
+	generic_header(req_p);
     int err = agents_request(req_p);
 	if(uv_http_ok != err && req_p->req_cb) {
         req_p->req_cb(err, (request_t*)req_p);
@@ -270,5 +345,5 @@ int request(request_t* req) {
 }
 
 int request_write(request_t* req, char* data, int len) {
-
+	return uv_http_ok;
 }

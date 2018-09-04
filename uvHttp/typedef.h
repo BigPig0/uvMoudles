@@ -24,10 +24,11 @@ typedef struct _http_ {
 typedef struct _response_p_ response_p_t;
 /** 请求数据结构 */
 typedef struct _request_p_ {
+	HTTP_METHOD    method;
 	const char*    url;
-    const char*    method;
 	const char*    host;
     int            keep_alive;
+	int            chunked;
 	int            content_length;
 	void*          user_data;
 	response_p_t*  res;
@@ -74,11 +75,11 @@ typedef struct _agent_
 /** tcp连接状态 */
 typedef enum _socket_status_
 {
-    uninit = 0,
-    init,
-    connected,
-    send,
-    recv
+    socket_uninit = 0,
+    socket_init,
+    socket_connected,
+    socket_send,
+    socket_recv
 }socket_status_t;
 
 /** tcp连接数据结构 */

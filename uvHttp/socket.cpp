@@ -39,7 +39,7 @@ void write_cb(uv_write_t* req, int status) {
         }
     }
 
-    socket->status = send;
+    socket->status = socket_send;
     if(socket->req->req_cb) {
         socket->req->req_cb(uv_http_ok, (request_t*)socket->req);
         return;
@@ -84,7 +84,7 @@ void connect_cb(uv_connect_t* conn, int status){
         }
         return;
     }
-    socket->status = connected;
+    socket->status = socket_connected;
 
     //连接成功，开启数据接收
     handle->data = socket;
@@ -102,11 +102,11 @@ void connect_cb(uv_connect_t* conn, int status){
 }
 
 void socket_run(socket_t* socket) {
-    if(socket->status == uninit) {
+    if(socket->status == socket_uninit) {
         uv_tcp_init(socket->req->handle->uv, &socket->uv_tcp);
-        socket->status = init;
+        socket->status = socket_init;
     }
-    if(socket->status == init){
+    if(socket->status == socket_init){
         socket->uv_conn.data = socket;
         int ret = uv_tcp_connect(&socket->uv_conn, &socket->uv_tcp, socket->req->addr, connect_cb);
         if(ret < 0) {
