@@ -80,6 +80,7 @@
   <ItemGroup>
     <ClCompile Include="..\uvHttp\agent.c" />
     <ClCompile Include="..\uvHttp\error.c" />
+    <ClCompile Include="..\uvHttp\socket.cpp" />
     <ClCompile Include="..\uvHttp\uvHttp.c" />
   </ItemGroup>
   <ItemGroup>

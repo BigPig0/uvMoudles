@@ -125,7 +125,7 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
 		string_t* str_value = *(string_t**)pair_second(pt_pair);
 		string_clear(str_value);
-		string_copy(str_value, value, strlen(value), 0);
+		string_copy(str_value, (char*)value, strlen(value), 0);
 		string_destroy(str_key);
 	}
 }
@@ -183,14 +183,15 @@ void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	if (status < 0) {
 		fprintf(stderr, "getaddrinfo callback error %s\n", uv_err_name(status)); 
 		if (req_p->req_cb) {
-			req_p->req_cb(uv_http_err_dns_parse, req_p);
+			req_p->req_cb(uv_http_err_dns_parse, (request_t*)req_p);
 		}
 		uv_freeaddrinfo(res);
 		free(res);
 		return;
 	} 
+    req_p->addr = res->ai_addr;
 	char addr[17] = { '\0' };
-	uv_ip4_name((struct sockaddr_in*) res->ai_addr, addr, 16);
+	uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 16);
 	printf("%s\n", addr);
 	//此处将原先的域名改为ip
 	string_clear(req_p->str_addr);
@@ -199,7 +200,10 @@ void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	uv_freeaddrinfo(res);
 	free(res);
 
-	agents_request(req_p);
+    int err = agents_request(req_p);
+	if(uv_http_ok != err && req_p->req_cb) {
+        req_p->req_cb(err, (request_t*)req_p);
+    }
 }
 
 int request(request_t* req) {

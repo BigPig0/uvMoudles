@@ -27,6 +27,9 @@
     <ClCompile Include="..\uvHttp\agent.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\uvHttp\socket.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\uvHttp\typedef.h">

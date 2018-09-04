@@ -1,4 +1,5 @@
-#include "uvHttp.h"
+//#include "uvHttp.h"
+#include "public_type.h"
 #include "typedef.h"
 
 
@@ -76,6 +77,8 @@ int agents_request(request_p_t* req) {
     } else if (agent->free_sockets == NULL || set_empty(agent->free_sockets)) {
         //新建一个连接来处理请求
 		socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
+        socket->agent = agent;
+        socket->req = req;
     } else {
         //从空闲请求中取出一个来处理请求
     }

@@ -2,7 +2,8 @@
 const char* _err_message_[] = {
     "ok",
 	"It's not http protocol",
-	"Failed parse the dns"
+	"Failed parse the dns",
+    "Cannot connect"
 };
 
 const int _err_message_len = sizeof(_err_message_) / sizeof(_err_message_[0]);

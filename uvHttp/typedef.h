@@ -9,6 +9,8 @@ extern "C" {
 #include "uv.h"
 #include "stdbool.h"
 
+#define SOCKET_RECV_BUFF_LEN 1024*1024
+
 /** http环境结构 */
 typedef struct _http_ {
     config_t    conf;
@@ -30,13 +32,15 @@ typedef struct _request_p_ {
 	void*          user_data;
 	response_p_t*  res;
 
-    string_t*      str_host;	//host地址
+    string_t*      str_host;	//根据url或host生成的host地址
 	string_t*      str_addr;    //host域名部分
 	string_t*      str_port;    //host端口部分
 	string_t*      str_path;    //uri的path部分
+    struct sockaddr* addr;      //tcp连接地址
+    string_t*      str_header;  //根据用户填写的内容生成的http头
     http_t*        handle;
-    map_t*         headers;
-	list_t*        body;
+    map_t*         headers;     //用户填写的http头 map<string,string>
+	list_t*        body;        //用户填写的http内容体 list<membuff>
 
 	request_cb     req_cb;
 	response_data  res_data; 
@@ -67,10 +71,26 @@ typedef struct _agent_
     bool        keep_alive;
 }agent_t;
 
+/** tcp连接状态 */
+typedef enum _socket_status_
+{
+    uninit = 0,
+    init,
+    connected,
+    send,
+    recv
+}socket_status_t;
+
 /** tcp连接数据结构 */
 typedef struct _socket_
 {
+    agent_t*        agent;
+    request_p_t*    req;
+    socket_status_t status;
+    char            buff[SOCKET_RECV_BUFF_LEN];
 
+    uv_tcp_t        uv_tcp;
+    uv_connect_t    uv_conn;  
 }socket_t;
 
 /** 内存数据结构 */
@@ -85,7 +105,8 @@ typedef enum _err_code_
 {
     uv_http_ok = 0,
 	uv_http_err_protocol,
-	uv_http_err_dns_parse
+	uv_http_err_dns_parse,
+    uv_http_err_connect
 }err_code_t;
 
 #ifdef __cplusplus
