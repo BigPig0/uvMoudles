@@ -353,6 +353,18 @@ int request_write(request_t* req, char* data, int len) {
 	return uv_http_ok;
 }
 
+void recive_response(request_p_t* req, char* data, int len) {
+	if (req->res == NULL) {
+		req->res = (response_p_t*)malloc(sizeof(response_p_t));
+		memset(req->res, 0, sizeof(response_p_t));
+		req->res->req = req;
+		req->res->handle = req->handle;
+		req->res->headers = create_map(void*, void*); //map_t<string_t*,string_t*>
+		map_init(req->res->headers);
+	}
+	response_p_t* res = req->res;
+}
+
 void destory_request(request_p_t* req) {
     response_p_t*  res = req->res;
     if(NULL != res) {

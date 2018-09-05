@@ -86,7 +86,7 @@ int agents_request(request_p_t* req) {
 
 extern void destory_request(request_p_t* req);
 /** 将socket实例从socket列表中移到freesocket */
-void finish_socket(socket_t* socket) {
+void agent_free_socket(socket_t* socket) {
     destory_request(socket->req);
     agent_t* agent = (agent_t*)socket->agent;
     int e_num = set_erase(agent->sockets, socket);
@@ -95,4 +95,9 @@ void finish_socket(socket_t* socket) {
     } else {
         set_insert(agent->sockets, socket);
     }
+}
+
+void agent_destory_socket(socket_t* socket) {
+	destory_request(socket->req);
+	agent_t* agent = (agent_t*)socket->agent;
 }

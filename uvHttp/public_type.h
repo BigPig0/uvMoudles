@@ -45,7 +45,6 @@ typedef struct _request_ {
 }request_t;
 
 typedef struct _response_ {
-	const char* version;
 	int         status;
 	int         keep_alive;     //0表示Connection为close，非0表示keep-alive
 	int         chunked;        //POST使用 0表示不使用chuncked，非0表示Transfer-Encoding: "chunked"

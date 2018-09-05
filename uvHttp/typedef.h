@@ -50,15 +50,18 @@ typedef struct _request_p_ {
 
 /** 应答数据结构 */
 typedef struct _response_p_ {
-	const char*   version;
-	int           status;
+	int           status;         //应答状态码
 	int           keep_alive;     //0表示Connection为close，非0表示keep-alive
-	int           chunked;        //POST使用 0表示不使用chuncked，非0表示Transfer-Encoding: "chunked"
-	int           content_length; //POST时需要标注内容的长度
+	int           chunked;        //0表示不使用chuncked，非0表示Transfer-Encoding: "chunked"
+	int           content_length; //内容的长度；一个chunk后内容的长度
 	request_p_t*  req;
 
     http_t*       handle;
     map_t*        headers;
+
+	int           parsed_headers; //0未解析头，1已经解析头
+	int           recived_length; //接收的内容长度；接收的该chunk的长度
+	string_t*     chunk_left;     //一次接收的缓冲区末尾chunk长度没有结束时的内容
 }response_p_t;
 
 /** 客户端数据结构 */
@@ -89,10 +92,14 @@ typedef struct _socket_
     agent_t*        agent;
     request_p_t*    req;
     socket_status_t status;
-    char            buff[SOCKET_RECV_BUFF_LEN];
+	int             isbusy; //1位于sockets队列，0位于free_sockets队列
 
-    uv_tcp_t        uv_tcp;
-    uv_connect_t    uv_conn;  
+    uv_tcp_t        uv_tcp_h;
+    uv_connect_t    uv_connect_h;  
+	uv_write_t      uv_write_h;
+	uv_mutex_t      uv_mutex_t;
+
+	char            buff[SOCKET_RECV_BUFF_LEN];
 }socket_t;
 
 /** 内存数据结构 */

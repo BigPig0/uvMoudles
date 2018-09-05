@@ -14,6 +14,8 @@ void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
     *buf = uv_buf_init(socket->buff, SOCKET_RECV_BUFF_LEN);
 }
 
+extern void recive_response(request_p_t* req, char* data, int len);
+extern void agent_free_socket(socket_t* socket);
 void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     socket_t* socket = (socket_t*)stream->data;
     if (nread < 0) {
@@ -25,14 +27,20 @@ void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
         uv_close((uv_handle_t*)stream, close_cb);
         return;
     }
+	socket->status = socket_recv;
 
     //读取到数据
+	if (socket->isbusy) {
+		recive_response(socket->req, buf->base, buf->len);
+		agent_free_socket(socket);
+	} else {
+
+	}
 }
 
 /** 发送数据回调 */
 void write_cb(uv_write_t* req, int status) {
     socket_t* socket = (socket_t*)req->data;
-    free(req);
     if(status < 0) {
         fprintf(stderr, "write_cb error %s-%s\n", uv_err_name(status), uv_strerror(status)); 
         if(socket->req->req_cb) {
@@ -50,8 +58,6 @@ void write_cb(uv_write_t* req, int status) {
 
 /** 发送数据 */
 void send_socket(socket_t* socket) {
-    uv_write_t *req = new uv_write_t;
-    req->data = (void*)socket;
     size_t body_num = list_size(socket->req->body);
     uv_buf_t *buf = (uv_buf_t *)malloc(sizeof(uv_buf_t)*(body_num+1));
     //http header
@@ -66,7 +72,7 @@ void send_socket(socket_t* socket) {
         *(buf+i) = uv_buf_init((char*)mem.data, mem.len);
         it_iter = _list_iterator_next(it_iter);
     }
-    int ret = uv_write(req, (uv_stream_t*)&socket->uv_tcp, buf, body_num+1, write_cb);
+    int ret = uv_write(&socket->uv_write_h, (uv_stream_t*)&socket->uv_tcp_h, buf, body_num+1, write_cb);
     if (ret) {  
         fprintf(stderr, "uv_write error %s-%s\n", uv_err_name(ret), uv_strerror(ret)); 
         if(socket->req->req_cb) {
@@ -108,17 +114,22 @@ socket_t* create_socket(agent_t* agent) {
     socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
     memset(socket, 0 , sizeof(socket_t));
     socket->agent = agent;
+	uv_tcp_init(agent->handle->uv, &socket->uv_tcp_h);
+	socket->uv_tcp_h.data = socket;
+	socket->uv_connect_h.data = socket;
+	socket->uv_write_h.data = socket;
+	uv_mutex_init(&socket->uv_mutex_t);
     return socket;
 }
 /** 执行发送任务 */
 void socket_run(socket_t* socket) {
     if(socket->status == socket_uninit) {
-        uv_tcp_init(socket->req->handle->uv, &socket->uv_tcp);
+        uv_tcp_init(socket->req->handle->uv, &socket->uv_tcp_h);
         socket->status = socket_init;
     }
     if(socket->status == socket_init){
-        socket->uv_conn.data = socket;
-        int ret = uv_tcp_connect(&socket->uv_conn, &socket->uv_tcp, socket->req->addr, connect_cb);
+        socket->uv_connect_h.data = socket;
+        int ret = uv_tcp_connect(&socket->uv_connect_h, &socket->uv_tcp_h, socket->req->addr, connect_cb);
         if(ret < 0) {
             fprintf(stderr, "uv_tcp_connect error %s-%s\n", uv_err_name(ret),uv_strerror(ret)); 
             if(socket->req->req_cb) {
@@ -130,11 +141,10 @@ void socket_run(socket_t* socket) {
     }
 }
 
-extern void finish_socket(socket_t* socket);
 void destory_socket(socket_t* socket) {
     if (socket->status != socket_closed) {
-        uv_close((uv_handle_t*)&socket->uv_tcp, close_cb);
+        uv_close((uv_handle_t*)&socket->uv_tcp_h, close_cb);
     } else {
-        finish_socket(socket);
+        agent_free_socket(socket);
     }
 }
