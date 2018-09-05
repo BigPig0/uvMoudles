@@ -263,7 +263,10 @@ static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo 
 		free(res);
 		return;
 	} 
-    req_p->addr = res->ai_addr;
+    //保存地址
+    req_p->addr = (struct sockaddr*)malloc(sizeof(struct sockaddr));
+    memcpy(req_p->addr, res->ai_addr, sizeof(struct sockaddr));
+    //解析出ip
 	char addr[17] = { '\0' };
 	uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 16);
 	printf("%s\n", addr);
@@ -337,6 +340,8 @@ int request(request_t* req) {
 	hints->ai_flags = 0;
 	int r = uv_getaddrinfo(req_p->handle->uv, resolver, on_resolved, string_c_str(req_p->str_addr), string_c_str(req_p->str_port), hints);
 	if (r < 0) {
+        free(resolver);
+        free(hints);
 		return uv_http_err_dns_parse;
 	}
 
@@ -346,4 +351,50 @@ int request(request_t* req) {
 
 int request_write(request_t* req, char* data, int len) {
 	return uv_http_ok;
+}
+
+void destory_request(request_p_t* req) {
+    response_p_t*  res = req->res;
+    if(NULL != res) {
+        if(NULL != res->headers) {
+            map_iterator_t it = map_begin(res->headers);
+            map_iterator_t end = map_end(res->headers);
+            for (; iterator_not_equal(it, end); it = iterator_next(it))
+            {
+                pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
+                string_t* key = *(string_t**)pair_first(pt_pair);
+                string_t* value = *(string_t**)pair_second(pt_pair);
+                string_destroy(key);
+                string_destroy(value);
+            }
+            map_destroy(res->headers);
+        }
+
+        free(res);
+    }
+
+    string_destroy(req->str_host);
+    string_destroy(req->str_addr);
+    string_destroy(req->str_port);
+    string_destroy(req->str_path);
+    if(req->addr) free(req->addr);
+    string_destroy(req->str_header);
+
+    if(NULL != req->headers) {
+        map_iterator_t it = map_begin(req->headers);
+        map_iterator_t end = map_end(req->headers);
+        for (; iterator_not_equal(it, end); it = iterator_next(it))
+        {
+            pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
+            string_t* key = *(string_t**)pair_first(pt_pair);
+            string_t* value = *(string_t**)pair_second(pt_pair);
+            string_destroy(key);
+            string_destroy(value);
+        }
+        map_destroy(req->headers);
+    }
+
+    list_destroy(req->body); //body内容由外部自己管理
+
+    free(req);
 }

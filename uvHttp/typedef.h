@@ -79,7 +79,8 @@ typedef enum _socket_status_
     socket_init,
     socket_connected,
     socket_send,
-    socket_recv
+    socket_recv,
+    socket_closed
 }socket_status_t;
 
 /** tcp连接数据结构 */

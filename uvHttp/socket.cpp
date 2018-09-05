@@ -3,6 +3,8 @@
 
 void close_cb(uv_handle_t* handle) {
     socket_t* socket = (socket_t*)handle->data;
+    socket->status = socket_closed;
+    destory_socket(socket);
 }
 
 void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
@@ -101,6 +103,14 @@ void connect_cb(uv_connect_t* conn, int status){
     send_socket(socket);
 }
 
+/** 创建一个socket句柄 */
+socket_t* create_socket(agent_t* agent) {
+    socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
+    memset(socket, 0 , sizeof(socket_t));
+    socket->agent = agent;
+    return socket;
+}
+/** 执行发送任务 */
 void socket_run(socket_t* socket) {
     if(socket->status == socket_uninit) {
         uv_tcp_init(socket->req->handle->uv, &socket->uv_tcp);
@@ -117,5 +127,14 @@ void socket_run(socket_t* socket) {
         }
     } else {
         send_socket(socket);
+    }
+}
+
+extern void finish_socket(socket_t* socket);
+void destory_socket(socket_t* socket) {
+    if (socket->status != socket_closed) {
+        uv_close((uv_handle_t*)&socket->uv_tcp, close_cb);
+    } else {
+        finish_socket(socket);
     }
 }
