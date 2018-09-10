@@ -1,10 +1,6 @@
 #ifndef _PUBLIC_TYPE_
 #define _PUBLIC_TYPE_
 
-#ifndef C99
-#include "stdbool.h"
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,11 +49,11 @@ typedef struct _response_ {
 }response_t;
 
 /** 发送http请求回调函数，参数为错误码和请求句柄 */
-typedef void(*request_cb)(int, request_t*);
+typedef void(*request_cb)(request_t*, int);
 /** 设置收到应答的内容 */
 typedef void(*response_data)(request_t*, char*, int);
 /** 设置应答接收完成的处理 */
-typedef void(*response_cb)(request_t*);
+typedef void(*response_cb)(request_t*, int);
 
 #ifdef __cplusplus
 }
