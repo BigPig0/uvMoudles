@@ -47,10 +47,11 @@ public:
 
 private:
     CRequest();
-    request_t*    m_pReq;
-    string        m_strUrl;
-    string        m_strHost;
-    void*         m_pUserData;
+    request_t*         m_pReq;
+    string             m_strUrl;
+    string             m_strHost;
+    void*              m_pUserData;
+	CResponsePluse*    m_pResponse;
 
     request_cb_plus    m_funReqCb;
     response_data_plus m_funResData;
@@ -63,6 +64,12 @@ public:
     CHttpPlus(config_t cof, void* uv);
     ~CHttpPlus();
 
+	/**
+	 * 创建一个http请求
+	 * req_cb 请求发送完成的回调方法
+	 * res_data 接收到应答报文体的回调方法
+	 * res_cb 应答数据接收完成后的调用方法
+	 */
     CRequest* CreatRequest(request_cb_plus req_cb, response_data_plus res_data, response_cb_plus res_cb);
 
 private:

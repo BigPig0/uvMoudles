@@ -257,7 +257,7 @@ static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo 
 	if (status < 0) {
 		fprintf(stderr, "getaddrinfo callback error %s\n", uv_err_name(status)); 
 		if (req_p->req_cb) {
-			req_p->req_cb(uv_http_err_dns_parse, (request_t*)req_p);
+			req_p->req_cb((request_t*)req_p, uv_http_err_dns_parse);
 		}
 		uv_freeaddrinfo(res);
 		free(res);
@@ -280,7 +280,7 @@ static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo 
 	generic_header(req_p);
     int err = agents_request(req_p);
 	if(uv_http_ok != err && req_p->req_cb) {
-        req_p->req_cb(err, (request_t*)req_p);
+        req_p->req_cb((request_t*)req_p, err);
     }
 }
 

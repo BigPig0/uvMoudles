@@ -16,11 +16,14 @@ CResponsePluse::~CResponsePluse()
  * 
  */
 CRequest::CRequest()
+	: m_pResponse(nullptr)
 {
 }
 
 CRequest::~CRequest()
 {
+	if (nullptr != m_pResponse)
+		delete m_pResponse;
 }
 
 void CRequest::SetMethod(HTTP_METHOD eMethod)
@@ -72,19 +75,19 @@ int CRequest::Request()
 void CRequest::RequestCB(request_t* req, int code)
 {
     if(m_funReqCb)
-        m_funReqCb(req, code);
+        m_funReqCb(this, code);
 }
 
 void CRequest::ResponseData(request_t* req, char* data, int len)
 {
     if(m_funResData)
-        m_funResData(req, data, len);
+        m_funResData(this, data, len);
 }
 
 void CRequest::ResponseCB(request_t* req, int code)
 {
     if(m_funResCb)
-        m_funResCb(req, code);
+        m_funResCb(this, code);
 }
 
 void plus_request_cb(request_t* req, int code)

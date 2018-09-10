@@ -1,6 +1,7 @@
 #include "public_type.h"
 #include "typedef.h"
 
+extern void destory_socket(socket_t* socket);
 void close_cb(uv_handle_t* handle) {
     socket_t* socket = (socket_t*)handle->data;
     socket->status = socket_closed;
@@ -44,14 +45,14 @@ void write_cb(uv_write_t* req, int status) {
     if(status < 0) {
         fprintf(stderr, "write_cb error %s-%s\n", uv_err_name(status), uv_strerror(status)); 
         if(socket->req->req_cb) {
-            socket->req->req_cb(uv_http_err_connect, (request_t*)socket->req);
+            socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
             return;
         }
     }
 
     socket->status = socket_send;
     if(socket->req->req_cb) {
-        socket->req->req_cb(uv_http_ok, (request_t*)socket->req);
+        socket->req->req_cb((request_t*)socket->req, uv_http_ok);
         return;
     }
 }
@@ -76,7 +77,7 @@ void send_socket(socket_t* socket) {
     if (ret) {  
         fprintf(stderr, "uv_write error %s-%s\n", uv_err_name(ret), uv_strerror(ret)); 
         if(socket->req->req_cb) {
-            socket->req->req_cb(uv_http_err_connect, (request_t*)socket->req);
+            socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
     }  
 }
@@ -88,7 +89,7 @@ void connect_cb(uv_connect_t* conn, int status){
     if(status < 0) {
         fprintf(stderr, "uv_connect_cb error %s-%s\n", uv_err_name(status), uv_strerror(status)); 
         if(socket->req->req_cb) {
-            socket->req->req_cb(uv_http_err_connect, (request_t*)socket->req);
+            socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
         return;
     }
@@ -100,7 +101,7 @@ void connect_cb(uv_connect_t* conn, int status){
     if (iret) {
         fprintf(stderr, "tcp receive failed:%s-%s", uv_err_name(iret), uv_strerror(iret)); 
         if(socket->req->req_cb) {
-            socket->req->req_cb(uv_http_err_connect, (request_t*)socket->req);
+            socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
         return;
     }
@@ -133,7 +134,7 @@ void socket_run(socket_t* socket) {
         if(ret < 0) {
             fprintf(stderr, "uv_tcp_connect error %s-%s\n", uv_err_name(ret),uv_strerror(ret)); 
             if(socket->req->req_cb) {
-                socket->req->req_cb(uv_http_err_connect, (request_t*)socket->req);
+                socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
             }
         }
     } else {

@@ -4,7 +4,7 @@
 
 
 /** 检测连接超时的定时器 */
-void uv_timer_cb(uv_timer_t* handle) {
+static void timer_cb(uv_timer_t* handle) {
 
 }
 
@@ -18,7 +18,7 @@ void agents_init(http_t* h) {
     map_init_ex(h->agents, string_map_compare);
     int ret = uv_timer_init(h->uv, &h->timeout_timer);
 	h->timeout_timer.data = h;
-    ret = uv_timer_start(&h->timeout_timer, uv_timer_cb, 10000, 10000);
+    ret = uv_timer_start(&h->timeout_timer, timer_cb, 10000, 10000);
 }
 
 /** 模块销毁 */
@@ -82,6 +82,7 @@ int agents_request(request_p_t* req) {
     } else {
         //从空闲请求中取出一个来处理请求
     }
+	return uv_http_ok;
 }
 
 extern void destory_request(request_p_t* req);
