@@ -14,9 +14,10 @@ void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_
 
 /** 模块初始化 */
 void agents_init(http_t* h) {
+    int ret;
     h->agents = create_map(void*, void*); //map<string_t*, agent_t*>
     map_init_ex(h->agents, string_map_compare);
-    int ret = uv_timer_init(h->uv, &h->timeout_timer);
+    ret = uv_timer_init(h->uv, &h->timeout_timer);
 	h->timeout_timer.data = h;
     ret = uv_timer_start(&h->timeout_timer, timer_cb, 10000, 10000);
 }
@@ -31,6 +32,7 @@ void agents_destory(http_t* h) {
 agent_t* get_agent(http_t* h, string_t* addr) {
     map_iterator_t it_pos = map_find(h->agents, addr);
     if(iterator_equal(it_pos, map_end(h->agents))) {
+        pair_t* pt_pair;
         agent_t* new_agent = (agent_t*)malloc(sizeof(agent_t));
         memset(new_agent, 0, sizeof(agent_t));
         new_agent->handle = h;
@@ -41,7 +43,7 @@ agent_t* get_agent(http_t* h, string_t* addr) {
         new_agent->free_sockets = create_set(void*); //set<socket_t*>
         set_init(new_agent->free_sockets);
         new_agent->keep_alive = true;
-        pair_t* pt_pair = create_pair(void*, void*); //pair<string_t*, agent_t*>
+        pt_pair = create_pair(void*, void*); //pair<string_t*, agent_t*>
         pair_init_elem(pt_pair, addr, new_agent);
         map_insert(h->agents, pt_pair);
         pair_destroy(pt_pair);
@@ -55,17 +57,19 @@ agent_t* get_agent(http_t* h, string_t* addr) {
 
 /** 在agent中创建一个请求 */
 int agents_request(request_p_t* req) {
+    agent_t* agent;
+    int sockets_num;
 	//首先需要创建或获取一个agent
 	string_t* addr = create_string();
 	string_init(addr);
 	string_connect(addr, req->str_addr);
 	string_connect_char(addr, ':');
 	string_connect(addr, req->str_port);
-	agent_t* agent = get_agent(req->handle, addr);
+	agent = get_agent(req->handle, addr);
 	string_destroy(addr);
 
 	//创建或者获取一个已经存在连接，如果连接数达到最大值则需要将请求放到队列中
-    int sockets_num = set_size(agent->sockets);
+    sockets_num = set_size(agent->sockets);
     if (sockets_num >= agent->handle->conf.max_sockets){
         //将请求放到队列中
 		if (agent->requests == NULL) {
@@ -88,10 +92,12 @@ int agents_request(request_p_t* req) {
 extern void destory_request(request_p_t* req);
 /** 将socket实例从socket列表中移到freesocket */
 void agent_free_socket(socket_t* socket) {
+    agent_t* agent;
+    int e_num,free_sockets_num;
     destory_request(socket->req);
-    agent_t* agent = (agent_t*)socket->agent;
-    int e_num = set_erase(agent->sockets, socket);
-    int free_sockets_num = set_size(agent->free_sockets);
+    agent = (agent_t*)socket->agent;
+    e_num = set_erase(agent->sockets, socket);
+    free_sockets_num = set_size(agent->free_sockets);
     if (free_sockets_num >= agent->handle->conf.max_free_sockets){
     } else {
         set_insert(agent->sockets, socket);
@@ -99,6 +105,7 @@ void agent_free_socket(socket_t* socket) {
 }
 
 void agent_destory_socket(socket_t* socket) {
+    agent_t* agent;
 	destory_request(socket->req);
-	agent_t* agent = (agent_t*)socket->agent;
+	agent = (agent_t*)socket->agent;
 }

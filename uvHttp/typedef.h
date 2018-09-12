@@ -7,7 +7,6 @@ extern "C" {
 
 #include "cstl.h"
 #include "uv.h"
-#include "stdbool.h"
 
 #define SOCKET_RECV_BUFF_LEN 1024*1024
 
@@ -17,8 +16,8 @@ typedef struct _http_ {
     map_t*      agents;
 	uv_loop_t*  uv;
     uv_timer_t  timeout_timer;
-	bool        inner_uv;
-	bool        is_run;
+	bool_t      inner_uv;
+	bool_t      is_run;
 }http_t;
 
 typedef struct _response_p_ response_p_t;
@@ -72,7 +71,7 @@ typedef struct _agent_
     set_t*      sockets;		//工作中的连接
     set_t*      free_sockets;   //空闲可用连接
 	list_t*     requests;       //任务链表
-    bool        keep_alive;
+    bool_t      keep_alive;
 }agent_t;
 
 /** tcp连接状态 */
