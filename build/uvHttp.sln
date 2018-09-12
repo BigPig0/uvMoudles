@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttp", "uvHttp.vcxproj", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttpPlus", "uvHttpPlus.vcxproj", "{CFD8F643-6C2D-4EC3-8902-9A3953183C14}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttpClient", "uvHttpClient.vcxproj", "{AA9EE558-144B-4AB4-8068-A16D709431D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{CFD8F643-6C2D-4EC3-8902-9A3953183C14}.Debug|Win32.Build.0 = Debug|Win32
 		{CFD8F643-6C2D-4EC3-8902-9A3953183C14}.Release|Win32.ActiveCfg = Release|Win32
 		{CFD8F643-6C2D-4EC3-8902-9A3953183C14}.Release|Win32.Build.0 = Release|Win32
+		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Debug|Win32.Build.0 = Debug|Win32
+		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Release|Win32.ActiveCfg = Release|Win32
+		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
