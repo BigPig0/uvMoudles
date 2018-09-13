@@ -28,6 +28,7 @@ class CRequest
 {
     friend class CHttpPlus;
 public:
+    CRequest();
     ~CRequest();
     void SetMethod(HTTP_METHOD eMethod);
     void SetURL(string strURL);
@@ -46,7 +47,6 @@ public:
     void ResponseCB(request_t* req, int code);
 
 private:
-    CRequest();
     request_t*         m_pReq;
     string             m_strUrl;
     string             m_strHost;

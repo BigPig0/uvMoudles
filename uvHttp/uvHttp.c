@@ -71,7 +71,7 @@ DWORD WINAPI inner_uv_loop_thread(LPVOID lpParam)
 	free(h);
 	return 0;
 }
-void run_loop_thread(LPTHREAD_START_ROUTINE lpStartAddress, http_t* h)
+void run_loop_thread(http_t* h)
 {
     DWORD threadID = 0;
     HANDLE th = CreateThread(NULL, 0, inner_uv_loop_thread, (LPVOID)h, 0, &threadID);
@@ -91,7 +91,7 @@ http_t* uvHttp(config_t cof, void* uv) {
 		uv_loop_init(h->uv);
 		h->inner_uv = true;
 #ifdef WIN32
-		run_loop_thread(inner_uv_loop_thread, h);
+		run_loop_thread(h);
 #endif
 	}
     agents_init(h);

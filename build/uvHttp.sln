@@ -2,10 +2,25 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttp", "uvHttp.vcxproj", "{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A} = {49A2A162-E5B1-46E9-BF47-CF66A728661A}
+		{6197738F-BB03-47B6-8685-677BC2C346BC} = {6197738F-BB03-47B6-8685-677BC2C346BC}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttpPlus", "uvHttpPlus.vcxproj", "{CFD8F643-6C2D-4EC3-8902-9A3953183C14}"
+	ProjectSection(ProjectDependencies) = postProject
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A} = {49A2A162-E5B1-46E9-BF47-CF66A728661A}
+		{6197738F-BB03-47B6-8685-677BC2C346BC} = {6197738F-BB03-47B6-8685-677BC2C346BC}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvHttpClient", "uvHttpClient.vcxproj", "{AA9EE558-144B-4AB4-8068-A16D709431D0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CFD8F643-6C2D-4EC3-8902-9A3953183C14} = {CFD8F643-6C2D-4EC3-8902-9A3953183C14}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcstl", "libcstl.vcxproj", "{49A2A162-E5B1-46E9-BF47-CF66A728661A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libuv", "libuv.vcxproj", "{6197738F-BB03-47B6-8685-677BC2C346BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,6 +40,14 @@ Global
 		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Debug|Win32.Build.0 = Debug|Win32
 		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Release|Win32.ActiveCfg = Release|Win32
 		{AA9EE558-144B-4AB4-8068-A16D709431D0}.Release|Win32.Build.0 = Release|Win32
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A}.Debug|Win32.Build.0 = Debug|Win32
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A}.Release|Win32.ActiveCfg = Release|Win32
+		{49A2A162-E5B1-46E9-BF47-CF66A728661A}.Release|Win32.Build.0 = Release|Win32
+		{6197738F-BB03-47B6-8685-677BC2C346BC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6197738F-BB03-47B6-8685-677BC2C346BC}.Debug|Win32.Build.0 = Debug|Win32
+		{6197738F-BB03-47B6-8685-677BC2C346BC}.Release|Win32.ActiveCfg = Release|Win32
+		{6197738F-BB03-47B6-8685-677BC2C346BC}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
