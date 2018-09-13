@@ -30,7 +30,7 @@
     <ClCompile Include="..\uvHttp\socket.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttpPlus\uvHttpPlus.cpp">
+    <ClCompile Include="..\uvHttp\uvHttpPlus.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,7 +44,7 @@
     <ClInclude Include="..\uvHttp\public_type.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttpPlus\uvHttpPlus.h">
+    <ClInclude Include="..\uvHttp\uvHttpPlus.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
