@@ -82,6 +82,7 @@ void run_loop_thread(http_t* h)
 http_t* uvHttp(config_t cof, void* uv) {
     http_t* h = (http_t*)malloc(sizeof(http_t));
     h->conf = cof;
+	uv_mutex_init(&h->uv_mutex_h);
 	h->is_run = true;
 	if (uv != NULL) {
 		h->uv = (uv_loop_t*)uv;
@@ -100,6 +101,7 @@ http_t* uvHttp(config_t cof, void* uv) {
 
 void uvHttpClose(http_t* h) {
 	agents_destory(h);
+	uv_mutex_destroy(&h->uv_mutex_h);
 	if (h->inner_uv == true) {
 		h->is_run = false;
 		uv_stop(h->uv);
@@ -118,6 +120,7 @@ request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, r
     req->req_cb = req_cb;
     req->res_data = res_data;
     req->res_cb = res_cb;
+	uv_mutex_init(&req->uv_mutex_h);
 
 	return (request_t*)req;
 }
@@ -126,20 +129,24 @@ void add_req_header(request_t* req, const char* key, const char* value) {
     string_t* str_key;
     map_iterator_t it_pos;
 	request_p_t* req_p = (request_p_t*)req;
+	uv_mutex_lock(&req_p->uv_mutex_h);
 	if (!fieldcmp("Content-Length", key)) {
 		req_p->content_length = atoi(value);
+		uv_mutex_unlock(&req_p->uv_mutex_h);
 		return;
 	}
 	if (!fieldcmp("Connection", key)) {
 		if (!fieldcmp("Close", value)) {
 			req_p->keep_alive = 0;
 		}
+		uv_mutex_unlock(&req_p->uv_mutex_h);
 		return;
 	}
 	if (!fieldcmp("Transfer-Encoding", key)) {
 		if (!fieldcmp("chunked", value)) {
 			req_p->chunked = 1;
 		}
+		uv_mutex_unlock(&req_p->uv_mutex_h);
 		return;
 	}
 	if (req_p->headers == NULL) {
@@ -167,10 +174,12 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 		string_copy(str_value, (char*)value, strlen(value), 0);
 		string_destroy(str_key);
 	}
+	uv_mutex_unlock(&req_p->uv_mutex_h);
 }
 
 int add_req_body(request_t* req, const char* data, int len) {
 	request_p_t* req_p = (request_p_t*)req;
+	uv_mutex_lock(&req_p->uv_mutex_h);
 	membuff_t buf;
 	buf.data = (unsigned char*)data;
 	buf.len = len;
@@ -180,41 +189,53 @@ int add_req_body(request_t* req, const char* data, int len) {
 	} else {
 		list_push_back(req_p->body, buf);
 	}
+	uv_mutex_unlock(&req_p->uv_mutex_h);
 	return uv_http_ok;
 }
 
 int get_res_header_count(response_t* res) {
 	response_p_t* res_p = (response_p_t*)res;
-	return map_size(res_p->headers);
+	uv_mutex_lock(&res_p->uv_mutex_h);
+	int ret = map_size(res_p->headers);
+	uv_mutex_unlock(&res_p->uv_mutex_h);
+	return ret;
 }
 
 char* get_res_header_name(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
+	uv_mutex_lock(&res_p->uv_mutex_h);
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
 	string_t* str_name = *(string_t**)pair_first(pt_pair);
+	uv_mutex_unlock(&res_p->uv_mutex_h);
 	return (char*)string_c_str(str_name);
 }
 
 char* get_res_header_value(response_t* res, int i) {
 	response_p_t* res_p = (response_p_t*)res;
+	uv_mutex_lock(&res_p->uv_mutex_h);
 	pair_t* pt_pair = (pair_t*)map_at(res_p->headers, i);
 	string_t* str_value = *(string_t**)pair_second(pt_pair);
+	uv_mutex_unlock(&res_p->uv_mutex_h);
 	return (char*)string_c_str(str_value);
 }
 
 char* get_res_header(response_t* res, const char* key) {
 	response_p_t* res_p = (response_p_t*)res;
+	uv_mutex_lock(&res_p->uv_mutex_h);
 	string_t* str_key = create_string();
     map_iterator_t it_pos;
 	string_init_cstr(str_key, key);
 	it_pos = map_find(res_p->headers, str_key);
 	if (iterator_equal(it_pos, map_end(res_p->headers))) {
+		uv_mutex_unlock(&res_p->uv_mutex_h);
 		return NULL;
 	} else {
 		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
 		string_t* str_value = *(string_t**)pair_second(pt_pair);
+		uv_mutex_unlock(&res_p->uv_mutex_h);
 		return (char*)string_c_str(str_value);
 	}
+	uv_mutex_unlock(&res_p->uv_mutex_h);
 }
 
 static const char* http_method[] = {
@@ -253,23 +274,26 @@ static void generic_header(request_p_t* req) {
 		string_connect_cstr(req->str_header, "\r\n");
 	}
 
-	it = map_begin(req->headers);
-	end = map_end(req->headers);
-	for (; iterator_not_equal(it, end); it = iterator_next(it))
-	{
-		pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
-		string_t* name = *(string_t**)pair_first(pt_pair);
-		string_t* value = *(string_t**)pair_second(pt_pair);
-		string_connect_cstr(req->str_header, string_c_str(name));
-		string_connect_cstr(req->str_header, ": ");
-		string_connect_cstr(req->str_header, string_c_str(value));
-		string_connect_cstr(req->str_header, "\r\n");
+	if (req->headers != NULL) {
+		it = map_begin(req->headers);
+		end = map_end(req->headers);
+		for (; iterator_not_equal(it, end); it = iterator_next(it))
+		{
+			pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
+			string_t* name = *(string_t**)pair_first(pt_pair);
+			string_t* value = *(string_t**)pair_second(pt_pair);
+			string_connect_cstr(req->str_header, string_c_str(name));
+			string_connect_cstr(req->str_header, ": ");
+			string_connect_cstr(req->str_header, string_c_str(value));
+			string_connect_cstr(req->str_header, "\r\n");
+		}
 	}
 	string_connect_cstr(req->str_header, "\r\n");
 }
 
 static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
 	request_p_t* req_p = (request_p_t*)resolver->data;
+	uv_mutex_lock(&req_p->uv_mutex_h);
 	char addr[17] = { '\0' };
     int err;
 	free(resolver);
@@ -293,17 +317,18 @@ static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo 
 	string_connect_cstr(req_p->str_addr, addr);
 
 	uv_freeaddrinfo(res);
-	free(res);
 
 	generic_header(req_p);
     err = agents_request(req_p);
 	if(uv_http_ok != err && req_p->req_cb) {
         req_p->req_cb((request_t*)req_p, err);
     }
+	uv_mutex_unlock(&req_p->uv_mutex_h);
 }
 
 int request(request_t* req) {
 	request_p_t* req_p = (request_p_t*)req;
+	uv_mutex_lock(&req_p->uv_mutex_h);
     size_t pos,addr_begin,path_begin,port_begin;
     uv_getaddrinfo_t* resolver;
     struct addrinfo *hints;
@@ -363,11 +388,13 @@ int request(request_t* req) {
 	if (r < 0) {
         free(resolver);
         free(hints);
+		uv_mutex_unlock(&req_p->uv_mutex_h);
 		return uv_http_err_dns_parse;
 	}
 
 	//后续操作在dns解析的回调中执行
-    return 0;
+	uv_mutex_unlock(&req_p->uv_mutex_h);
+    return uv_http_ok;
 }
 
 int request_write(request_t* req, char* data, int len) {
@@ -406,6 +433,7 @@ void destory_request(request_p_t* req) {
         free(res);
     }
 
+	uv_mutex_lock(&req->uv_mutex_h);
     string_destroy(req->str_host);
     string_destroy(req->str_addr);
     string_destroy(req->str_port);
@@ -427,7 +455,10 @@ void destory_request(request_p_t* req) {
         map_destroy(req->headers);
     }
 
-    list_destroy(req->body); //body内容由外部自己管理
+	if(req->body)
+		list_destroy(req->body); //body内容由外部自己管理
 
+	uv_mutex_unlock(&req->uv_mutex_h);
+	uv_mutex_destroy(&req->uv_mutex_h);
     free(req);
 }

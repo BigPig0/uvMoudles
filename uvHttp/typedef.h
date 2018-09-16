@@ -18,6 +18,7 @@ typedef struct _http_ {
     uv_timer_t  timeout_timer;
 	bool_t      inner_uv;
 	bool_t      is_run;
+	uv_mutex_t  uv_mutex_h;
 }http_t;
 
 typedef struct _response_p_ response_p_t;
@@ -41,6 +42,7 @@ typedef struct _request_p_ {
     http_t*        handle;
     map_t*         headers;     //用户填写的http头 map<string,string>
 	list_t*        body;        //用户填写的http内容体 list<membuff>
+	uv_mutex_t     uv_mutex_h;
 
 	request_cb     req_cb;
 	response_data  res_data; 
@@ -61,6 +63,7 @@ typedef struct _response_p_ {
 	int           parsed_headers; //0未解析头，1已经解析头
 	int           recived_length; //接收的内容长度；接收的该chunk的长度
 	string_t*     chunk_left;     //一次接收的缓冲区末尾chunk长度没有结束时的内容
+	uv_mutex_t    uv_mutex_h;
 }response_p_t;
 
 /** 客户端数据结构 */
@@ -72,6 +75,7 @@ typedef struct _agent_
     set_t*      free_sockets;   //空闲可用连接
 	list_t*     requests;       //任务链表
     bool_t      keep_alive;
+	uv_mutex_t  uv_mutex_h;
 }agent_t;
 
 /** tcp连接状态 */
@@ -96,7 +100,7 @@ typedef struct _socket_
     uv_tcp_t        uv_tcp_h;
     uv_connect_t    uv_connect_h;  
 	uv_write_t      uv_write_h;
-	uv_mutex_t      uv_mutex_t;
+	uv_mutex_t      uv_mutex_h;
 
 	char            buff[SOCKET_RECV_BUFF_LEN];
 }socket_t;

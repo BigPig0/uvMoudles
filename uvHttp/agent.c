@@ -1,6 +1,9 @@
-//#include "uvHttp.h"
 #include "public_type.h"
 #include "typedef.h"
+
+extern socket_t* create_socket(agent_t* agent);
+extern void socket_run(socket_t* socket);
+extern void destory_request(request_p_t* req);
 
 
 /** 检测连接超时的定时器 */
@@ -55,7 +58,7 @@ agent_t* get_agent(http_t* h, string_t* addr) {
     }
 }
 
-/** 在agent中创建一个请求 */
+/** 在agent中发送一个请求 */
 int agents_request(request_p_t* req) {
     agent_t* agent;
     int sockets_num;
@@ -80,16 +83,22 @@ int agents_request(request_p_t* req) {
 		}
     } else if (agent->free_sockets == NULL || set_empty(agent->free_sockets)) {
         //新建一个连接来处理请求
-		socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
-        socket->agent = agent;
-        socket->req = req;
+		socket_t* socket = create_socket(agent);
+		socket->req = req;
+		socket_run(socket);
+		set_insert(agent->sockets, socket);
     } else {
         //从空闲请求中取出一个来处理请求
+		set_iterator_t it_socket = set_begin(agent->free_sockets);
+		socket_t* socket = (socket_t*)iterator_get_pointer(it_socket);
+		set_erase(agent->free_sockets, it_socket);
+		socket->req = req;
+		socket_run(socket);
+		set_insert(agent->sockets, socket);
     }
 	return uv_http_ok;
 }
 
-extern void destory_request(request_p_t* req);
 /** 将socket实例从socket列表中移到freesocket */
 void agent_free_socket(socket_t* socket) {
     agent_t* agent;
