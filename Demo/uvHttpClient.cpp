@@ -28,7 +28,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cof.max_sockets = 10;
 	cof.max_free_sockets = 10;
 	CHttpPlus* http = new CHttpPlus(cof, nullptr);
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		CRequest* req = http->CreatRequest(request_cb_h, response_data_h, response_cb_h);
 		req->SetURL("http://www.baidu.com");

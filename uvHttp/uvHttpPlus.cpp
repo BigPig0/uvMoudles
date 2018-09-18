@@ -127,8 +127,8 @@ CHttpPlus::~CHttpPlus()
 
 CRequest* CHttpPlus::CreatRequest(request_cb_plus req_cb, response_data_plus res_data, response_cb_plus res_cb)
 {
-    request_t* req = creat_request(m_pHadle, plus_request_cb, plus_response_data, pluse_response_cb);
     CRequest* pRequest = new CRequest();
+    request_t* req = creat_request(m_pHadle, plus_request_cb, plus_response_data, pluse_response_cb);
     req->user_data = pRequest;
     pRequest->m_pReq = req;
     pRequest->m_funReqCb = req_cb;
