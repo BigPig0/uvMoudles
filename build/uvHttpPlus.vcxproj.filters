@@ -27,24 +27,33 @@
     <ClCompile Include="..\uvHttp\agent.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\socket.cpp">
+    <ClCompile Include="..\uvHttp\uvHttpPlus.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\uvHttpPlus.cpp">
+    <ClCompile Include="..\uvHttp\socket.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uvHttp\dns.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uvHttp\request.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\uvHttp\response.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvHttp\typedef.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\uvHttp\uvHttp.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttp\public_type.h">
+    <ClInclude Include="..\uvHttp\uvHttpPlus.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttp\uvHttpPlus.h">
+    <ClInclude Include="..\uvHttp\private_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uvHttp\public_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

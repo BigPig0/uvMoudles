@@ -84,14 +84,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\uvHttp\agent.c" />
+    <ClCompile Include="..\uvHttp\dns.c" />
     <ClCompile Include="..\uvHttp\error.c" />
-    <ClCompile Include="..\uvHttp\socket.cpp" />
+    <ClCompile Include="..\uvHttp\request.c" />
+    <ClCompile Include="..\uvHttp\response.c" />
+    <ClCompile Include="..\uvHttp\socket.c" />
     <ClCompile Include="..\uvHttp\uvHttp.c" />
     <ClCompile Include="..\uvHttp\uvHttpPlus.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvHttp\public_type.h" />
-    <ClInclude Include="..\uvHttp\typedef.h" />
+    <ClInclude Include="..\uvHttp\private_def.h" />
+    <ClInclude Include="..\uvHttp\public_def.h" />
     <ClInclude Include="..\uvHttp\uvHttp.h" />
     <ClInclude Include="..\uvHttp\uvHttpPlus.h" />
   </ItemGroup>

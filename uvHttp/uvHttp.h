@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "public_type.h"
+#include "public_def.h"
 
 /** 根据错误码获取详细的错误信息 */
 extern const char* uvhttp_err_msg(int err);

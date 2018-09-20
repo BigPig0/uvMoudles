@@ -1,9 +1,7 @@
-#include "public_type.h"
-#include "typedef.h"
+#include "public_def.h"
+#include "private_def.h"
 
-extern socket_t* create_socket(agent_t* agent);
-extern void socket_run(socket_t* socket);
-extern void destory_request(request_p_t* req);
+
 
 
 /** 检测连接超时的定时器 */
@@ -12,7 +10,11 @@ static void timer_cb(uv_timer_t* handle) {
 }
 
 void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_output) {
-    *(bool_t*)pv_output = string_less(*(const string_t**)cpv_first, *(const string_t**)cpv_second) ? true : false;
+    *(bool_t*)pv_output = string_less(*(const string_t**)cpv_first, *(const string_t**)cpv_second) /*? true : false*/;
+    //const string_t* cpstr_first = *(const string_t**)cpv_first;
+    //const string_t* cpstr_second = *(const string_t**)cpv_second;
+    //bool_t ret = string_less(cpstr_first, cpstr_second);
+    //*(bool_t*)pv_output = ret;
 }
 
 /** 模块初始化 */
@@ -54,6 +56,7 @@ agent_t* get_agent(http_t* h, string_t* addr) {
     } else {
         pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
         agent_t* agent = *(agent_t**)pair_second(pt_pair);
+        string_destroy(addr);
         return agent;
     }
 }
@@ -63,13 +66,13 @@ int agents_request(request_p_t* req) {
     agent_t* agent;
     int sockets_num;
 	//首先需要创建或获取一个agent
-	string_t* addr = create_string();
+	string_t* addr = create_string();   //地址在map释放时释放
 	string_init(addr);
 	string_connect(addr, req->str_addr);
 	string_connect_char(addr, ':');
 	string_connect(addr, req->str_port);
 	agent = get_agent(req->handle, addr);
-	string_destroy(addr);
+	//string_destroy(addr);
 
 	//创建或者获取一个已经存在连接，如果连接数达到最大值则需要将请求放到队列中
     sockets_num = set_size(agent->sockets);

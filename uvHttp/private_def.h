@@ -62,8 +62,8 @@ typedef struct _response_p_ {
 
 	int           parsed_headers; //0未解析头，1已经解析头
 	int           recived_length; //接收的内容长度；接收的该chunk的长度
-	string_t*     chunk_left;     //一次接收的缓冲区末尾chunk长度没有结束时的内容
-	uv_mutex_t    uv_mutex_h;
+	//string_t*     chunk_left;     //一次接收的缓冲区末尾chunk长度没有结束时的内容
+	//uv_mutex_t    uv_mutex_h;
 }response_p_t;
 
 /** 客户端数据结构 */
@@ -120,6 +120,33 @@ typedef enum _err_code_
 	uv_http_err_dns_parse,
     uv_http_err_connect
 }err_code_t;
+
+
+
+#ifdef WIN32
+#define fieldcmp _stricmp
+#else
+#include <strings.h>
+#define fieldcmp strcasecmp
+#endif
+
+extern void agents_init(http_t* h);
+extern void agents_destory(http_t* h);
+
+extern int agents_request(request_p_t* req);
+extern void destory_request(request_p_t* req);
+extern void generic_request_header(request_p_t* req);
+extern int parse_dns(request_p_t* req);
+
+extern socket_t* create_socket(agent_t* agent);
+extern void agent_free_socket(socket_t* socket);
+extern void destory_socket(socket_t* socket);
+extern void socket_run(socket_t* socket);
+
+extern response_p_t* create_response(request_p_t* req);
+extern void destory_response(response_p_t* res);
+extern void recive_response(response_p_t* res, char* data, int len);
+extern void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_output);
 
 #ifdef __cplusplus
 }

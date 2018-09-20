@@ -1,8 +1,8 @@
-#include "public_type.h"
-#include "typedef.h"
+#include "public_def.h"
+#include "private_def.h"
 
 request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
-	request_p_t* req = (request_p_t*)malloc(sizeof(request_t));
+	request_p_t* req = (request_p_t*)malloc(sizeof(request_p_t));
 	memset(req, 0, sizeof(request_p_t));
 	req->keep_alive = 1;
 	req->handle = h;
@@ -69,8 +69,8 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 
 int add_req_body(request_t* req, const char* data, int len) {
 	request_p_t* req_p = (request_p_t*)req;
-	uv_mutex_lock(&req_p->uv_mutex_h);
 	membuff_t buf;
+	uv_mutex_lock(&req_p->uv_mutex_h);
 	buf.data = (unsigned char*)data;
 	buf.len = len;
 	if (req_p->body == NULL) {
@@ -86,13 +86,14 @@ int add_req_body(request_t* req, const char* data, int len) {
 
 int request(request_t* req) {
 	request_p_t* req_p = (request_p_t*)req;
-	uv_mutex_lock(&req_p->uv_mutex_h);
+    string_t* str_url;
 	size_t pos, addr_begin, path_begin, port_begin;
-	uv_getaddrinfo_t* resolver;
-	struct addrinfo *hints;
-	int r;
+    int ret = uv_http_ok;
+	
+    uv_mutex_lock(&req_p->uv_mutex_h);
+    do {
 	//解析url
-	string_t* str_url = create_string();
+	str_url = create_string();
 	string_init_cstr(str_url, req_p->url);
 	pos = string_find_cstr(str_url, "://", 0);
 	if (pos == NPOS) {
@@ -101,62 +102,50 @@ int request(request_t* req) {
 	}
 	else {
 		if (0 != string_compare_substring_cstr(str_url, 0, 7, "http://")) {
-			return uv_http_err_protocol;
+			ret = uv_http_err_protocol;
+            break;
 		}
 		addr_begin = 7;
 	}
-	path_begin = string_find_char(str_url, '/', addr_begin);
-	req_p->str_host = create_string();
+
+    //得到请求的路径
 	req_p->str_path = create_string();
-	if (path_begin == NPOS) {
-		//未填写path，默认根目录
-		if (req_p->host == NULL) {
-			//未填写host
-			string_init_copy_substring(req_p->str_host, str_url, addr_begin, path_begin - addr_begin);
-		}
-		else {
-			//指定host
-			string_init_cstr(req_p->str_host, req_p->host);
-		}
+	path_begin = string_find_char(str_url, '/', addr_begin);
+	if (path_begin == NPOS) { //未填写path，默认根目录
+        path_begin = string_size(str_url);
 		string_init_cstr(req_p->str_path, "/");
-	}
-	else {
+	} else { //填写了path
 		string_init_copy_substring(req_p->str_path, str_url, path_begin, string_size(str_url) - path_begin);
 	}
+
+    //得到请求指向的host
+    req_p->str_host = create_string();
+    if (req_p->host == NULL) {  //未填写host
+        string_init_copy_substring(req_p->str_host, str_url, addr_begin, path_begin - addr_begin);
+    } else { //指定host
+        string_init_cstr(req_p->str_host, req_p->host);
+    }
 	string_destroy(str_url);
 
 	//解析出host中的域名地址和端口
 	req_p->str_addr = create_string();
 	req_p->str_port = create_string();
 	port_begin = string_find_char(req_p->str_host, ':', 0);
-	if (port_begin == NPOS) {
-		//默认端口
+	if (port_begin == NPOS) { //默认端口
 		string_init_copy(req_p->str_addr, req_p->str_host);
 		string_init_cstr(req_p->str_port, "80");
-	}
-	else {
+	} else { //指定端口
 		string_init_copy_substring(req_p->str_addr, req_p->str_host, 0, port_begin);
 		string_init_copy_substring(req_p->str_port, req_p->str_host, port_begin + 1, string_size(req_p->str_host) - port_begin - 1);
 	}
 
-	resolver = (uv_getaddrinfo_t*)malloc(sizeof(uv_getaddrinfo_t));
-	resolver->data = req_p;
-	hints = (struct addrinfo *)malloc(sizeof(struct addrinfo));
-	hints->ai_family = PF_INET;
-	hints->ai_socktype = SOCK_STREAM;
-	hints->ai_protocol = IPPROTO_TCP;
-	hints->ai_flags = 0;
-	r = uv_getaddrinfo(req_p->handle->uv, resolver, on_resolved, string_c_str(req_p->str_addr), string_c_str(req_p->str_port), hints);
-	if (r < 0) {
-		free(resolver);
-		free(hints);
-		uv_mutex_unlock(&req_p->uv_mutex_h);
-		return uv_http_err_dns_parse;
-	}
+    //域名解析为ip地址
+	ret = parse_dns(req_p);
+    } while (0);
 
 	//后续操作在dns解析的回调中执行
 	uv_mutex_unlock(&req_p->uv_mutex_h);
-	return uv_http_ok;
+	return ret;
 }
 
 int request_write(request_t* req, char* data, int len) {
@@ -164,24 +153,8 @@ int request_write(request_t* req, char* data, int len) {
 }
 
 void destory_request(request_p_t* req) {
-	response_p_t*  res = req->res;
-	if (NULL != res) {
-		if (NULL != res->headers) {
-			map_iterator_t it = map_begin(res->headers);
-			map_iterator_t end = map_end(res->headers);
-			for (; iterator_not_equal(it, end); it = iterator_next(it))
-			{
-				pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
-				string_t* key = *(string_t**)pair_first(pt_pair);
-				string_t* value = *(string_t**)pair_second(pt_pair);
-				string_destroy(key);
-				string_destroy(value);
-			}
-			map_destroy(res->headers);
-		}
-
-		free(res);
-	}
+    destory_response(req->res);
+    req->res = NULL;
 
 	uv_mutex_lock(&req->uv_mutex_h);
 	string_destroy(req->str_host);
@@ -210,5 +183,60 @@ void destory_request(request_p_t* req) {
 
 	uv_mutex_unlock(&req->uv_mutex_h);
 	uv_mutex_destroy(&req->uv_mutex_h);
-	//free(req);
+	free(req);
 }
+
+
+static const char* http_method[] = {
+    "OPTIONS",
+    "HEAD",
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "TRACE",
+    "CONNECT"
+};
+
+void generic_request_header(request_p_t* req) {
+    map_iterator_t it,end;
+    req->str_header = create_string();
+    string_init(req->str_header);
+    string_connect_cstr(req->str_header, http_method[req->method]);
+    string_push_back(req->str_header, ' ');
+    string_connect(req->str_header, req->str_path);
+    string_connect_cstr(req->str_header, " HTTP/1.1\r\nHost: ");
+    string_connect(req->str_header, req->str_host);
+    string_connect_cstr(req->str_header, "\r\nConnection: ");
+    if (req->keep_alive) {
+        string_connect_cstr(req->str_header, "Keep-Alive\r\n");
+    } else {
+        string_connect_cstr(req->str_header, "Close\r\n");
+    }
+    if (req->chunked) {
+        string_connect_cstr(req->str_header, "Transfer-Encoding: Chunked\r\n");
+    } else {
+        char clen[20] = { 0 };
+        sprintf(clen, "%d", req->content_length);
+        string_connect_cstr(req->str_header, "Content-Length: ");
+        string_connect_cstr(req->str_header, clen);
+        string_connect_cstr(req->str_header, "\r\n");
+    }
+
+    if (req->headers != NULL) {
+        it = map_begin(req->headers);
+        end = map_end(req->headers);
+        for (; iterator_not_equal(it, end); it = iterator_next(it))
+        {
+            pair_t* pt_pair = (pair_t*)iterator_get_pointer(it);
+            string_t* name = *(string_t**)pair_first(pt_pair);
+            string_t* value = *(string_t**)pair_second(pt_pair);
+            string_connect_cstr(req->str_header, string_c_str(name));
+            string_connect_cstr(req->str_header, ": ");
+            string_connect_cstr(req->str_header, string_c_str(value));
+            string_connect_cstr(req->str_header, "\r\n");
+        }
+    }
+    string_connect_cstr(req->str_header, "\r\n");
+}
+
