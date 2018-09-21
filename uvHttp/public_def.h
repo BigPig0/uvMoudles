@@ -55,6 +55,16 @@ typedef void(*response_data)(request_t*, char*, int);
 /** 设置应答接收完成的处理 */
 typedef void(*response_cb)(request_t*, int);
 
+
+
+/** 根据错误码获取详细的错误信息 */
+extern const char* uvhttp_err_msg(int err);
+
+/** 公共的工具方法 */
+extern char* url_encode(char* src);
+extern char* url_decode(char* src);
+
+
 #ifdef __cplusplus
 }
 #endif

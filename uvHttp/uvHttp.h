@@ -7,13 +7,6 @@ extern "C" {
 
 #include "public_def.h"
 
-/** 根据错误码获取详细的错误信息 */
-extern const char* uvhttp_err_msg(int err);
-
-/** 公共的工具方法 */
-extern char* url_encode(char* src);
-extern char* url_decode(char* src);
-
 
 /**
  * 初始化http环境

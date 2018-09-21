@@ -25,7 +25,7 @@ static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo 
     string_clear(req_p->str_addr);
     string_connect_cstr(req_p->str_addr, addr);
 
-    err = agents_request(req_p);
+    err = agent_request(req_p);
     if(uv_http_ok != err && req_p->req_cb) {
         req_p->req_cb((request_t*)req_p, err);
     }

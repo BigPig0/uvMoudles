@@ -19,24 +19,22 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 	map_iterator_t it_pos;
 	request_p_t* req_p = (request_p_t*)req;
 	uv_mutex_lock(&req_p->uv_mutex_h);
+    do {
 	if (!fieldcmp("Content-Length", key)) {
 		req_p->content_length = atoi(value);
-		uv_mutex_unlock(&req_p->uv_mutex_h);
-		return;
+		break;
 	}
 	if (!fieldcmp("Connection", key)) {
 		if (!fieldcmp("Close", value)) {
 			req_p->keep_alive = 0;
 		}
-		uv_mutex_unlock(&req_p->uv_mutex_h);
-		return;
+		break;
 	}
 	if (!fieldcmp("Transfer-Encoding", key)) {
 		if (!fieldcmp("chunked", value)) {
 			req_p->chunked = 1;
 		}
-		uv_mutex_unlock(&req_p->uv_mutex_h);
-		return;
+		break;
 	}
 	if (req_p->headers == NULL) {
 		req_p->headers = create_map(void*, void*);
@@ -64,6 +62,7 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 		string_copy(str_value, (char*)value, strlen(value), 0);
 		string_destroy(str_key);
 	}
+    } while(0);
 	uv_mutex_unlock(&req_p->uv_mutex_h);
 }
 

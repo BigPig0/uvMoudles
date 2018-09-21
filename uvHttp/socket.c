@@ -6,7 +6,8 @@
 static void close_cb(uv_handle_t* handle) {
     socket_t* socket = (socket_t*)handle->data;
     socket->status = socket_closed;
-    destory_socket(socket);
+    uv_mutex_destroy(&socket->uv_mutex_h);
+    free(socket);
 }
 
 static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
@@ -18,15 +19,24 @@ static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 
 static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     socket_t* socket = (socket_t*)stream->data;
+    bool_t finish = false;
 	uv_mutex_lock(&socket->uv_mutex_h);
     if (nread < 0) {
+        int code;
         if (nread == UV_EOF) {
             fprintf(stderr, "server close this socket");
+            code = uv_http_err_remote_disconnect;
         } else {
-            fprintf(stderr, "read_cb error %s-%s\n", uv_err_name(nread), uv_strerror(nread)); 
+            fprintf(stderr, "read_cb error %s-%s\n", uv_err_name(nread), uv_strerror(nread));
+            code = uv_http_err_local_disconnect;
         }
-        uv_close((uv_handle_t*)stream, close_cb);
+
+        if(socket->req->res == NULL) {
+            socket->req->res = create_response(socket->req);
+        }
+        response_error(socket->req->res, code);
 		uv_mutex_unlock(&socket->uv_mutex_h);
+        agent_request_finish(false, socket);
         return;
     }
 	socket->status = socket_recv;
@@ -36,12 +46,15 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
         if(socket->req->res == NULL) {
             socket->req->res = create_response(socket->req);
         }
-		recive_response(socket->req->res, buf->base, nread);
-		//agent_free_socket(socket);
-	} else {
-
+		if(response_recive(socket->req->res, buf->base, nread)){
+            //接收完成，执行下一个请求或者移动到空闲队列
+            finish = true;
+        }
 	}
 	uv_mutex_unlock(&socket->uv_mutex_h);
+
+    if(finish)
+        agent_request_finish(true, socket);
 }
 
 /** 发送数据回调 */
@@ -170,8 +183,7 @@ void socket_run(socket_t* socket) {
 
 void destory_socket(socket_t* socket) {
     if (socket->status != socket_closed) {
+        //外部直接调用销毁，先进行关闭tcp句柄，在回调中释放
         uv_close((uv_handle_t*)&socket->uv_tcp_h, close_cb);
-    } else {
-        agent_free_socket(socket);
     }
 }

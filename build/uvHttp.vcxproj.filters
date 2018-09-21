@@ -39,6 +39,9 @@
     <ClCompile Include="..\uvHttp\response.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\uvHttp\memfile.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\uvHttp\uvHttp.h">
@@ -48,6 +51,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\uvHttp\private_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uvHttp\memfile.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

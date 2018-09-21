@@ -86,12 +86,14 @@
     <ClCompile Include="..\uvHttp\agent.c" />
     <ClCompile Include="..\uvHttp\dns.c" />
     <ClCompile Include="..\uvHttp\error.c" />
+    <ClCompile Include="..\uvHttp\memfile.c" />
     <ClCompile Include="..\uvHttp\request.c" />
     <ClCompile Include="..\uvHttp\response.c" />
     <ClCompile Include="..\uvHttp\socket.c" />
     <ClCompile Include="..\uvHttp\uvHttp.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\uvHttp\memfile.h" />
     <ClInclude Include="..\uvHttp\public_def.h" />
     <ClInclude Include="..\uvHttp\private_def.h" />
     <ClInclude Include="..\uvHttp\uvHttp.h" />
