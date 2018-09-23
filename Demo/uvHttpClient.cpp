@@ -8,7 +8,7 @@
 
 void request_cb_h(CRequest* req, int code)
 {
-    printf("request_cb_h: %d\r\n", code);
+    printf("request_cb_h: %d %s\r\n", code, uvhttp_err_msg(code));
 }
 
 void response_data_h(CRequest* req, char* data, int len)
@@ -18,18 +18,18 @@ void response_data_h(CRequest* req, char* data, int len)
 
 void response_cb_h(CRequest* req, int code)
 {
-    printf("response_cb_h: %d\r\n", code);
+    printf("response_cb_h: %d %s\r\n", code, uvhttp_err_msg(code));
 }
 
 string strUrl[] = {
-    "http://www.baidu.com",
-    "http://180.97.33.107/",
-    "http://180.97.33.108/",
-    "http://www.baidu.com/s?wd=qq",
-    "http://180.97.33.107/s?wd=qq",
-    "http://180.97.33.108/s?wd=qq",
-    "http://www.baidu.com/s?wd=ww",
-    "http://180.97.33.107/s?wd=ww",
+    //"http://www.baidu.com",
+    //"http://180.97.33.107/",
+    //"http://180.97.33.108/",
+    //"http://www.baidu.com/s?wd=qq",
+    //"http://180.97.33.107/s?wd=qq",
+    //"http://180.97.33.108/s?wd=qq",
+    //"http://www.baidu.com/s?wd=ww",
+    //"http://180.97.33.107/s?wd=ww",
     "http://180.97.33.108/s?wd=ww",
 };
 
@@ -43,11 +43,14 @@ int _tmain(int argc, _TCHAR* argv[])
 	for (int i = 0; i < 100; ++i)
 	{
 		CRequest* req = http->CreatRequest(request_cb_h, response_data_h, response_cb_h);
-		req->SetURL(strUrl[i%(sizeof(strUrl)/sizeof(string))]);
+        string url = strUrl[i % (sizeof(strUrl) / sizeof(string))];
+        char num[5] = { 0 };
+        sprintf_s(num, 4, "%d", i);
+		req->SetURL(url+num);
 		req->SetMethod(HTTP_METHOD::METHOD_GET);
 		req->SetContentLength(0);
 		req->Request();
-        //Sleep(1000);
+        Sleep(3000);
 	}
 	Sleep(INFINITE);
 	return 0;

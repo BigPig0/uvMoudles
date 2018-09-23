@@ -4,6 +4,7 @@ const char* _err_message_[] = {
 	"It's not http protocol",
 	"Failed parse the dns",
     "Cannot connect",
+    "Send request failed",
     "Remote disconnect",
     "Local disconnect"
 };

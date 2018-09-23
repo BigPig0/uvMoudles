@@ -30,14 +30,14 @@ static size_t reserve(memfile_t* mf, size_t s)
     }
     else
     {
-        char *tmp = new char[newSize];
+        char *tmp = (char*)malloc(newSize);
         if(tmp)
         {
             memset(tmp, 0, newSize);
             if(mf->_buffer)
             {
                 memcpy(tmp, mf->_buffer, mf->_bufLen);
-                delete[] mf->_buffer;
+                free(mf->_buffer);
             }
             mf->_buffer = tmp;
             mf->_bufLen = newSize;
@@ -75,7 +75,7 @@ void mf_trunc(memfile_t* mf, bool_t freeBuf)
 {
     if( freeBuf && mf->_selfAlloc)
     {
-        if(mf->_buffer != NULL) delete[] mf->_buffer;
+        if(mf->_buffer != NULL) free(mf->_buffer);
         mf->_buffer = NULL;
         mf->_bufLen = 0;
     }
@@ -85,7 +85,7 @@ void mf_trunc(memfile_t* mf, bool_t freeBuf)
     mf->_fileSize = 0;
 }
 
-bool mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
+bool_t mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
 {
     size_t sz = reserve(mf, r);
     if(len) *len = sz;
@@ -223,7 +223,7 @@ void* mf_buffer(memfile_t* mf)
     return mf->_buffer;
 }
 
-bool mf_eof(memfile_t* mf)
+bool_t mf_eof(memfile_t* mf)
 {
     return mf->_readPos >= mf->_fileSize;
 }

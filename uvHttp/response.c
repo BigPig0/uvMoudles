@@ -48,126 +48,144 @@ char* get_res_header(response_t* res, const char* key) {
 	}
 }
 
-bool response_recive(response_p_t* res, char* data, int len) {
+bool_t response_recive(response_p_t* res, char* data, int len, int errcode) {
     printf("response_recive,%s len:%d\r\n", res->req->url, len);
 
-        size_t i = 0;
-        string_t* str_tmp = create_string();
-        string_t* str_tmp2 = create_string();
-        string_init(str_tmp);
-        string_init(str_tmp2);
-        for(; i < len; ++i)
+    bool_t finish = false;
+    int i = 0;
+    string_t* str_tmp = create_string();
+    string_t* str_tmp2 = create_string();
+    string_init(str_tmp);
+    string_init(str_tmp2);
+    for (; i < len; ++i)
+    {
+        if (response_step_protocol == res->parsed_headers)
         {
-            if(response_step_notbegin == res->parsed_headers)
-            {
-                if(data[i]=='h'&&data[i+1]=='t'&&data[i+2]=='t'&&data[i+3]=='p') {
-                    res->parsed_headers = response_step_protocol;
+            if (data[i] == '/') {
+                if (string_compare_substring_cstr(str_tmp, string_size(str_tmp) - 4, 4, "http") != 0) {
+                    res->parsed_headers = response_step_version;
                 }
-            } else if(response_step_protocol == res->parsed_headers) {
-                if(data[i] == ' ') {
-                    res->parsed_headers = response_step_stause_begin;
+                else {
+                    res->parsed_headers = response_step_status_code;
                 }
-            } else if(response_step_stause_begin == res->parsed_headers) {
-                if(data[i] == ' ') {
-                    res->status = atoi(string_c_str(str_tmp));
-                    string_clear(str_tmp);
-                    res->parsed_headers = response_step_status_ok;
-                } else {
-                    string_push_back(str_tmp, data[i]);
+                string_clear(str_tmp);
+            }
+            else {
+                string_push_back(str_tmp, data[i]);
+            }
+        }
+        else if (response_step_version == res->parsed_headers) {
+            if (data[i] == ' ') {
+                res->vesion = str_tmp;
+                str_tmp = create_string();
+                string_init(str_tmp);
+                res->parsed_headers = response_step_status_code;
+            }
+            else {
+                string_push_back(str_tmp, data[i]);
+            }
+        }
+        else if (response_step_status_code == res->parsed_headers) {
+            if (data[i] == ' ') {
+                res->status = atoi(string_c_str(str_tmp));
+                string_clear(str_tmp);
+                res->parsed_headers = response_step_status_desc;
+            }
+            else {
+                string_push_back(str_tmp, data[i]);
+            }
+        }
+        else if (response_step_status_desc == res->parsed_headers) {
+            if (data[i] == '\r' && data[i + 1] == '\n') {
+                res->status_desc = str_tmp;
+                str_tmp = create_string();
+                string_init(str_tmp);
+                res->parsed_headers = response_step_header_key;
+                i++;
+            }
+            else {
+                string_push_back(str_tmp, data[i]);
+            }
+        }
+        else if (response_step_header_key == res->parsed_headers) {
+            if (data[i] == ':') {
+                res->parsed_headers = response_step_header_value;
+            }
+            else {
+                string_push_back(str_tmp, data[i]);
+            }
+        }
+        else if (response_step_header_value == res->parsed_headers) {
+            if (data[i] == '\r' && data[i + 1] == '\n') {
+                pair_t* pt_pair = create_pair(void*, void*);
+                pair_init_elem(pt_pair, str_tmp, str_tmp2);
+                map_insert(res->headers, pt_pair);
+                pair_destroy(pt_pair);
+                if (!strcasecmp(string_c_str(str_tmp), "Connection")) {
+                    if (!strcasecmp(string_c_str(str_tmp2), "Close")) {
+                        res->keep_alive = 0;
+                    }
+                    else {
+                        res->keep_alive = 1;
+                    }
                 }
-            } else if(response_step_status_ok == res->parsed_headers) {
-                if (data[i] == '\r' && data[i+1] == '\n') {
-                    string_clear(str_tmp);
-                    res->parsed_headers = response_step_status_desc;
-                } else {
-                    string_push_back(str_tmp, data[i]);
+                else if (!strcasecmp(string_c_str(str_tmp), "Transfer-Encoding")) {
+                    if (!strcasecmp(string_c_str(str_tmp2), "chunked")) {
+                        res->chunked = 1;
+                        printf("chunked\r\n");
+                    }
                 }
-            } else if(response_step_status_desc == res->parsed_headers) {
-                if(data[i] == ':') {
+                else if (!strcasecmp(string_c_str(str_tmp), "Content-Length")) {
+                    res->content_length = atoi(string_c_str(str_tmp2));
+                    printf("content length:%d\r\n", res->content_length);
+                }
+                str_tmp = create_string();
+                str_tmp2 = create_string();
+                string_init(str_tmp);
+                string_init(str_tmp2);
+                if (data[i + 2] == '\r' && data[i + 3] == '\n') {
+                    res->parsed_headers = response_step_body;
+                    i += 3;
+                }
+                else {
                     res->parsed_headers = response_step_header_key;
-                } else {
-                    string_push_back(str_tmp, data[i]);
+                    i++;
                 }
-            } else if(response_step_header_key == res->parsed_headers) {
-                if (data[i] == '\r' && data[i+1] == '\n') {
-                    string_t* str_key = create_string();
-                    string_t* str_value = create_string();
-                    pair_t* pt_pair = create_pair(void*, void*);
-                    string_init_copy(str_key, str_tmp);
-                    string_init_copy(str_value, str_tmp2);
-                    pair_init_elem(pt_pair, str_key, str_value);
-                    map_insert(res->headers, pt_pair);
-                    pair_destroy(pt_pair);
-                    string_clear(str_tmp);
-                    string_clear(str_tmp2);
-                } else {
-                    if(data[i] != ' ') string_push_back(str_tmp2, data[i]);
+            }
+            else {
+                if (data[i] != ' ' || !string_empty(str_tmp2)) {
+                    string_push_back(str_tmp2, data[i]);
                 }
-            } else if(response_step_header_value == res->parsed_headers) {
-
-            } else if(response_step_header_end == res->parsed_headers) {
+            }
+        }
+        else if (response_step_body == res->parsed_headers) {
+            if (res->chunked) {
 
             }
-            if( 1 != mf_write(res->header_buff, &data[i], 1))
-            {
-                /* 超出 HTTP Request 头的长度限制了 */
-                /* 凡是从客户端读取的数据都是不安全的数据,所以设置了一个最大值 */
-                return false;
-            }
-
-            int nHeadSize = res->header_buff->_fileSize;
-            if( nHeadSize<4 )
-                continue;
-
-            char* pHeader = (char*)mf_buffer(res->header_buff);
-            if (   pHeader[nHeadSize-4] == '\r'
-                && pHeader[nHeadSize-3] == '\n'
-                && pHeader[nHeadSize-2] == '\r'
-                && pHeader[nHeadSize-1] == '\n')
-            {
-                // 已经接收到一个完整的请求头
-                do
-                {
-                    // 查找Content-Length
-                    const char* pszStart = strstr(pHeader, "Content-Length:");
-                    if(pszStart == NULL || (pszStart != pHeader && *(pszStart - 1) != '\n'))
-                        break;
-                    pszStart += 15;
-
-                    // 找到字段结束
-                    const char* pszEnd = strstr(pszStart, "\r\n");
-                    if(pszEnd == NULL)
-                        break;
-
-                    //长度值
-                    string strValue;
-                    strValue.assign(pszStart, pszEnd - pszStart);
-                    m_nContentLength = atoi(strValue.c_str());
-                }while (0);
-
-                m_bHeaderRecved = true;
-                Log::debug("请求头: \r\n%s",pHeader);
-
-                // 单独接收content数据
-                if(m_nContentLength >= MAX_POST_DATA)
-                {
-                    /* 检查 content-length 长度是否超出限制 */
-                    return 0;
+            else {
+                int recived = res->recived_length + (len - i);
+                if (res->content_length > 0 && recived > res->content_length) {
+                    int need = res->content_length - res->recived_length;
+                    res->req->res_data((request_t*)res->req, data + i, need);
                 }
-
-                if(++i < len)
-                {
-                    /* 还有数据 */
-                    i += push(data + i, len - i);
+                else {
+                    res->req->res_data((request_t*)res->req, data + i, len - i);
                 }
-
+                res->recived_length = recived;
+                printf("recived:%d, content:%d\r\n", recived, res->content_length);
+                if (res->content_length > 0 && res->recived_length >= res->content_length) {
+                    res->req->res_cb((request_t*)res->req, uv_http_ok);
+                    finish = true;
+                }
                 break;
             }
         }
+    }
+    return finish;
 }
 
 void response_error(response_p_t* res, int code) {
-    printf("response_error: %s", uvhttp_err_msg(code));
+    printf("response_error: %s\r\n", uvhttp_err_msg(code));
     if(res->req->res_cb) {
         res->req->res_cb((request_t*)res->req, code);
     }
@@ -190,6 +208,10 @@ void destory_response(response_p_t* res) {
         }
         map_destroy(res->headers);
     }
+    if (NULL != res->vesion)
+        string_destroy(res->vesion);
+    if (NULL != res->status_desc)
+        string_destroy(res->status_desc);
 
     free(res);
 }

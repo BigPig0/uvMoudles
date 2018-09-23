@@ -20,18 +20,18 @@ void add_req_header(request_t* req, const char* key, const char* value) {
 	request_p_t* req_p = (request_p_t*)req;
 	uv_mutex_lock(&req_p->uv_mutex_h);
     do {
-	if (!fieldcmp("Content-Length", key)) {
+	if (!strcasecmp("Content-Length", key)) {
 		req_p->content_length = atoi(value);
 		break;
 	}
-	if (!fieldcmp("Connection", key)) {
-		if (!fieldcmp("Close", value)) {
+	if (!strcasecmp("Connection", key)) {
+		if (!strcasecmp("Close", value)) {
 			req_p->keep_alive = 0;
 		}
 		break;
 	}
-	if (!fieldcmp("Transfer-Encoding", key)) {
-		if (!fieldcmp("chunked", value)) {
+	if (!strcasecmp("Transfer-Encoding", key)) {
+		if (!strcasecmp("chunked", value)) {
 			req_p->chunked = 1;
 		}
 		break;

@@ -43,10 +43,11 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 
     //读取到数据
 	if (socket->isbusy) {
+        int code = uv_http_ok;
         if(socket->req->res == NULL) {
             socket->req->res = create_response(socket->req);
         }
-		if(response_recive(socket->req->res, buf->base, nread)){
+		if(response_recive(socket->req->res, buf->base, nread, code)){
             //接收完成，执行下一个请求或者移动到空闲队列
             finish = true;
         }

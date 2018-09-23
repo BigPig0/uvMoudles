@@ -51,6 +51,18 @@ extern void add_req_header(request_t* req, const char* key, const char* value);
 extern int add_req_body(request_t* req, const char* data, int len);
 
 /**
+ * 获取应答中http协议版本
+ * @param res http应答句柄
+ */
+extern char* get_res_version(response_t* res);
+
+/**
+ * 获取应答中的状态描述文字
+ * @param res http应答句柄
+ */
+extern char* get_res_status_des(response_t* res);
+
+/**
  * 获取应答中的头域数量
  * @param res http应答句柄
  */
