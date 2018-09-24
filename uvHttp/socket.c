@@ -24,19 +24,23 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     if (nread < 0) {
         int code;
         if (nread == UV_EOF) {
-            fprintf(stderr, "server close this socket");
+            fprintf(stderr, "server close this socket\r\n");
             code = uv_http_err_remote_disconnect;
         } else {
-            fprintf(stderr, "read_cb error %s-%s\n", uv_err_name(nread), uv_strerror(nread));
+            fprintf(stderr, "read_cb error %s-%s\r\n", uv_err_name(nread), uv_strerror(nread));
             code = uv_http_err_local_disconnect;
         }
 
-        if(socket->req->res == NULL) {
-            socket->req->res = create_response(socket->req);
+        if (socket->status == socket_send) {
+            if (socket->req->res == NULL) {
+                socket->req->res = create_response(socket->req);
+            }
+            response_error(socket->req->res, code);
         }
-        response_error(socket->req->res, code);
-		uv_mutex_unlock(&socket->uv_mutex_h);
+        uv_mutex_unlock(&socket->uv_mutex_h);
         agent_request_finish(false, socket);
+
+        socket->status = socket_init;
         return;
     }
 	socket->status = socket_recv;
@@ -54,8 +58,10 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 	}
 	uv_mutex_unlock(&socket->uv_mutex_h);
 
-    if(finish)
+    if (finish) {
         agent_request_finish(true, socket);
+        socket->status = socket_recv;
+    }
 }
 
 /** 发送数据回调 */

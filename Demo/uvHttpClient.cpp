@@ -30,7 +30,8 @@ string strUrl[] = {
     //"http://180.97.33.108/s?wd=qq",
     //"http://www.baidu.com/s?wd=ww",
     //"http://180.97.33.107/s?wd=ww",
-    "http://180.97.33.108/s?wd=ww",
+    //"http://180.97.33.108/s?wd=ww",
+    "http://www.sleuthkit.org/sleuthkit/docs/api-docs/4.6/group__imglib.html",
 };
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -40,7 +41,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cof.max_sockets = 10;
 	cof.max_free_sockets = 10;
 	CHttpPlus* http = new CHttpPlus(cof, nullptr);
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		CRequest* req = http->CreatRequest(request_cb_h, response_data_h, response_cb_h);
         string url = strUrl[i % (sizeof(strUrl) / sizeof(string))];
@@ -50,7 +51,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		req->SetMethod(HTTP_METHOD::METHOD_GET);
 		req->SetContentLength(0);
 		req->Request();
-        Sleep(3000);
+        Sleep(10000);
 	}
 	Sleep(INFINITE);
 	return 0;

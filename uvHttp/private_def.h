@@ -58,7 +58,9 @@ typedef enum _response_step_
     response_step_status_desc,  //需解析状态说明文字
     response_step_header_key,   //需解析应答头字段
     response_step_header_value, //需解析应答头值
-    response_step_body          //http头解析完毕,需解析报文体
+    response_step_body,         //http头解析完毕,需解析报文体
+    response_step_chunk_len,    //需解析chunk长度
+    response_step_chunk_buff    //需解析chunk内容
 }res_step_t;
 
 /** 应答数据结构 */
@@ -76,9 +78,10 @@ typedef struct _response_p_ {
     string_t*     vesion;         //http协议版本
     string_t*     status_desc;    //状态说明
 
-	res_step_t    parsed_headers; //应答解析状态
+	res_step_t    parse_step;     //应答解析状态
     memfile_t*    header_buff;    //临时存放接收的数据
 	int           recived_length; //接收的内容长度；接收的该chunk的长度
+    int           chunk_length;   //当前解析的chunk的长度
 	//string_t*     chunk_left;     //一次接收的缓冲区末尾chunk长度没有结束时的内容
 	//uv_mutex_t    uv_mutex_h;   
 }response_p_t;
@@ -153,6 +156,7 @@ extern void agents_destory(http_t* h);
 
 extern int agent_request(request_p_t* req);
 extern void agent_request_finish(bool_t ok, socket_t* socket);
+extern void agent_socket_disconnect(socket_t* socket);
 extern void destory_request(request_p_t* req);
 extern void generic_request_header(request_p_t* req);
 extern int parse_dns(request_p_t* req);
