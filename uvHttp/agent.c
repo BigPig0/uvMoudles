@@ -129,6 +129,7 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
     socket_t* next_run;
     uv_mutex_lock(&agent->uv_mutex_h);
     destory_request(socket->req);
+    socket->req = NULL;
     if (ok && agent->requests != NULL && list_size(agent->requests) > 0) {
         //请求接收应答完成，且存在未执行的请求，继续执行请求
         request_p_t* req = *(request_p_t**)list_front(agent->requests);
@@ -153,7 +154,7 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
     } else {
         //请求执行失败，销毁socket
         set_iterator_t it = set_find(agent->sockets, socket);
-        if (iterator_not_equal(it, set_begin(agent->sockets))) {
+        if (iterator_not_equal(it, set_end(agent->sockets))) {
             int e_num = set_erase(agent->sockets, socket);
             destory_socket(socket);
             if (agent->requests != NULL && list_size(agent->requests) > 0) {
@@ -172,7 +173,7 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
             }
         } else {
             it = set_find(agent->free_sockets, socket);
-            if (iterator_not_equal(it, set_begin(agent->free_sockets))) {
+            if (iterator_not_equal(it, set_end(agent->free_sockets))) {
                 int e_num = set_erase(agent->free_sockets, socket);
                 destory_socket(socket);
             }

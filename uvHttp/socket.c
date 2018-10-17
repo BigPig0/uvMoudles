@@ -173,7 +173,7 @@ void socket_run(socket_t* socket) {
         uv_tcp_init(socket->req->handle->uv, &socket->uv_tcp_h);
         socket->status = socket_init;
     }
-    if(socket->status == socket_init){
+    if(socket->status == socket_init || socket->status == socket_closed){
         int ret = 0;
         socket->uv_connect_h.data = socket;
         ret = uv_tcp_connect(&socket->uv_connect_h, &socket->uv_tcp_h, socket->req->addr, connect_cb);

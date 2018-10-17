@@ -152,6 +152,8 @@ int request_write(request_t* req, char* data, int len) {
 }
 
 void destory_request(request_p_t* req) {
+    if (NULL == req) return;
+
     destory_response(req->res);
     req->res = NULL;
 
