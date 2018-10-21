@@ -176,7 +176,7 @@ bool_t response_recive(response_p_t* res, char* data, int len, int errcode) {
             break;
         } else if (response_step_chunk_len == res->parse_step) {
             if (data[i] == '\r' && data[i + 1] == '\n') {
-                res->chunk_length = htoi(string_c_str(str_tmp));
+                res->chunk_length = htoi((char*)string_c_str(str_tmp));
                 printf("this chunk length is: %X, %d\r\n", res->chunk_length, res->chunk_length);
                 if (0 == res->chunk_length) {
                     printf("chunk receive finish\r\n");

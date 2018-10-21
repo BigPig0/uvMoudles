@@ -68,8 +68,9 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 static void write_cb(uv_write_t* req, int status) {
     socket_t* socket = (socket_t*)req->data;
 	uv_mutex_lock(&socket->uv_mutex_h);
+    socket->uv_req_num--;
     if(status < 0) {
-        fprintf(stderr, "write_cb error %s-%s\n", uv_err_name(status), uv_strerror(status)); 
+        fprintf(stderr, "write_cb error %s-%s\r\n", uv_err_name(status), uv_strerror(status)); 
         if(socket->req->req_cb) {
             socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
 			uv_mutex_unlock(&socket->uv_mutex_h);
@@ -104,14 +105,16 @@ static void send_socket(socket_t* socket) {
 		list_iterator_t it_end = list_begin(socket->req->body);
 		int i = 1;
 		while (iterator_not_equal(it_iter, it_end)) {
-			membuff_t mem = *(membuff_t*)iterator_get_pointer(it_iter);
+			membuff_t mem = **(membuff_t**)iterator_get_pointer(it_iter);
 			*(buf + i) = uv_buf_init((char*)mem.data, mem.len);
 			it_iter = _list_iterator_next(it_iter);
 		}
 	}
+    socket->uv_req_num++;
     ret = uv_write(&socket->uv_write_h, (uv_stream_t*)&socket->uv_tcp_h, buf, body_num+1, write_cb);
     if (ret) {  
-        fprintf(stderr, "uv_write error %s-%s\n", uv_err_name(ret), uv_strerror(ret)); 
+        socket->uv_req_num--;
+        fprintf(stderr, "uv_write error %s-%s\r\n", uv_err_name(ret), uv_strerror(ret)); 
         if(socket->req->req_cb) {
             socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
@@ -125,7 +128,7 @@ static void connect_cb(uv_connect_t* conn, int status){
     int ret = 0;
 	uv_mutex_lock(&socket->uv_mutex_h);
     if(status < 0) {
-        fprintf(stderr, "uv_connect_cb error %s-%s\n", uv_err_name(status), uv_strerror(status)); 
+        fprintf(stderr, "uv_connect_cb error %s-%s\r\n", uv_err_name(status), uv_strerror(status)); 
         if(socket->req->req_cb) {
             socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
@@ -138,7 +141,7 @@ static void connect_cb(uv_connect_t* conn, int status){
     handle->data = socket;
     ret = uv_read_start(handle, alloc_cb, read_cb);//客户端开始接收服务器的数据
     if (ret) {
-        fprintf(stderr, "tcp receive failed:%s-%s", uv_err_name(ret), uv_strerror(ret)); 
+        fprintf(stderr, "tcp receive failed:%s-%s\r\n", uv_err_name(ret), uv_strerror(ret)); 
         if(socket->req->req_cb) {
             socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
         }
@@ -163,6 +166,8 @@ socket_t* create_socket(agent_t* agent) {
 	socket->uv_connect_h.data = socket;
 	socket->uv_write_h.data = socket;
 	uv_mutex_init(&socket->uv_mutex_h);
+    static uint16_t totalsocket = 0;
+    printf("create total socket num: %d", ++totalsocket);
     return socket;
 }
 
@@ -178,7 +183,7 @@ void socket_run(socket_t* socket) {
         socket->uv_connect_h.data = socket;
         ret = uv_tcp_connect(&socket->uv_connect_h, &socket->uv_tcp_h, socket->req->addr, connect_cb);
         if(ret < 0) {
-            fprintf(stderr, "uv_tcp_connect error %s-%s\n", uv_err_name(ret),uv_strerror(ret)); 
+            fprintf(stderr, "uv_tcp_connect error %s-%s\r\n", uv_err_name(ret),uv_strerror(ret)); 
             if(socket->req->req_cb) {
                 socket->req->req_cb((request_t*)socket->req, uv_http_err_connect);
             }
@@ -191,6 +196,8 @@ void socket_run(socket_t* socket) {
 void destory_socket(socket_t* socket) {
     if (socket->status != socket_closed) {
         //外部直接调用销毁，先进行关闭tcp句柄，在回调中释放
+        static uint16_t totaldestory = 0;
+        printf("destory socket:%d\r\n", ++totaldestory);
         uv_close((uv_handle_t*)&socket->uv_tcp_h, close_cb);
     }
 }

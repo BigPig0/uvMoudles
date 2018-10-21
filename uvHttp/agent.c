@@ -41,7 +41,7 @@ agent_t* get_agent(http_t* h, string_t* addr) {
     printf("agents num:%d\r\n", map_size(h->agents));
     it_pos = map_find(h->agents, addr);
     if(iterator_equal(it_pos, map_end(h->agents))) {
-        printf("agent[%s] not exit\r\n", string_c_str(addr));
+        printf("agent[%s] not exist\r\n", string_c_str(addr));
         pair_t* pt_pair;
         agent_t* new_agent = (agent_t*)malloc(sizeof(agent_t));
         memset(new_agent, 0, sizeof(agent_t));
@@ -60,7 +60,7 @@ agent_t* get_agent(http_t* h, string_t* addr) {
         uv_mutex_init(&new_agent->uv_mutex_h);
         ret = new_agent;
     } else {
-        printf("agent[%s] is exit\r\n", string_c_str(addr));
+        printf("agent[%s] is exist\r\n", string_c_str(addr));
         pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
         agent_t* agent = *(agent_t**)pair_second(pt_pair);
         string_destroy(addr);
@@ -107,10 +107,10 @@ int agent_request(request_p_t* req) {
         can_run = true;
     } else {
         //从空闲请求中取出一个来处理请求
-        printf("get a request from free list");
+        printf("get a socket from free list\n");
 		set_iterator_t it_socket = set_begin(agent->free_sockets);
-		socket = (socket_t*)iterator_get_pointer(it_socket);
-		set_erase(agent->free_sockets, it_socket);
+		socket = *(socket_t**)iterator_get_pointer(it_socket);
+		set_erase(agent->free_sockets, socket);
 		socket->req = req;
 		set_insert(agent->sockets, socket);
         can_run = true;
@@ -128,31 +128,36 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
     bool_t can_run = false;
     socket_t* next_run;
     uv_mutex_lock(&agent->uv_mutex_h);
-    destory_request(socket->req);
-    socket->req = NULL;
-    if (ok && agent->requests != NULL && list_size(agent->requests) > 0) {
-        //请求接收应答完成，且存在未执行的请求，继续执行请求
-        request_p_t* req = *(request_p_t**)list_front(agent->requests);
-        list_pop_front(agent->requests);
-        socket->req = req;
-        can_run = true;
-        next_run = socket;
-        printf("1 finish a request, and run next. request num:%d,sockets num:%d,free_socket_num:%d\r\n"
-            , list_size(agent->requests), set_size(agent->sockets), set_size(agent->free_sockets));
-    } else if(ok) {
-        //请求接收应答完成, 无未执行的请求，将socket移动到空闲队列
-        int e_num = set_erase(agent->sockets, socket);
-        int free_sockets_num = set_size(agent->free_sockets);
-        if (free_sockets_num >= agent->handle->conf.max_free_sockets){
-            //空闲队列已满，销毁socket
-            destory_socket(socket);
+    if (ok) {
+        int keep_alive = socket->req->res->keep_alive;
+        destory_request(socket->req);
+        socket->req = NULL;
+        if (agent->requests != NULL && list_size(agent->requests) > 0) {
+            //请求接收应答完成，且存在未执行的请求，继续执行请求
+            request_p_t* req = *(request_p_t**)list_front(agent->requests);
+            list_pop_front(agent->requests);
+            socket->req = req;
+            can_run = true;
+            next_run = socket;
+            printf("1 finish a request, and run next. request num:%d,sockets num:%d,free_socket_num:%d\r\n"
+                , list_size(agent->requests), set_size(agent->sockets), set_size(agent->free_sockets));
         } else {
-            set_insert(agent->free_sockets, socket);
+            //请求接收应答完成, 无未执行的请求，将socket移动到空闲队列
+            int e_num = set_erase(agent->sockets, socket);
+            int free_sockets_num = set_size(agent->free_sockets);
+            if (free_sockets_num >= agent->handle->conf.max_free_sockets) {
+                //空闲队列已满，销毁socket
+                destory_socket(socket);
+            } else {
+                set_insert(agent->free_sockets, socket);
+            }
+            printf("2 finish a request, and move to free list. sockets num:%d,free_socket_num:%d\r\n"
+                , set_size(agent->sockets), set_size(agent->free_sockets));
         }
-        printf("2 finish a request, and move to free list. sockets num:%d,free_socket_num:%d\r\n"
-            , set_size(agent->sockets), set_size(agent->free_sockets));
     } else {
         //请求执行失败，销毁socket
+        destory_request(socket->req);
+        socket->req = NULL;
         set_iterator_t it = set_find(agent->sockets, socket);
         if (iterator_not_equal(it, set_end(agent->sockets))) {
             int e_num = set_erase(agent->sockets, socket);

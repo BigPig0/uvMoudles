@@ -25,14 +25,8 @@ typedef struct _http_ {
 typedef struct _response_p_ response_p_t;
 /** 请求数据结构 */
 typedef struct _request_p_ {
-	HTTP_METHOD    method;
-	const char*    url;
-	const char*    host;
-    int            keep_alive;
-	int            chunked;
-	int            content_length;
-	void*          user_data;
-	response_p_t*  res;
+    REQUEST_PUBLIC
+    response_p_t* res;
 
     string_t*      str_host;	//根据url或host生成的host地址
 	string_t*      str_addr;    //host域名部分
@@ -44,6 +38,7 @@ typedef struct _request_p_ {
     map_t*         headers;     //用户填写的http头 map<string,string>
 	list_t*        body;        //用户填写的http内容体 list<membuff>
 	uv_mutex_t     uv_mutex_h;
+    int            try_times;   //失败重试次数
 
 	request_cb     req_cb;
 	response_data  res_data; 
@@ -66,11 +61,8 @@ typedef enum _response_step_
 /** 应答数据结构 */
 typedef struct _response_p_ {
     //public
-	int           status;         //应答状态码
-	int           keep_alive;     //0表示Connection为close，非0表示keep-alive
-	int           chunked;        //0表示不使用chuncked，非0表示Transfer-Encoding: "chunked"
-	int           content_length; //内容的长度；一个chunk后内容的长度
-	request_p_t*  req;
+    RESPONSE_PUBLIC
+    request_p_t* req;
 
     //private
     http_t*       handle;
@@ -121,6 +113,7 @@ typedef struct _socket_
     uv_connect_t    uv_connect_h;  
 	uv_write_t      uv_write_h;
 	uv_mutex_t      uv_mutex_h;
+    int             uv_req_num; //发起的请求数，全部完成才能释放
 
 	char            buff[SOCKET_RECV_BUFF_LEN];
 }socket_t;
