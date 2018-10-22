@@ -22,6 +22,14 @@ typedef struct _http_ {
 	uv_mutex_t  uv_mutex_h;
 }http_t;
 
+typedef enum _request_step_
+{
+    request_step_init,          //建立请求，开始解析dns
+    request_step_dns,           //解析dns完成，交由agent处理
+    request_step_send,          //请求已经发送，等待应答
+    request_step_response       //收到应答，若未完成继续等待应答
+}req_step_t;
+
 typedef struct _response_p_ response_p_t;
 /** 请求数据结构 */
 typedef struct _request_p_ {
@@ -39,9 +47,11 @@ typedef struct _request_p_ {
 	list_t*        body;        //用户填写的http内容体 list<membuff>
 	uv_mutex_t     uv_mutex_h;
     int            try_times;   //失败重试次数
+    req_step_t     req_step;    //请求处理步骤
+    time_t         req_time;    //最新活动的时间点
 
 	request_cb     req_cb;
-	response_data  res_data; 
+	response_data  res_data;
 	response_cb    res_cb;
 }request_p_t;
 

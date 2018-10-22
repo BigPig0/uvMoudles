@@ -6,7 +6,39 @@
 
 /** 检测连接超时的定时器 */
 static void timer_cb(uv_timer_t* handle) {
+    map_iterator_t it_pos, it_end;
+    pair_t* pt_pair;
+    agent_t* agent;
+    set_iterator_t s_pos, s_end;
+    socket_t* s;
+    http_t* h = (http_t*)handle->data;
+    if(!h || !h->agents)
+        return;
 
+    uv_mutex_lock(&h->uv_mutex_h);
+    time_t now = time(NULL);
+    it_pos = map_begin(h->agents);
+    it_end = map_end(h->agents);
+    for(;iterator_not_equal(it_pos, it_end);it_pos = iterator_next(it_pos)) {
+        pt_pair = (pair_t*)iterator_get_pointer(it_pos);
+        agent = *(agent_t**)pair_second(pt_pair);
+        s_pos = set_begin(agent->sockets);
+        s_end = set_end(agent->sockets);
+        for(;iterator_not_equal(s_pos, s_end);s_pos = iterator_next(s_pos)) {
+            s = *(socket_t**)iterator_get_pointer(s_pos);
+            if(s->req->req_time > 0) {
+                if(s->req->req_step == request_step_dns &&
+                    difftime(now, s->req->req_time) > h->conf.request_timeout_secs){
+                        printf("request time out\n");
+                } else if(s->req->req_step == request_step_send &&
+                    difftime(now, s->req->req_time) > h->conf.response_timeout_secs){
+                        printf("response time out\n");
+                }
+            }
+        }
+        ;
+    }
+    uv_mutex_unlock(&h->uv_mutex_h);
 }
 
 void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_output) {
@@ -23,13 +55,13 @@ void agents_init(http_t* h) {
     h->agents = create_map(void*, void*); //map<string_t*, agent_t*>
     map_init_ex(h->agents, string_map_compare);
     ret = uv_timer_init(h->uv, &h->timeout_timer);
-	h->timeout_timer.data = h;
-    ret = uv_timer_start(&h->timeout_timer, timer_cb, 10000, 10000);
+    h->timeout_timer.data = h;
+    ret = uv_timer_start(&h->timeout_timer, timer_cb, 1000, 1000);
 }
 
 /** 模块销毁 */
 void agents_destory(http_t* h) {
-	uv_timer_stop(&h->timeout_timer);
+    uv_timer_stop(&h->timeout_timer);
     map_destroy(h->agents);
 }
 
@@ -75,53 +107,53 @@ int agent_request(request_p_t* req) {
     agent_t* agent = NULL;
     bool_t can_run = false;
     socket_t* socket = NULL;
-	//首先需要创建或获取一个agent
-	string_t* addr = create_string();   //地址在map释放时释放
-	string_init(addr);
-	string_connect(addr, req->str_addr);
-	string_connect_char(addr, ':');
-	string_connect(addr, req->str_port);
-	agent = get_agent(req->handle, addr);
+    //首先需要创建或获取一个agent
+    string_t* addr = create_string();   //地址在map释放时释放
+    string_init(addr);
+    string_connect(addr, req->str_addr);
+    string_connect_char(addr, ':');
+    string_connect(addr, req->str_port);
+    agent = get_agent(req->handle, addr);
 
-	//创建或者获取一个已经存在连接，如果连接数达到最大值则需要将请求放到队列中
+    //创建或者获取一个已经存在连接，如果连接数达到最大值则需要将请求放到队列中
     uv_mutex_lock(&agent->uv_mutex_h);
     do {
-    int sockets_num = set_size(agent->sockets);
-    printf("sockets num:%d\r\n", sockets_num);
-    if (sockets_num >= agent->handle->conf.max_sockets){
-        //将请求放到队列中
-        printf("put reques to list\r\n");
-		if (agent->requests == NULL) {
-			agent->requests = create_list(void*);  //list<request_t*>
-			list_init_elem(agent->requests, 1, req);
-		} else {
-			list_push_back(agent->requests, req);
-		}
-        break;
-    } else if (agent->free_sockets == NULL || set_empty(agent->free_sockets)) {
-        //新建一个连接来处理请求
-        printf("creat a new request\r\n");
-		socket = create_socket(agent);
-		socket->req = req;
-		set_insert(agent->sockets, socket);
-        can_run = true;
-    } else {
-        //从空闲请求中取出一个来处理请求
-        set_iterator_t it_socket;
-        printf("get a socket from free list\n");
-		it_socket = set_begin(agent->free_sockets);
-		socket = *(socket_t**)iterator_get_pointer(it_socket);
-		set_erase(agent->free_sockets, socket);
-		socket->req = req;
-		set_insert(agent->sockets, socket);
-        can_run = true;
-    }
+        int sockets_num = set_size(agent->sockets);
+        printf("sockets num:%d\r\n", sockets_num);
+        if (sockets_num >= agent->handle->conf.max_sockets){
+            //将请求放到队列中
+            printf("put reques to list\r\n");
+            if (agent->requests == NULL) {
+                agent->requests = create_list(void*);  //list<request_t*>
+                list_init_elem(agent->requests, 1, req);
+            } else {
+                list_push_back(agent->requests, req);
+            }
+            break;
+        } else if (agent->free_sockets == NULL || set_empty(agent->free_sockets)) {
+            //新建一个连接来处理请求
+            printf("creat a new request\r\n");
+            socket = create_socket(agent);
+            socket->req = req;
+            set_insert(agent->sockets, socket);
+            can_run = true;
+        } else {
+            //从空闲请求中取出一个来处理请求
+            set_iterator_t it_socket;
+            printf("get a socket from free list\n");
+            it_socket = set_begin(agent->free_sockets);
+            socket = *(socket_t**)iterator_get_pointer(it_socket);
+            set_erase(agent->free_sockets, socket);
+            socket->req = req;
+            set_insert(agent->sockets, socket);
+            can_run = true;
+        }
     } while (0);
     uv_mutex_lock(&agent->uv_mutex_h);
 
     if(can_run)
         socket_run(socket);
-	return uv_http_ok;
+    return uv_http_ok;
 }
 
 void agent_request_finish(bool_t ok, socket_t* socket) {

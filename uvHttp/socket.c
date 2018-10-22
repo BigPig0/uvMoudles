@@ -2,7 +2,7 @@
 #include "private_def.h"
 #include <stdint.h>
 
-
+/** socket关闭回调 */
 static void close_cb(uv_handle_t* handle) {
     socket_t* socket = (socket_t*)handle->data;
     socket->status = socket_closed;
@@ -10,6 +10,7 @@ static void close_cb(uv_handle_t* handle) {
     free(socket);
 }
 
+/** 接收数据申请空间回调 */
 static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
     socket_t* socket = (socket_t*)handle->data;
@@ -17,6 +18,7 @@ static void alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
     *buf = uv_buf_init(socket->buff, SOCKET_RECV_BUFF_LEN);
 }
 
+/** 接收数据回调 */
 static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     socket_t* socket = (socket_t*)stream->data;
     bool_t finish = false;
@@ -47,11 +49,14 @@ static void read_cb(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
 
     //读取到数据
 	if (socket->isbusy) {
-        int code = uv_http_ok;
+        //状态更新
+        socket->req->req_time = time(NULL);
+        socket->req->req_step = request_step_send;
+        //处理应答数据
         if(socket->req->res == NULL) {
             socket->req->res = create_response(socket->req);
         }
-		if(response_recive(socket->req->res, buf->base, nread, code)){
+		if(response_recive(socket->req->res, buf->base, nread, uv_http_ok)){
             //接收完成，执行下一个请求或者移动到空闲队列
             finish = true;
         }
@@ -110,6 +115,10 @@ static void send_socket(socket_t* socket) {
 			it_iter = _list_iterator_next(it_iter);
 		}
 	}
+    //状态更新
+    socket->req->req_time = time(NULL);
+    socket->req->req_step = request_step_send;
+    //发送数据
     socket->uv_req_num++;
     ret = uv_write(&socket->uv_write_h, (uv_stream_t*)&socket->uv_tcp_h, buf, body_num+1, write_cb);
     if (ret) {  
@@ -193,6 +202,14 @@ void socket_run(socket_t* socket) {
     }
 }
 
+/** socket超时 */
+void time_out(socket_t* socket) {
+    uv_mutex_lock(&socket->uv_mutex_h);
+    agent_request_finish(false, socket);
+    uv_mutex_unlock(&socket->uv_mutex_h);
+}
+
+/** 关闭销毁一个socket句柄 */
 void destory_socket(socket_t* socket) {
     if (socket->status != socket_closed) {
         //外部直接调用销毁，先进行关闭tcp句柄，在回调中释放
