@@ -1,6 +1,9 @@
-#include "public_def.h"
-#include "private_def.h"
 #include "memfile.h"
+#include <malloc.h>
+
+#define SEEK_CUR    1
+#define SEEK_END    2
+#define SEEK_SET    0
 
 static size_t space(memfile_t* mf)
 {
@@ -9,6 +12,7 @@ static size_t space(memfile_t* mf)
 
 static size_t reserve(memfile_t* mf, size_t s)
 {
+    size_t incSize, newSize;
     // 已经拥有足够的空间
     if( space(mf) >= s ) return s;
 
@@ -18,11 +22,11 @@ static size_t reserve(memfile_t* mf, size_t s)
     // 空间不足,分配新的空间
 
     // 1. 一次最少分配 _memInc 大小的内存.
-    size_t incSize = s - space(mf);
+    incSize = s - space(mf);
     if( incSize < mf->_memInc ) incSize = mf->_memInc;
 
     // 2. 最多只能有 _maxSize 大小的内存.
-    size_t newSize = mf->_bufLen + incSize;
+    newSize = mf->_bufLen + incSize;
     if( newSize > mf->_maxSize ) newSize = mf->_maxSize;
 
     if( newSize <= mf->_bufLen )
@@ -71,7 +75,7 @@ void destory_memfile(memfile_t* mf) {
     free(mf);
 }
 
-void mf_trunc(memfile_t* mf, bool_t freeBuf)
+void mf_trunc(memfile_t* mf, boolc freeBuf)
 {
     if( freeBuf && mf->_selfAlloc)
     {
@@ -85,7 +89,7 @@ void mf_trunc(memfile_t* mf, bool_t freeBuf)
     mf->_fileSize = 0;
 }
 
-bool_t mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
+boolc mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
 {
     size_t sz = reserve(mf, r);
     if(len) *len = sz;
@@ -223,7 +227,7 @@ void* mf_buffer(memfile_t* mf)
     return mf->_buffer;
 }
 
-bool_t mf_eof(memfile_t* mf)
+boolc mf_eof(memfile_t* mf)
 {
     return mf->_readPos >= mf->_fileSize;
 }

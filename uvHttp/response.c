@@ -65,14 +65,14 @@ char* get_res_header(response_t* res, const char* key) {
 }
 
 bool_t response_recive(response_p_t* res, char* data, int len, int errcode) {
-    printf("response_recive,%s len:%d\r\n", res->req->url, len);
-
     bool_t finish = false;
     int i = 0;
     string_t* str_tmp = create_string();
     string_t* str_tmp2 = create_string();
     string_init(str_tmp);
     string_init(str_tmp2);
+    printf("response_recive,%s len:%d\r\n", res->req->url, len);
+
     for (; i < len; ++i) {
         if (response_step_protocol == res->parse_step) {
             if (data[i] == '/') {

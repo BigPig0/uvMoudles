@@ -11,9 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}</ProjectGuid>
+    <ProjectGuid>{C00F783B-0E57-400D-A1B7-9FE3985A1B1D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>uvHttp</RootNamespace>
+    <RootNamespace>util</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -51,9 +51,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../uvHttp;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -68,9 +67,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../uvHttp;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -83,18 +81,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\uvHttp\agent.c" />
-    <ClCompile Include="..\uvHttp\dns.c" />
-    <ClCompile Include="..\uvHttp\error.c" />
-    <ClCompile Include="..\uvHttp\request.c" />
-    <ClCompile Include="..\uvHttp\response.c" />
-    <ClCompile Include="..\uvHttp\socket.c" />
-    <ClCompile Include="..\uvHttp\uvHttp.c" />
+    <ClInclude Include="..\util\capi.h" />
+    <ClInclude Include="..\util\cdef.h" />
+    <ClInclude Include="..\util\memfile.h" />
+    <ClInclude Include="..\util\util.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvHttp\public_def.h" />
-    <ClInclude Include="..\uvHttp\private_def.h" />
-    <ClInclude Include="..\uvHttp\uvHttp.h" />
+    <ClCompile Include="..\util\memfile.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

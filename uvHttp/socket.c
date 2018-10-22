@@ -1,6 +1,6 @@
 #include "public_def.h"
 #include "private_def.h"
-
+#include <stdint.h>
 
 
 static void close_cb(uv_handle_t* handle) {
@@ -156,6 +156,7 @@ static void connect_cb(uv_connect_t* conn, int status){
 
 /** 创建一个socket句柄 */
 socket_t* create_socket(agent_t* agent) {
+    static uint16_t totalsocket = 0;
     socket_t* socket = (socket_t*)malloc(sizeof(socket_t));
     memset(socket, 0 , sizeof(socket_t));
     socket->agent = agent;
@@ -166,7 +167,6 @@ socket_t* create_socket(agent_t* agent) {
 	socket->uv_connect_h.data = socket;
 	socket->uv_write_h.data = socket;
 	uv_mutex_init(&socket->uv_mutex_h);
-    static uint16_t totalsocket = 0;
     printf("create total socket num: %d", ++totalsocket);
     return socket;
 }

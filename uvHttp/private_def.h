@@ -1,5 +1,5 @@
-#ifndef _TYPEDEF_
-#define _TYPEDEF_
+#ifndef _UV_HTTP_PRIVATE_DEF_
+#define _UV_HTTP_PRIVATE_DEF_
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,7 +7,7 @@ extern "C" {
 
 #include "cstl.h"
 #include "uv.h"
-#include "memfile.h"
+#include "util.h"
 
 #define SOCKET_RECV_BUFF_LEN 1024*1024
 
@@ -136,13 +136,6 @@ typedef enum _err_code_
     uv_http_err_remote_disconnect,
     uv_http_err_local_disconnect
 }err_code_t;
-
-
-#ifdef WIN32
-#define strcasecmp _stricmp
-#else
-#include <strings.h>
-#endif
 
 extern void agents_init(http_t* h);
 extern void agents_destory(http_t* h);

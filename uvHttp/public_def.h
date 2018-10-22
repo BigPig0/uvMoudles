@@ -1,5 +1,5 @@
-#ifndef _PUBLIC_TYPE_
-#define _PUBLIC_TYPE_
+#ifndef _UV_HTTP_PUBLIC_DEF_
+#define _UV_HTTP_PUBLIC_DEF_
 
 #ifdef __cplusplus
 extern "C" {

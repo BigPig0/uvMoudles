@@ -41,9 +41,9 @@ agent_t* get_agent(http_t* h, string_t* addr) {
     printf("agents num:%d\r\n", map_size(h->agents));
     it_pos = map_find(h->agents, addr);
     if(iterator_equal(it_pos, map_end(h->agents))) {
-        printf("agent[%s] not exist\r\n", string_c_str(addr));
         pair_t* pt_pair;
         agent_t* new_agent = (agent_t*)malloc(sizeof(agent_t));
+        printf("agent[%s] not exist\r\n", string_c_str(addr));
         memset(new_agent, 0, sizeof(agent_t));
         new_agent->handle = h;
         new_agent->req_list = create_list(void*);   //list<request_t*>
@@ -60,9 +60,9 @@ agent_t* get_agent(http_t* h, string_t* addr) {
         uv_mutex_init(&new_agent->uv_mutex_h);
         ret = new_agent;
     } else {
-        printf("agent[%s] is exist\r\n", string_c_str(addr));
         pair_t* pt_pair = (pair_t*)iterator_get_pointer(it_pos);
         agent_t* agent = *(agent_t**)pair_second(pt_pair);
+        printf("agent[%s] is exist\r\n", string_c_str(addr));
         string_destroy(addr);
         ret = agent;
     }
@@ -107,8 +107,9 @@ int agent_request(request_p_t* req) {
         can_run = true;
     } else {
         //从空闲请求中取出一个来处理请求
+        set_iterator_t it_socket;
         printf("get a socket from free list\n");
-		set_iterator_t it_socket = set_begin(agent->free_sockets);
+		it_socket = set_begin(agent->free_sockets);
 		socket = *(socket_t**)iterator_get_pointer(it_socket);
 		set_erase(agent->free_sockets, socket);
 		socket->req = req;
@@ -156,9 +157,10 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
         }
     } else {
         //请求执行失败，销毁socket
+        set_iterator_t it;
         destory_request(socket->req);
         socket->req = NULL;
-        set_iterator_t it = set_find(agent->sockets, socket);
+        it = set_find(agent->sockets, socket);
         if (iterator_not_equal(it, set_end(agent->sockets))) {
             int e_num = set_erase(agent->sockets, socket);
             destory_socket(socket);
@@ -193,9 +195,10 @@ void agent_request_finish(bool_t ok, socket_t* socket) {
 }
 
 void agent_socket_disconnect(socket_t* socket) {
+    set_iterator_t it;
     agent_t* agent = (agent_t*)socket->agent;
     uv_mutex_lock(&agent->uv_mutex_h);
-    set_iterator_t it = set_find(agent->sockets, socket);
+    it = set_find(agent->sockets, socket);
     if (iterator_not_equal(it, set_begin(agent->sockets))) {
     } else {
         it = set_find(agent->free_sockets, socket);
