@@ -647,7 +647,6 @@
     <ClInclude Include="..\thirdParty\libcstl\cstl\cvector.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\thirdParty\libcstl\src\cstl_multimap_private.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\thirdParty\libcstl\src\Makefile">

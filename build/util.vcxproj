@@ -78,9 +78,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\util\capi.h" />
     <ClInclude Include="..\util\cdef.h" />
     <ClInclude Include="..\util\memfile.h" />

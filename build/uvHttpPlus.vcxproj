@@ -80,9 +80,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\uvHttp\agent.c" />
     <ClCompile Include="..\uvHttp\dns.c" />
     <ClCompile Include="..\uvHttp\error.c" />

@@ -10,8 +10,15 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\uvLog\st.h" />
+    <ClInclude Include="..\uvLog\uvLog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\uvLog\uvLog.c" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}</ProjectGuid>
+    <ProjectGuid>{E8360DC8-679B-4B04-8B8D-3758D605D739}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>uvHttp</RootNamespace>
   </PropertyGroup>
@@ -79,23 +86,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\uvHttp\agent.c" />
-    <ClCompile Include="..\uvHttp\dns.c" />
-    <ClCompile Include="..\uvHttp\error.c" />
-    <ClCompile Include="..\uvHttp\request.c" />
-    <ClCompile Include="..\uvHttp\response.c" />
-    <ClCompile Include="..\uvHttp\socket.c" />
-    <ClCompile Include="..\uvHttp\uvHttp.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\uvHttp\public_def.h" />
-    <ClInclude Include="..\uvHttp\private_def.h" />
-    <ClInclude Include="..\uvHttp\uvHttp.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

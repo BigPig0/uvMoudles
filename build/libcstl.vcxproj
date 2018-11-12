@@ -190,7 +190,6 @@
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_list_aux.h" />
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_map_aux.h" />
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_multimap_aux.h" />
-    <ClInclude Include="..\thirdParty\libcstl\src\cstl_multimap_private.h" />
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_multiset_aux.h" />
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_pair_aux.h" />
     <ClInclude Include="..\thirdParty\libcstl\src\cstl_rb_tree_aux.h" />

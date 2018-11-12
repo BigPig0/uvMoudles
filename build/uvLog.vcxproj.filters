@@ -9,46 +9,18 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="资源文件">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
+    <ClInclude Include="..\uvLog\uvLog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\uvLog\st.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\uvHttp\uvHttp.c">
+    <ClCompile Include="..\uvLog\uvLog.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\error.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uvHttp\agent.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uvHttp\socket.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uvHttp\dns.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uvHttp\request.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\uvHttp\response.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\uvHttp\uvHttp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uvHttp\public_def.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\uvHttp\private_def.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
