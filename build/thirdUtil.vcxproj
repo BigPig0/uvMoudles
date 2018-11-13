@@ -11,16 +11,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvLog\st.h" />
-    <ClInclude Include="..\uvLog\uvLog.h" />
+    <ClInclude Include="..\thirdParty\cptr\cptr.h" />
+    <ClInclude Include="..\thirdParty\faster\fasterjson.h" />
+    <ClInclude Include="..\thirdParty\faster\fasterxml.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\uvLog\uvLog.c" />
+    <ClCompile Include="..\thirdParty\cptr\cptr.c" />
+    <ClCompile Include="..\thirdParty\faster\fasterjson.c" />
+    <ClCompile Include="..\thirdParty\faster\fasterxml.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{E8360DC8-679B-4B04-8B8D-3758D605D739}</ProjectGuid>
+    <ProjectGuid>{42E795E5-3ABC-42BE-8080-D0CD3D0A0B0F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>uvHttp</RootNamespace>
+    <RootNamespace>util</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -59,8 +62,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../thirdParty;../uvHttp;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -76,8 +78,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../thirdParty;../uvHttp;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

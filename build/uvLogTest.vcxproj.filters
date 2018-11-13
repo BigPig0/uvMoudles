@@ -11,21 +11,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\util\cdef.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\util\util.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\util\memfile.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\util\util_capi.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\util\memfile.c">
+    <ClCompile Include="..\Demo\uvLogTest.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

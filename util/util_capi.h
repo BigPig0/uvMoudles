@@ -16,11 +16,13 @@ typedef unsigned long long uint64_t;
 #else
 #include <stdint.h>
 #endif
+#include <windows.h>
 #endif
 
 #include <string.h>
 #if defined(WIN32) || defined(_WIN32)
 #define strcasecmp _stricmp
+#define sleep(ms) Sleep(ms);
 #else
 #include <strings.h>
 #endif

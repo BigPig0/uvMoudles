@@ -78,7 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\util\capi.h" />
+    <ClInclude Include="..\util\util_capi.h" />
     <ClInclude Include="..\util\cdef.h" />
     <ClInclude Include="..\util\memfile.h" />
     <ClInclude Include="..\util\util.h" />

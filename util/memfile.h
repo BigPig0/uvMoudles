@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "capi.h"
+#include "util_capi.h"
 #include "cdef.h"
 
 /** 内存文件数据结构 */

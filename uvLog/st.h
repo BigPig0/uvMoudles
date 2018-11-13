@@ -84,13 +84,14 @@ extern "C" {
     typedef struct _configuration_ {
         level_t         status;             //用来指定log4j本身的打印日志的级别
         int             monitorinterval;    //指定log4j自动重新配置的监测间隔时间，单位是s,最小是5s
-        map_t           *appenders;
+        hash_map_t      *appenders;
         logger_t        root;
-        map_t           *loggers;
+        hash_map_t      *loggers;
     }configuration_t;
 
     typedef struct _uv_log_handle_ {
         configuration_t config;
+        uv_loop_t       uv;
     }uv_log_handle_t;
 
 #ifdef __cplusplus
