@@ -20,6 +20,9 @@
     <ClInclude Include="..\thirdParty\faster\fasterjson.h">
       <Filter>faster</Filter>
     </ClInclude>
+    <ClInclude Include="..\thirdParty\faster\fasterparse.h">
+      <Filter>faster</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdParty\cptr\cptr.c">
@@ -29,6 +32,9 @@
       <Filter>faster</Filter>
     </ClCompile>
     <ClCompile Include="..\thirdParty\faster\fasterjson.c">
+      <Filter>faster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\faster\fasterparse.c">
       <Filter>faster</Filter>
     </ClCompile>
   </ItemGroup>

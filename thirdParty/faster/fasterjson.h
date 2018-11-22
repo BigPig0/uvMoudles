@@ -12,16 +12,16 @@ extern "C" {
 /* util */
 
 #if ( defined _WIN32 )
-#ifndef _WINDLL_FUNC
+#ifndef _THIRD_UTIL_API
 #ifdef THIRD_UTIL_EXPORT
-#define _WINDLL_FUNC		_declspec(dllexport)
+#define _THIRD_UTIL_API		_declspec(dllexport)
 #else
-#define _WINDLL_FUNC		extern
+#define _THIRD_UTIL_API		extern
 #endif
 #endif
 #elif ( defined __unix ) || ( defined __linux__ )
-#ifndef _WINDLL_FUNC
-#define _WINDLL_FUNC		extern
+#ifndef _THIRD_UTIL_API
+#define _THIRD_UTIL_API		extern
 #endif
 #endif
 
@@ -295,10 +295,10 @@ extern "C" {
 #define FASTERJSON_NODE_LEAVE				0x02
 
 typedef int funcCallbackOnJsonNode( int type , char *jpath , int jpath_len , int jpath_size , char *node , int node_len , char *content , int content_len , void *p );
-_WINDLL_FUNC int TravelJsonBuffer( char *json_buffer , char *jpath , int jpath_size
+_THIRD_UTIL_API int TravelJsonBuffer( char *json_buffer , char *jpath , int jpath_size
 				, funcCallbackOnJsonNode *pfuncCallbackOnJsonNode
 				, void *p );
-_WINDLL_FUNC int TravelJsonBuffer4( char *json_buffer , char *jpath , int jpath_size
+_THIRD_UTIL_API int TravelJsonBuffer4( char *json_buffer , char *jpath , int jpath_size
 				, funcCallbackOnJsonNode *pfuncCallbackOnEnterJsonBranch
 				, funcCallbackOnJsonNode *pfuncCallbackOnLeaveJsonBranch
 				, funcCallbackOnJsonNode *pfuncCallbackOnEnterJsonArray
@@ -308,7 +308,7 @@ _WINDLL_FUNC int TravelJsonBuffer4( char *json_buffer , char *jpath , int jpath_
 
 #define FASTERJSON_ENCODING_UTF8		0 /* UTF-8 */
 #define FASTERJSON_ENCODING_GB18030		1 /* GB18030/GBK/GB2312 */
-_WINDLL_FUNC char		g_fasterjson_encoding ;
+_THIRD_UTIL_API char		g_fasterjson_encoding ;
 
 #define FASTERJSON_NULL				127
 

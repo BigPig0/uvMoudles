@@ -20,16 +20,16 @@
 #include <stddef.h>
 
 #if ( defined _WIN32 )
-#ifndef _WINDLL_FUNC
+#ifndef _THIRD_UTIL_API
 #ifdef THIRD_UTIL_EXPORT
-#define _WINDLL_FUNC		_declspec(dllexport)
+#define _THIRD_UTIL_API		_declspec(dllexport)
 #else
-#define _WINDLL_FUNC		extern
+#define _THIRD_UTIL_API		extern
 #endif
 #endif
 #elif ( defined __unix ) || ( defined __linux__ )
-#ifndef _WINDLL_FUNC
-#define _WINDLL_FUNC
+#ifndef _THIRD_UTIL_API
+#define _THIRD_UTIL_API
 #endif
 #endif
 
@@ -38,9 +38,9 @@ extern "C"
 {
 #endif
 
-_WINDLL_FUNC void* cptr_alloc(size_t size);
-_WINDLL_FUNC void* cptr_retain(void* ptr, void* parent);
-_WINDLL_FUNC void cptr_release(void* ptr);
+_THIRD_UTIL_API void* cptr_alloc(size_t size);
+_THIRD_UTIL_API void* cptr_retain(void* ptr, void* parent);
+_THIRD_UTIL_API void cptr_release(void* ptr);
 
 #ifdef __cplusplus
 }

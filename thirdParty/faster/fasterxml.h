@@ -13,16 +13,16 @@ extern "C" {
 /* util */
 
 #if ( defined _WIN32 )
-#ifndef _WINDLL_FUNC
+#ifndef _THIRD_UTIL_API
 #ifdef THIRD_UTIL_EXPORT
-#define _WINDLL_FUNC		_declspec(dllexport)
+#define _THIRD_UTIL_API		_declspec(dllexport)
 #else
-#define _WINDLL_FUNC		extern
+#define _THIRD_UTIL_API		extern
 #endif
 #endif
 #elif ( defined __unix ) || ( defined __linux__ )
-#ifndef _WINDLL_FUNC
-#define _WINDLL_FUNC
+#ifndef _THIRD_UTIL_API
+#define _THIRD_UTIL_API
 #endif
 #endif
 
@@ -144,24 +144,24 @@ extern "C" {
 #define FASTERXML_NODE_LEAVE		0x02
 
 typedef int funcCallbackOnXmlProperty( int type , char *xpath , int xpath_len , int xpath_size , char *propname , int propname_len , char *propvalue , int propvalue_len , char *content , int content_len , void *p );
-_WINDLL_FUNC int TravelXmlPropertiesBuffer( char *properties , int properties_len , int type , char *xpath , int xpath_len , int xpath_size , char *content , int content_len
+_THIRD_UTIL_API int TravelXmlPropertiesBuffer( char *properties , int properties_len , int type , char *xpath , int xpath_len , int xpath_size , char *content , int content_len
 					   , funcCallbackOnXmlProperty *pfuncCallbackOnXmlProperty
 					   , void *p );
 
 typedef int funcCallbackOnXmlNode( int type , char *xpath , int xpath_len , int xpath_size , char *node , int node_len , char *properties , int properties_len , char *content , int content_len , void *p );
-_WINDLL_FUNC int TravelXmlBuffer( char *xml_buffer , char *xpath , int xpath_size
+_THIRD_UTIL_API int TravelXmlBuffer( char *xml_buffer , char *xpath , int xpath_size
 				 , funcCallbackOnXmlNode *pfuncCallbackOnXmlNode
 				 , void *p );
-_WINDLL_FUNC int TravelXmlBuffer4( char *xml_buffer , char *xpath , int xpath_size
+_THIRD_UTIL_API int TravelXmlBuffer4( char *xml_buffer , char *xpath , int xpath_size
 				 , funcCallbackOnXmlNode *pfuncCallbackOnXmlNode
 				 , funcCallbackOnXmlNode *pfuncCallbackOnEnterXmlNode
 				 , funcCallbackOnXmlNode *pfuncCallbackOnLeaveXmlNode
 				 , funcCallbackOnXmlNode *pfuncCallbackOnXmlLeaf
 				 , void *p );
 
-_WINDLL_FUNC int AddSkipXmlTag( char *tag );
-_WINDLL_FUNC int AddSkipHtmlTags();
-_WINDLL_FUNC void CleanSkipXmlTags();
+_THIRD_UTIL_API int AddSkipXmlTag( char *tag );
+_THIRD_UTIL_API int AddSkipHtmlTags();
+_THIRD_UTIL_API void CleanSkipXmlTags();
 
 #ifdef __cplusplus
 }

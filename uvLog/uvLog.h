@@ -2,16 +2,16 @@
 #define _UV_LOG_H_
 
 #if ( defined _WIN32 )
-#ifndef _WINDLL_FUNC
+#ifndef _UV_LOG_API
 #ifdef UV_LOG_EXPORT
-#define _WINDLL_FUNC		_declspec(dllexport)
+#define _UV_LOG_API		_declspec(dllexport)
 #else
-#define _WINDLL_FUNC		extern
+#define _UV_LOG_API		extern
 #endif
 #endif
 #elif ( defined __unix ) || ( defined __linux__ )
-#ifndef _WINDLL_FUNC
-#define _WINDLL_FUNC        extern
+#ifndef _UV_LOG_API
+#define _UV_LOG_API        extern
 #endif
 #endif
 
@@ -19,15 +19,15 @@
 extern "C" {
 #endif
 
-    typedef struct _uv_log_handle_ uv_log_handle_t;
+typedef struct _uv_log_handle_ uv_log_handle_t;
 
-    _WINDLL_FUNC int uv_log_init(uv_log_handle_t **h);
+_UV_LOG_API int uv_log_init(uv_log_handle_t **h);
 
-    _WINDLL_FUNC int uv_log_init_conf(uv_log_handle_t **h, char* conf_path);
+_UV_LOG_API int uv_log_init_conf(uv_log_handle_t **h, char* conf_path);
 
-    _WINDLL_FUNC int uv_log_init_conf_buff(uv_log_handle_t **h, char* conf_buff);
+_UV_LOG_API int uv_log_init_conf_buff(uv_log_handle_t **h, char* conf_buff);
 
-    _WINDLL_FUNC int uv_log_close(uv_log_handle_t *h);
+_UV_LOG_API int uv_log_close(uv_log_handle_t *h);
 
 #ifdef __cplusplus
 }
