@@ -28,7 +28,7 @@ typedef struct _uv_ipc_clients_
 }uv_ipc_clients_t;
 
 typedef struct _uv_ipc_handle_ {
-    //char*       ipc;        //pipe name
+    void        *data;
     int         is_svr;     //ture:服务端 false:客户端
     int         inner_uv;   //true:内部创建的 false:外部传入的
     uv_loop_t*  uv;
@@ -168,7 +168,7 @@ static void on_connection(uv_stream_t *server, int status) {
 
 // 户端回调
 
-void on_write_c(uv_write_t *req, int status) {
+static void on_write_c(uv_write_t *req, int status) {
     uv_ipc_write_c_t* w = (uv_ipc_write_c_t*)req->data;
     if (status < 0) {
         fprintf(stderr, "Write error %s\n", uv_err_name(status));
@@ -178,7 +178,7 @@ void on_write_c(uv_write_t *req, int status) {
     free(req);
 }
 
-void on_read_c(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf){
+static void on_read_c(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf){
     uv_ipc_handle_t* ipc = (uv_ipc_handle_t*)client->data;
     net_stream_parser_t *s;
     char *sender, *msg, *data;
@@ -200,12 +200,12 @@ void on_read_c(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf){
     msg[msg_len] = 0;
 
     if(ipc->cb)
-        ipc->cb(sender, msg, data, data_len);
+        ipc->cb(ipc, ipc->data, sender, msg, data, data_len);
 
     free(buf->base);
 }
 
-void on_connect(uv_connect_t* req, int status){
+static void on_connect(uv_connect_t* req, int status){
     uv_ipc_handle_t* uvipc = (uv_ipc_handle_t*)req->data;
     if (status < 0) {
         printf("connect err:%s \n", uv_strerror(status));
@@ -220,13 +220,12 @@ void on_connect(uv_connect_t* req, int status){
 
 int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
     uv_ipc_handle_t* uvipc = (uv_ipc_handle_t*)malloc(sizeof(uv_ipc_handle_t));
-    //uvipc->ipc = ipc;
+    int ret;
     uvipc->is_svr = 1;
     if(uv) {
         uvipc->uv = (uv_loop_t*)uv;
         uvipc->inner_uv = 0;
     } else {
-        int ret;
         uv_thread_t tid;
         uvipc->uv = (uv_loop_t*)malloc(sizeof(uv_loop_t));
         ret = uv_loop_init(uvipc->uv);
@@ -246,16 +245,35 @@ int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
         }
     }
 
-    uv_pipe_init(uvipc->uv, &uvipc->pipe, 0);
-    uv_pipe_bind(&uvipc->pipe, ipc);
+    ret = uv_pipe_init(uvipc->uv, &uvipc->pipe, 0);
+    if(ret < 0) {
+        printf("uv pipe init failed: %s\n", uv_strerror(ret));
+        free(uvipc->uv);
+        free(uvipc);
+        return ret;
+    }
+    ret = uv_pipe_bind(&uvipc->pipe, ipc);
+    if(ret < 0) {
+        printf("uv pipe bind failed: %s\n", uv_strerror(ret));
+        free(uvipc->uv);
+        free(uvipc);
+        return ret;
+    }
     uvipc->pipe.data = (void*)uvipc;
-    uv_listen((uv_stream_t*)&uvipc->pipe, 128, on_connection);
+
+    ret = uv_listen((uv_stream_t*)&uvipc->pipe, 128, on_connection);
+    if(ret < 0) {
+        printf("uv listen failed: %s\n", uv_strerror(ret));
+        free(uvipc->uv);
+        free(uvipc);
+        return ret;
+    }
 
     *h = uvipc;
     return 0;
 }
 
-int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_recv_cb cb) {
+int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_recv_cb cb, void* user) {
     uv_ipc_handle_t* uvipc;
     int ret;
     uv_connect_t *conn;
@@ -264,6 +282,7 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
     //uvipc->ipc = ipc;
     uvipc->is_svr = 0;
     uvipc->cb = cb;
+    uvipc->data = user;
     strncpy(uvipc->name, name, 100);
     uvipc->name[99] = 0;
 
