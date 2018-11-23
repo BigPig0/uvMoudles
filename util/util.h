@@ -1,8 +1,9 @@
 #ifndef _UTIL_UTIL_H_
 #define _UTIL_UTIL_H_
 
-#include "cdef.h"
-#include "util_capi.h"
+#include "util_def.h"
+#include "util_api.h"
 #include "memfile.h"
+#include "netstream.h"
 
 #endif

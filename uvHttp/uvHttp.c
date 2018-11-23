@@ -48,25 +48,16 @@ char* url_decode(char* src) {
 	return ret;
 }
 
-#ifdef WIN32
-DWORD WINAPI inner_uv_loop_thread(LPVOID lpParam)
+void run_loop_thread(void* arg)
 {
-	http_t* h = (http_t*)lpParam;
-	while (h->is_run) {
-		uv_run(h->uv, UV_RUN_DEFAULT);
-		Sleep(2000);
-	}
-	uv_loop_close(h->uv);
-	free(h);
-	return 0;
+    http_t* h = (http_t*)arg;
+    while (h->is_run) {
+        uv_run(h->uv, UV_RUN_DEFAULT);
+        Sleep(2000);
+    }
+    uv_loop_close(h->uv);
+    free(h);
 }
-void run_loop_thread(http_t* h)
-{
-    DWORD threadID = 0;
-    HANDLE th = CreateThread(NULL, 0, inner_uv_loop_thread, (LPVOID)h, 0, &threadID);
-    CloseHandle(th);
-}
-#endif
 
 http_t* uvHttp(config_t cof, void* uv) {
     http_t* h = (http_t*)malloc(sizeof(http_t));
@@ -77,12 +68,24 @@ http_t* uvHttp(config_t cof, void* uv) {
 		h->uv = (uv_loop_t*)uv;
 		h->inner_uv = false;
 	} else {
+        int ret;
 		h->uv = (uv_loop_t*)malloc(sizeof(uv_loop_t));
-		uv_loop_init(h->uv);
+		ret = uv_loop_init(h->uv);
+        if(ret < 0) {
+            printf("uv loop init failed: %s\n", uv_strerror(ret));
+            free(h->uv);
+            free(h);
+            return NULL;
+        }
 		h->inner_uv = true;
-#ifdef WIN32
-		run_loop_thread(h);
-#endif
+        uv_thread_t tid;
+        ret = uv_thread_create(&tid, run_loop_thread, h);
+        if(ret < 0) {
+            printf("uv thread creat failed: %s\n", uv_strerror(ret));
+            free(h->uv);
+            free(h);
+            return NULL;
+        }
 	}
     agents_init(h);
 	return h;

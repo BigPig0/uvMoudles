@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <tchar.h>
-#include "util_capi.h"
+#include "util_api.h"
 #include "uvLog.h"
 
 int _tmain(int argc, _TCHAR* argv[])

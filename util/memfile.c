@@ -75,7 +75,7 @@ void destory_memfile(memfile_t* mf) {
     free(mf);
 }
 
-void mf_trunc(memfile_t* mf, boolc freeBuf)
+void mf_trunc(memfile_t* mf, bool freeBuf)
 {
     if( freeBuf && mf->_selfAlloc)
     {
@@ -89,7 +89,7 @@ void mf_trunc(memfile_t* mf, boolc freeBuf)
     mf->_fileSize = 0;
 }
 
-boolc mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
+bool mf_reserve(memfile_t* mf, size_t r, void **buf, size_t *len)
 {
     size_t sz = reserve(mf, r);
     if(len) *len = sz;
@@ -227,7 +227,7 @@ void* mf_buffer(memfile_t* mf)
     return mf->_buffer;
 }
 
-boolc mf_eof(memfile_t* mf)
+bool mf_eof(memfile_t* mf)
 {
     return mf->_readPos >= mf->_fileSize;
 }

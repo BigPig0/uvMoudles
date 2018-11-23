@@ -78,13 +78,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\util\util_capi.h" />
-    <ClInclude Include="..\util\cdef.h" />
+    <ClInclude Include="..\util\netstream.h" />
+    <ClInclude Include="..\util\util_api.h" />
+    <ClInclude Include="..\util\util_def.h" />
     <ClInclude Include="..\util\memfile.h" />
     <ClInclude Include="..\util\util.h" />
+    <ClInclude Include="..\util\util_export.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\util\memfile.c" />
+    <ClCompile Include="..\util\netstream.c" />
+    <ClCompile Include="..\util\util_api.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

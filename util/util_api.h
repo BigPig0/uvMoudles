@@ -1,5 +1,6 @@
 #ifndef _UTIL_CAPI_
 #define _UTIL_CAPI_
+#include "util_export.h"
 
 #if defined(WIN32) || defined(_WIN32)
 #if _MSC_VER < 1700
@@ -22,7 +23,8 @@ typedef unsigned long long uint64_t;
 #include <string.h>
 #if defined(WIN32) || defined(_WIN32)
 #define strcasecmp _stricmp
-#define sleep(ms) Sleep(ms);
+#define sleep(ms) Sleep(ms)
+#define strtok_r strtok_s
 #else
 #include <strings.h>
 #endif

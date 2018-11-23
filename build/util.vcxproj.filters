@@ -11,21 +11,33 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\util\cdef.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\util\util.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\util\memfile.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\util\util_capi.h">
+    <ClInclude Include="..\util\netstream.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\util_export.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\util_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\util\util_api.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\util\memfile.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\util_api.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\netstream.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
