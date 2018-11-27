@@ -94,10 +94,12 @@ static void on_read_s(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
         uv_close((uv_handle_t*)client, NULL);
         if(c->pre) {
             c->pre->next = c->next;
-            c->next->pre = c->pre;
+            if(c->next)
+                c->next->pre = c->pre;
         } else {
             c->ipc->clients = c->next;
-            c->next->pre = NULL;
+            if(c->next)
+                c->next->pre = NULL;
         }
         free(c);
         return;
@@ -106,6 +108,27 @@ static void on_read_s(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
     //解析消息内容
     s         = create_net_stream_parser(buf->base, nread);
     recv_len  = net_stream_read_be32(s, 32);
+    if(recv_len < 0) {
+        // 客户端发送给服务端的内部通知
+        char *sender, *msg, *data;
+        uint32_t sender_len, msg_len, data_len;
+        total_len  = net_stream_read_be32(s, 32);
+        sender_len = net_stream_read_be32(s, 32);
+        sender     = net_stream_read_buff(s, sender_len);
+        msg_len    = net_stream_read_be32(s, 32);
+        if(msg_len > 0)
+            msg    = net_stream_read_buff(s, msg_len);
+        data_len   = net_stream_read_be32(s, 32);
+        if(data_len > 0)
+            data   = net_stream_read_buff(s, data_len);
+
+        //如果没有设置名字，必须设置自身名字
+        if (c->name[0] == 0){
+            strncpy(c->name, sender, 100);
+        }
+        return;
+    }
+
     recvs     = net_stream_read_buff(s, recv_len);
     total_len = net_stream_read_be32(s, 32);
     data      = net_stream_read_buff(s, 0);
@@ -136,6 +159,7 @@ static void on_read_s(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
                 uv_write(req, (uv_stream_t*)&tmp->pipe, &buff, 1, on_write_s);
                 //break; 允许同名
             }
+            tmp = tmp->next;
         }
         recv_name = strtok_r(NULL, ",", &next_name); 
     } 
@@ -157,7 +181,8 @@ static void on_connection(uv_stream_t *server, int status) {
     uv_pipe_init(ipc->uv, &c->pipe, 0);
     if (uv_accept(server, (uv_stream_t*)&c->pipe) == 0) {//accept成功之后开始读
         c->next = ipc->clients;
-        ipc->clients->pre = c;
+        if(ipc->clients)
+            ipc->clients->pre = c;
         ipc->clients = c;
         c->pipe.data = c;
         uv_read_start((uv_stream_t*)&c->pipe, on_alloc, on_read_s);//开始从pipe读（在loop中注册读事件），读完回调
@@ -206,14 +231,26 @@ static void on_read_c(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf){
 }
 
 static void on_connect(uv_connect_t* req, int status){
-    uv_ipc_handle_t* uvipc = (uv_ipc_handle_t*)req->data;
+    uv_ipc_handle_t* uv_ipc = (uv_ipc_handle_t*)req->data;
+    int ret;
     if (status < 0) {
         printf("connect err:%s \n", uv_strerror(status));
         return;
     }
 
-    uvipc = (uv_ipc_handle_t*)req->data;
-    uv_read_start((uv_stream_t*)&uvipc->pipe, on_alloc, on_read_c);
+    uv_ipc = (uv_ipc_handle_t*)req->data;
+    ret = uv_read_start((uv_stream_t*)&uv_ipc->pipe, on_alloc, on_read_c);
+    if(ret < 0) {
+        printf("read start err:%s \n", uv_strerror(status));
+        return;
+    }
+
+    //注册名称
+    ret = uv_ipc_send(uv_ipc, NULL, NULL, NULL, 0);
+    if(ret < 0) {
+        printf("ipc send err:%s \n", uv_strerror(status));
+        return;
+    }
 }
 
 //public api
@@ -221,17 +258,24 @@ static void on_connect(uv_connect_t* req, int status){
 int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
     uv_ipc_handle_t* uvipc = (uv_ipc_handle_t*)malloc(sizeof(uv_ipc_handle_t));
     int ret;
+    char pipe_name[MAX_PATH]={0};
+#ifdef _WIN32 
+    sprintf(pipe_name, "\\\\.\\Pipe\\%s", ipc);
+#else
+    sprintf(pipe_name, "%s", ipc);
+#endif
     uvipc->is_svr = 1;
+    uvipc->clients = NULL;
     if(uv) {
         uvipc->uv = (uv_loop_t*)uv;
         uvipc->inner_uv = 0;
     } else {
         uv_thread_t tid;
-        uvipc->uv = (uv_loop_t*)malloc(sizeof(uv_loop_t));
+        uvipc->uv = uv_loop_new();
         ret = uv_loop_init(uvipc->uv);
         if(ret < 0) {
             printf("uv loop init failed: %s\n", uv_strerror(ret));
-            free(uvipc->uv);
+            uv_loop_close(uvipc->uv);
             free(uvipc);
             return ret;
         }
@@ -239,7 +283,7 @@ int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
         uv_thread_create(&tid, run_loop_thread, uvipc);
         if(ret < 0) {
             printf("uv thread creat failed: %s\n", uv_strerror(ret));
-            free(uvipc->uv);
+            uv_loop_close(uvipc->uv);
             free(uvipc);
             return ret;
         }
@@ -248,14 +292,14 @@ int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
     ret = uv_pipe_init(uvipc->uv, &uvipc->pipe, 0);
     if(ret < 0) {
         printf("uv pipe init failed: %s\n", uv_strerror(ret));
-        free(uvipc->uv);
+        uv_loop_close(uvipc->uv);
         free(uvipc);
         return ret;
     }
-    ret = uv_pipe_bind(&uvipc->pipe, ipc);
+    ret = uv_pipe_bind(&uvipc->pipe, pipe_name);
     if(ret < 0) {
         printf("uv pipe bind failed: %s\n", uv_strerror(ret));
-        free(uvipc->uv);
+        uv_loop_close(uvipc->uv);
         free(uvipc);
         return ret;
     }
@@ -264,7 +308,7 @@ int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv) {
     ret = uv_listen((uv_stream_t*)&uvipc->pipe, 128, on_connection);
     if(ret < 0) {
         printf("uv listen failed: %s\n", uv_strerror(ret));
-        free(uvipc->uv);
+        uv_loop_close(uvipc->uv);
         free(uvipc);
         return ret;
     }
@@ -277,6 +321,12 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
     uv_ipc_handle_t* uvipc;
     int ret;
     uv_connect_t *conn;
+    char pipe_name[MAX_PATH]={0};
+#ifdef _WIN32 
+    sprintf(pipe_name, "\\\\.\\Pipe\\%s", ipc);
+#else
+    sprintf(pipe_name, "%s", ipc);
+#endif
 
     uvipc = (uv_ipc_handle_t*)malloc(sizeof(uv_ipc_handle_t));
     //uvipc->ipc = ipc;
@@ -291,11 +341,11 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
         uvipc->inner_uv = 0;
     } else {
         uv_thread_t tid;
-        uvipc->uv = (uv_loop_t*)malloc(sizeof(uv_loop_t));
+        uvipc->uv = uv_loop_new();
         ret = uv_loop_init(uvipc->uv);
         if(ret < 0) {
             printf("uv loop init failed: %s\n", uv_strerror(ret));
-            free(uvipc->uv);
+            uv_loop_close(uvipc->uv);
             free(uvipc);
             return ret;
         }
@@ -303,7 +353,7 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
         uv_thread_create(&tid, run_loop_thread, uvipc);
         if(ret < 0) {
             printf("uv thread creat failed: %s\n", uv_strerror(ret));
-            free(uvipc->uv);
+            uv_loop_close(uvipc->uv);
             free(uvipc);
             return ret;
         }
@@ -312,7 +362,7 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
     ret = uv_pipe_init(uvipc->uv, &uvipc->pipe, 0);
     if(ret < 0) {
         printf("uv pipe init failed: %s\n", uv_strerror(ret));
-        free(uvipc->uv);
+        uv_loop_close(uvipc->uv);
         free(uvipc);
         return ret;
     }
@@ -320,7 +370,7 @@ int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_r
 
     conn = (uv_connect_t *)malloc(sizeof(uv_connect_t));
     conn->data = uvipc;
-    uv_pipe_connect(conn, &uvipc->pipe, ipc, on_connect); //连接pipe
+    uv_pipe_connect(conn, &uvipc->pipe, pipe_name, on_connect); //连接pipe
 
     *h = uvipc;
     return 0;
@@ -331,22 +381,38 @@ int uv_ipc_send(uv_ipc_handle_t* h, char* names, char* msg, char* data, int len)
     uv_ipc_write_c_t* w;
     uv_buf_t buff;
     uv_write_t *req;
+    uint32_t tmp = 0;
 
     s = create_net_stream_maker();
     //receivers
-    net_stream_append_be32(s, strlen(names));
-    net_stream_append_string(s, names);
+    if(names) {
+        net_stream_append_be32(s, strlen(names));
+        net_stream_append_string(s, names);
+    } else {
+        net_stream_append_be32(s, 0);
+    }
     //total len
-    net_stream_append_be32(s, strlen(h->name) + strlen(msg) + len);
+    tmp += strlen(h->name);
+    tmp += msg!=NULL?strlen(msg):0;
+    tmp += data!=NULL?len:0;
+    net_stream_append_be32(s, tmp + 12);
     //senders
     net_stream_append_be32(s, strlen(h->name));
     net_stream_append_string(s, h->name);
     //msg
-    net_stream_append_be32(s, strlen(msg));
-    net_stream_append_string(s, msg);
+    if(msg) {
+        net_stream_append_be32(s, strlen(msg));
+        net_stream_append_string(s, msg);
+    } else {
+        net_stream_append_be32(s, 0);
+    }
     //data
-    net_stream_append_be32(s, len);
-    net_stream_append_data(s, data, len);
+    if(data) {
+        net_stream_append_be32(s, len);
+        net_stream_append_data(s, data, len);
+    } else {
+        net_stream_append_be32(s, 0);
+    }
     buff = uv_buf_init(get_net_stream_data(s), get_net_stream_len(s));
 
     w = (uv_ipc_write_c_t*)malloc(sizeof(uv_ipc_write_c_t));

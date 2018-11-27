@@ -250,8 +250,9 @@ uint64_t net_stream_read_be64(net_stream_parser_t* h, uint8_t bitCount)
 
 char* net_stream_read_buff(net_stream_parser_t* h, uint32_t len)
 {
+    char* ret = h->pData + (h->nCurrent / 8);
     h->nCurrent += len*8;
-    return h->pData + (h->nCurrent / 8) + 1;
+    return ret;
 }
 
 void net_stream_skip(net_stream_parser_t* h, uint32_t bitCount)
