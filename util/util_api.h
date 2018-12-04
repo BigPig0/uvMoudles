@@ -23,6 +23,7 @@ typedef unsigned long long uint64_t;
 #include <string.h>
 #if defined(WIN32) || defined(_WIN32)
 #define strcasecmp _stricmp
+#define strncasecmp _strnicmp
 #define sleep(ms) Sleep(ms)
 #define strtok_r strtok_s
 #else

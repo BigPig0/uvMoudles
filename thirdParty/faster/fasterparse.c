@@ -21,7 +21,7 @@ struct parse_info {
     struct faster_node_s  *current;
 };
 
-int CallbackOnJsonNode(int type, char *jpath, int jpath_len, int jpath_size
+static int _on_json_node(int type, char *jpath, int jpath_len, int jpath_size
                        , char *nodename, int nodename_len
                        , char *content, int content_len, void *p ) 
 {
@@ -50,7 +50,7 @@ int parse_json(faster_node_t** root, char* buff) {
     struct parse_info p = {NULL, NULL};
 
     memset( jpath , 0x00 , sizeof(jpath) );
-    ret = TravelJsonBuffer( buff, jpath, sizeof(jpath), &CallbackOnJsonNode, &p );
+    ret = TravelJsonBuffer( buff, jpath, sizeof(jpath), &_on_json_node, &p );
     if( ret && ret != FASTERJSON_ERROR_END_OF_BUFFER ){
         printf( "TravelJsonTree failed[%d]\n", ret );
         return ret;
@@ -59,7 +59,7 @@ int parse_json(faster_node_t** root, char* buff) {
     return ret;
 }
 
-int CallbackOnXmlProperty(int type,  char *xpath, int xpath_len, int xpath_size
+static int _on_xml_property(int type,  char *xpath, int xpath_len, int xpath_size
                           , char *propname, int propname_len
                           , char *propvalue, int propvalue_len
                           , char *content , int content_len , void *p ) 
@@ -89,7 +89,7 @@ int CallbackOnXmlProperty(int type,  char *xpath, int xpath_len, int xpath_size
     return 0;
 }
 
-int CallbackOnXmlNode(int type, char *xpath, int xpath_len, int xpath_size
+static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
                       , char *nodename , int nodename_len 
                       , char *properties , int properties_len 
                       , char *content , int content_len , void *p ) 
@@ -152,7 +152,7 @@ int CallbackOnXmlNode(int type, char *xpath, int xpath_len, int xpath_size
     }
 
     if( properties && properties[0] ) {
-        nret = TravelXmlPropertiesBuffer(properties, properties_len, type, xpath, xpath_len, xpath_size, content, content_len, CallbackOnXmlProperty, p) ;
+        nret = TravelXmlPropertiesBuffer(properties, properties_len, type, xpath, xpath_len, xpath_size, content, content_len, _on_xml_property, p) ;
         if ( nret )
             return nret;
     }
@@ -166,7 +166,7 @@ int parse_xml(faster_node_t** root, char* buff) {
     struct parse_info p = {NULL, NULL};
 
     memset( xpath, 0x00, sizeof(xpath) );
-    ret = TravelXmlBuffer( buff, xpath, sizeof(xpath), CallbackOnXmlNode, &p) ;
+    ret = TravelXmlBuffer( buff, xpath, sizeof(xpath), _on_xml_node, &p) ;
     if( ret && ret != FASTERXML_ERROR_END_OF_BUFFER ) {
         printf( "TravelXmlTree failed[%d]\n", ret );
         return ret;

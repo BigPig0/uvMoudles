@@ -29,6 +29,19 @@ typedef enum _consol_target_ {
     SYSTEM_ERR
 }consol_target_t;
 
+typedef enum _filter_match_ {
+    ACCEPT = 0,     //接受
+    NEUTRAL,        //中立
+    DENY            //拒绝
+}filter_match_t;
+
+typedef struct _filter_list_ {
+    level_t        level;
+    filter_match_t on_match;
+    filter_match_t mis_match;
+    struct _filter_list_ *next;
+}filter_list_t;
+
 typedef struct _time_based_triggering_policy_ {
     int             interval;           //指定多久滚动一次，默认是1 hour
     bool_t          modulate;           //用来调整时间：比如现在是早上3am，interval是4，那么第一次滚动是在4am，接着是8am，12am...而不是7am
@@ -52,12 +65,15 @@ typedef struct _consol_ {
     char            *name;              //指定Appender的名字
     char            *pattern_layout;    //输出格式，不设置默认为:%m%n
     consol_target_t target;             //一般只设置默认:SYSTEM_OUT
+    filter_list_t   *filter;
 }consol_t;
 
 typedef struct _file_ {
     char            *name;              //指定Appender的名字
     char            *pattern_layout;    //输出格式，不设置默认为:%m%n
     char            *file_name;         //指定输出日志的目的文件带全路径的文件名
+    int             append;             //是否追加，默认false
+    filter_list_t   *filter;
 }file_t;
 
 typedef struct _rolling_file_ {
@@ -65,6 +81,7 @@ typedef struct _rolling_file_ {
     char            *pattern_layout;    //输出格式，不设置默认为:%m%n
     char            *file_name;         //指定输出日志的目的文件带全路径的文件名
     char            *filePattern;       //指定新建日志文件的名称格式.
+    filter_list_t   *filter;
     policies_t      policies;           //指定滚动日志的策略，就是什么时候进行新建日志文件输出日志.
     default_rollover_strategy_t drs;    //用来指定同一个文件夹下最多有几个日志文件时开始删除最旧的，创建新的(通过max属性)。
 }rolling_file_t;
