@@ -69,7 +69,7 @@ _UV_IPC_API int uv_ipc_send(uv_ipc_handle_t* h, char* names, char* msg, char* da
 
 _UV_IPC_API void uv_ipc_close(uv_ipc_handle_t* h);
 
-_UV_IPC_API char* uv_ipc_strerr(int status);
+_UV_IPC_API const char* uv_ipc_strerr(int status);
 
 #ifdef __cplusplus
 }
