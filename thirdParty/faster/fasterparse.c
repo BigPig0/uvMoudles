@@ -19,6 +19,7 @@
 struct parse_info {
     struct faster_node_s  *root;
     struct faster_node_s  *current;
+    int current_type;
 };
 
 static int _on_json_node(int type, char *jpath, int jpath_len, int jpath_size
@@ -96,6 +97,7 @@ static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
 {
     int nret = 0 ;
     struct parse_info* h = (struct parse_info*)p;
+    h->current_type = type;
 
     if( type & FASTERXML_NODE_BRANCH ) {
         if( type & FASTERXML_NODE_ENTER ) {
@@ -148,7 +150,16 @@ static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
             }
         }
     } else if( type & FASTERXML_NODE_LEAF ) {
+        faster_node_t *new_n;
         printf( "LEAF         xpath[%s] nodename[%.*s] properties[%.*s] content[%.*s]\n", xpath, nodename_len , nodename , properties_len , properties , content_len , content );
+
+        new_n = (faster_node_t *)malloc(sizeof(faster_node_t));
+        new_n->name = nodename;
+        new_n->name_len = nodename_len;
+        new_n->parent = NULL;
+        new_n->next = NULL;
+        new_n->first_child = NULL;
+        new_n->attr = NULL;
     }
 
     if( properties && properties[0] ) {

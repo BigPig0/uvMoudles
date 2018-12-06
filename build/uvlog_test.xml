@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root a="1"b="2">
+  <Child1>
+    <t1 ></t1>
+    <t2>t2t2</t2>
+    <t3 />
+  </Child1>
+  <Child2 a="a">
+    <s a="1" />
+  </Child2>
+  <Child3 a="b" />
+</root>
