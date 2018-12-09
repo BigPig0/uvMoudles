@@ -5,7 +5,7 @@
 #include "cptr/cptr.h"
 #include "faster/fasterparse.h"
 
-static void _parse_level(faster_attribute_t *attr, level_t *status) {
+static void _parse_level(fxml_attr_t *attr, level_t *status) {
     if(attr->value_len == 3 && !strncasecmp(attr->value, "All", 3)) {
         *status = All;
     } else if(attr->value_len == 5 && !strncasecmp(attr->value, "Trace", 5)) {
@@ -27,7 +27,7 @@ static void _parse_level(faster_attribute_t *attr, level_t *status) {
     }
 }
 
-static void _parse_match(faster_attribute_t *attr, filter_match_t *match) {
+static void _parse_match(fxml_attr_t *attr, filter_match_t *match) {
     if(attr->value_len == 3 && !strncasecmp(attr->value, "ACCEPT", 3)) {
         *match = ACCEPT;
     } else if(attr->value_len == 5 && !strncasecmp(attr->value, "NEUTRAL", 5)) {
@@ -39,8 +39,8 @@ static void _parse_match(faster_attribute_t *attr, filter_match_t *match) {
     }
 }
 
-static int _parse_pattern_layout(faster_node_t *node, char** value) {
-    faster_attribute_t *attr;
+static int _parse_pattern_layout(fxml_node_t *node, char** value) {
+    fxml_attr_t *attr;
     if(node->name_len == 13 && strncasecmp(node->name,"PatternLayout", 13)) {
         for(attr = node->attr; attr; attr = attr->next) {
             if(attr->name_len == 7 && !strncasecmp(attr->name, "pattern", 7)) {
@@ -53,8 +53,8 @@ static int _parse_pattern_layout(faster_node_t *node, char** value) {
     return -1;
 }
 
-static int _parse_threshold_filter(faster_node_t *node, filter_list_t **value) {
-    faster_attribute_t *attr;
+static int _parse_threshold_filter(fxml_node_t *node, filter_list_t **value) {
+    fxml_attr_t *attr;
     if(node->name_len == 15 && strncasecmp(node->name,"ThresholdFilter", 15)) {
         *value = (filter_list_t*)malloc(sizeof(filter_list_t));
         for(attr = node->attr; attr; attr = attr->next) {
@@ -72,8 +72,8 @@ static int _parse_threshold_filter(faster_node_t *node, filter_list_t **value) {
 }
 
 static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
-    faster_node_t *root = NULL, *tmp_node;
-    faster_attribute_t *attr = NULL;
+    fxml_node_t *root = NULL, *tmp_node;
+    fxml_attr_t *attr = NULL;
     int ret = parse_json(&root, conf_buff);
     if(ret < 0) {
         ret = parse_xml(&root, conf_buff);
@@ -93,7 +93,7 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
 
     for(tmp_node = root->first_child; tmp_node; tmp_node=tmp_node->next) {
         if (tmp_node->name_len == 9 && !strncasecmp(tmp_node->name, "appenders", 9)) {
-            faster_node_t *appender_node = tmp_node->first_child;
+            fxml_node_t *appender_node = tmp_node->first_child;
             for(;appender_node; appender_node = appender_node->next) {
                 if(appender_node->name_len == 7 && strncasecmp(appender_node->name, "console", 7)) {
                     consol_t* apd = (consol_t*)malloc(sizeof(consol_t));
@@ -110,7 +110,7 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                     }
                     apd->pattern_layout = NULL;
                     if(appender_node->first_child) {
-                        faster_node_t *partten_node;
+                        fxml_node_t *partten_node;
                         int ret = 0;
                         for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
                             ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
@@ -135,7 +135,7 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                     }
                     apd->pattern_layout = NULL;
                     if(appender_node->first_child) {
-                        faster_node_t *partten_node;
+                        fxml_node_t *partten_node;
                         int ret = 0;
                         for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
                             ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
@@ -157,7 +157,7 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                     }
                     apd->pattern_layout = NULL;
                     if(appender_node->first_child) {
-                        faster_node_t *partten_node;
+                        fxml_node_t *partten_node;
                         int ret = 0;
                         for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
                             ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
@@ -166,7 +166,7 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                 }
             }
         } else if (tmp_node->name_len == 7 && !strncasecmp(tmp_node->name, "loggers", 7)) {
-            faster_node_t *logger_node = tmp_node->first_child;
+            fxml_node_t *logger_node = tmp_node->first_child;
             for(;logger_node; logger_node = logger_node->next) {}
         }
     }
@@ -209,7 +209,7 @@ int uv_log_init(uv_log_handle_t **h) {
     {
         ret = uv_fs_open(NULL, &open_req, fname[i], O_RDONLY, 0, NULL);
         if(ret < 0) {
-            printf("uv fs open %s failed:%d\n", fname[i], uv_strerror(ret));
+            printf("uv fs open %s failed:%s\n", fname[i], uv_strerror(ret));
         } else {
             ret = _uv_log_init_conf(logger, open_req.result);
             if(!ret) {
@@ -231,7 +231,7 @@ int uv_log_init_conf(uv_log_handle_t **h, char* conf_path) {
 
     ret = uv_fs_open(&logger->uv, &open_req, conf_path, O_RDONLY, 0, NULL);
     if(ret < 0) {
-        printf("uv fs open %s failed:%d\n", conf_path, uv_strerror(ret));
+        printf("uv fs open %s failed:%s\n", conf_path, uv_strerror(ret));
         return ret;
     }
     ret = _uv_log_init_conf(logger, open_req.result);

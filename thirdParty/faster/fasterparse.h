@@ -19,29 +19,31 @@ extern "C" {
 #endif
 #endif
 
-typedef struct faster_attribute_s {
+typedef struct fxml_attr_s {
+    struct fxml_attr_s *next;    //下一个属性，NULL表示结束
     char   *name;       //属性名称
     int    name_len;    //属性名称长度
     char   *value;      //属性值
     int    value_len;   //属性值长度
-    struct faster_attribute_s *next;    //下一个属性，NULL表示结束
-}faster_attribute_t;
+}fxml_attr_t;
 
-typedef struct faster_node_s {
+typedef struct fxml_node_s {
+    struct fxml_attr_s *attr;    //节点属性
+    struct fxml_node_s  *parent;      //上级节点
+    struct fxml_node_s  *next;        //下级节点
+    struct fxml_node_s  *first_child; //子节点
     char   *name;       //节点名称
     int    name_len;    //节点名称长度
-    struct faster_attribute_s *attr;    //节点属性
-    struct faster_node_s  *parent;      //上级节点
-    struct faster_node_s  *next;        //下级节点
-    struct faster_node_s  *first_child; //子节点
-}faster_node_t;
+    char   *content;    //叶子节点内容
+    int    content_len;
+}fxml_node_t;
 
 
-_THIRD_UTIL_API int parse_json(faster_node_t** root, char* buff);
+_THIRD_UTIL_API int parse_json(fxml_node_t** root, char* buff);
 
-_THIRD_UTIL_API int parse_xml(faster_node_t** root, char* buff);
+_THIRD_UTIL_API int parse_xml(fxml_node_t** root, char* buff);
 
-_THIRD_UTIL_API void free_faster_node(faster_node_t* root);
+_THIRD_UTIL_API void free_faster_node(fxml_node_t* root);
 
 #ifdef __cplusplus
 }

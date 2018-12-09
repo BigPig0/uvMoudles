@@ -16,11 +16,31 @@
 #include "fasterjson.h"
 #include "fasterparse.h"
 
-struct parse_info {
-    struct faster_node_s  *root;
-    struct faster_node_s  *current;
-    int current_type;
+enum xml_state {
+    xml_state_no = 0,
+    xml_state_branch,
+    xml_state_enter_branch,
+    xml_state_leave,
+    xml_state_leaf
 };
+
+struct parse_info {
+    struct fxml_node_s  *root;
+    struct fxml_node_s  *current;
+    int last_type;
+};
+
+typedef struct fxml_node_p_s {
+    struct fxml_attr_s *attr;    //节点属性
+    struct fxml_node_s  *parent;      //上级节点
+    struct fxml_node_s  *next;        //下级节点
+    struct fxml_node_s  *first_child; //子节点
+    char   *name;       //节点名称
+    int    name_len;    //节点名称长度
+    char   *content;    //叶子节点内容
+    int    content_len;
+    int    node_type;
+}fxml_node_p_t;
 
 static int _on_json_node(int type, char *jpath, int jpath_len, int jpath_size
                        , char *nodename, int nodename_len
@@ -45,7 +65,7 @@ static int _on_json_node(int type, char *jpath, int jpath_len, int jpath_size
     return 0;
 }
 
-int parse_json(faster_node_t** root, char* buff) {
+int parse_json(fxml_node_t** root, char* buff) {
     char	jpath[ 1024 + 1 ] ;
     int     ret = 0;
     struct parse_info p = {NULL, NULL};
@@ -66,13 +86,13 @@ static int _on_xml_property(int type,  char *xpath, int xpath_len, int xpath_siz
                           , char *content , int content_len , void *p ) 
 {
     struct parse_info* h;
-    faster_attribute_t* new_a;
+    fxml_attr_t* new_a;
     printf( "    PROPERTY xpath[%s] propname[%.*s] propvalue[%.*s]\n", xpath , propname_len , propname , propvalue_len , propvalue );
     h = (struct parse_info*)p;
     if(!h->current)
         return -1;
 
-    new_a = (faster_attribute_t*)malloc(sizeof(faster_attribute_t));
+    new_a = (fxml_attr_t*)malloc(sizeof(fxml_attr_t));
     new_a->name = propname;
     new_a->name_len = propname_len;
     new_a->value = propvalue;
@@ -82,7 +102,7 @@ static int _on_xml_property(int type,  char *xpath, int xpath_len, int xpath_siz
     if(!h->current->attr) {
         h->current->attr = new_a;
     } else {
-        faster_attribute_t* tmp = h->current->attr;
+        fxml_attr_t* tmp = h->current->attr;
         while(tmp->next)
             tmp = tmp->next;
         tmp->next = new_a;
@@ -97,23 +117,24 @@ static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
 {
     int nret = 0 ;
     struct parse_info* h = (struct parse_info*)p;
-    h->current_type = type;
 
     if( type & FASTERXML_NODE_BRANCH ) {
         if( type & FASTERXML_NODE_ENTER ) {
-            faster_node_t *new_n;
+            fxml_node_p_t *new_n;
             printf( "ENTER-BRANCH xpath[%s] nodename[%.*s] properties[%.*s]\n", xpath, nodename_len, nodename, properties_len, properties );
             if ( xpath_len == 4 && xpath[0]=='/' && tolower(xpath[1])=='x'
                 && tolower(xpath[2])=='m' && tolower(xpath[3]=='l') )
                 return 0;
 
-            new_n = (faster_node_t *)malloc(sizeof(faster_node_t));
+            new_n = (fxml_node_p_t *)malloc(sizeof(fxml_node_p_t));
             new_n->name = nodename;
             new_n->name_len = nodename_len;
             new_n->parent = NULL;
             new_n->next = NULL;
             new_n->first_child = NULL;
             new_n->attr = NULL;
+            new_n->node_type = xml_state_enter_branch;
+
             if(h->current == NULL) {
                 h->current = new_n;
                 h->root = new_n;
@@ -125,21 +146,23 @@ static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
         } else if( type & FASTERXML_NODE_LEAVE ) {
             printf( "LEAVE-BRANCH xpath[%s] nodename[%.*s] properties[%.*s]\n", xpath, nodename_len, nodename, properties_len, properties );
             h->current = h->current->parent;
+            h->last_type = type;
             return 0;
         } else {
-            faster_node_t *new_n;
+            fxml_node_p_t *new_n;
             printf( "BRANCH       xpath[%s] nodename[%.*s] properties[%.*s]\n", xpath, nodename_len, nodename , properties_len , properties );
             if ( xpath_len == 4 && xpath[0]=='/' && tolower(xpath[1])=='x'
                 && tolower(xpath[2])=='m' && tolower(xpath[3]=='l') )
                 return 0;
 
-            new_n = (faster_node_t *)malloc(sizeof(faster_node_t));
+            new_n = (fxml_node_p_t *)malloc(sizeof(fxml_node_p_t));
             new_n->name = nodename;
             new_n->name_len = nodename_len;
             new_n->parent = NULL;
             new_n->next = NULL;
             new_n->first_child = NULL;
             new_n->attr = NULL;
+            new_n->node_type = xml_state_branch;
             if(h->current == NULL) {
                 h->current = new_n;
                 h->root = new_n;
@@ -150,28 +173,42 @@ static int _on_xml_node(int type, char *xpath, int xpath_len, int xpath_size
             }
         }
     } else if( type & FASTERXML_NODE_LEAF ) {
-        faster_node_t *new_n;
+        fxml_node_t *new_n;
         printf( "LEAF         xpath[%s] nodename[%.*s] properties[%.*s] content[%.*s]\n", xpath, nodename_len , nodename , properties_len , properties , content_len , content );
 
-        new_n = (faster_node_t *)malloc(sizeof(faster_node_t));
+        new_n = (fxml_node_t *)malloc(sizeof(fxml_node_t));
         new_n->name = nodename;
         new_n->name_len = nodename_len;
         new_n->parent = NULL;
         new_n->next = NULL;
         new_n->first_child = NULL;
         new_n->attr = NULL;
+        if (h->current == NULL) {
+            h->current = new_n;
+            h->root = new_n;
+        } else {
+            if (h->last_type & FASTERXML_NODE_LEAF) {
+                h->current->next = new_n;
+                new_n->parent = h->current->parent;
+            } else {
+                h->current->first_child = new_n;
+                new_n->parent = h->current;
+            }
+            h->current = new_n;
+        }
     }
+    h->last_type = type;
 
-    if( properties && properties[0] ) {
-        nret = TravelXmlPropertiesBuffer(properties, properties_len, type, xpath, xpath_len, xpath_size, content, content_len, _on_xml_property, p) ;
-        if ( nret )
-            return nret;
-    }
+    //if( properties && properties[0] ) {
+    //    nret = TravelXmlPropertiesBuffer(properties, properties_len, type, xpath, xpath_len, xpath_size, content, content_len, _on_xml_property, p) ;
+    //    if ( nret )
+    //        return nret;
+    //}
 
     return 0;
 }
 
-int parse_xml(faster_node_t** root, char* buff) {
+int parse_xml(fxml_node_t** root, char* buff) {
     char	xpath[ 1024 + 1 ] ;
     int     ret = 0 ;
     struct parse_info p = {NULL, NULL};
@@ -186,12 +223,12 @@ int parse_xml(faster_node_t** root, char* buff) {
     return ret;
 }
 
-void free_faster_node(faster_node_t* root) {
+void free_faster_node(fxml_node_t* root) {
     if(!root)
         return;
 
     while(root->attr) {
-        struct faster_attribute_s *attr = root->attr;
+        struct fxml_attr_s *attr = root->attr;
         root->attr = root->attr->next;
         free(attr);
     }
