@@ -41,10 +41,10 @@ static void _parse_match(fxml_attr_t *attr, filter_match_t *match) {
 
 static int _parse_pattern_layout(fxml_node_t *node, char** value) {
     fxml_attr_t *attr;
-    if(node->name_len == 13 && strncasecmp(node->name,"PatternLayout", 13)) {
+    if(node->name_len == 13 && !strncasecmp(node->name,"PatternLayout", 13)) {
         for(attr = node->attr; attr; attr = attr->next) {
             if(attr->name_len == 7 && !strncasecmp(attr->name, "pattern", 7)) {
-                *value = (char*)malloc(attr->value_len+1);
+                *value = (char*)calloc(attr->value_len+1,1);
                 strncpy(*value, attr->value, attr->value_len);
             }
         }
@@ -55,7 +55,7 @@ static int _parse_pattern_layout(fxml_node_t *node, char** value) {
 
 static int _parse_threshold_filter(fxml_node_t *node, filter_list_t **value) {
     fxml_attr_t *attr;
-    if(node->name_len == 15 && strncasecmp(node->name,"ThresholdFilter", 15)) {
+    if(node->name_len == 15 && !strncasecmp(node->name,"ThresholdFilter", 15)) {
         *value = (filter_list_t*)malloc(sizeof(filter_list_t));
         for(attr = node->attr; attr; attr = attr->next) {
             if(attr->name_len == 5 && !strncasecmp(attr->name, "level", 5)) {
@@ -95,15 +95,15 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
         if (tmp_node->name_len == 9 && !strncasecmp(tmp_node->name, "appenders", 9)) {
             fxml_node_t *appender_node = tmp_node->first_child;
             for(;appender_node; appender_node = appender_node->next) {
-                if(appender_node->name_len == 7 && strncasecmp(appender_node->name, "console", 7)) {
+                if(appender_node->name_len == 7 && !strncasecmp(appender_node->name, "console", 7)) {
                     consol_t* apd = (consol_t*)malloc(sizeof(consol_t));
                     apd->target = SYSTEM_OUT;
-                    for(attr = root->attr; attr; attr = attr->next) {
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)malloc(attr->value_len+1);
+                            apd->name = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 4 && !strncasecmp(attr->name, "target", 4)) {
-                            if(attr->value_len == 10 && strncasecmp(attr->value, "SYSTEM_ERR", 10)){
+                        } else if (attr->name_len == 4 && !strncasecmp(attr->name, "target", 6)) {
+                            if(attr->value_len == 10 && !strncasecmp(attr->value, "SYSTEM_ERR", 10)){
                                 apd->target = SYSTEM_ERR;
                             }
                         }
@@ -117,18 +117,18 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                             if(!ret) ret = _parse_threshold_filter(appender_node->first_child, &apd->filter);
                         }
                     }
-                } else if(appender_node->name_len == 4 && strncasecmp(appender_node->name, "File", 4)) {
+                } else if(appender_node->name_len == 4 && !strncasecmp(appender_node->name, "File", 4)) {
                     file_t* apd = (file_t*)malloc(sizeof(file_t));
                     apd->append = 0;
-                    for(attr = root->attr; attr; attr = attr->next) {
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)malloc(attr->value_len+1);
+                            apd->name = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->name, attr->value, attr->value_len);
                         } else if (attr->name_len == 8 && !strncasecmp(attr->name, "fileName", 8)) {
-                            apd->file_name = (char*)malloc(attr->value_len+1);
+                            apd->file_name = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->file_name, attr->value, attr->value_len);
                         } else if (attr->name_len == 8 && !strncasecmp(attr->name, "append", 8)){
-                            if(attr->value_len == 10 && strncasecmp(attr->value, "true", 10)){
+                            if(attr->value_len == 10 && !strncasecmp(attr->value, "true", 10)){
                                 apd->append = 1;
                             }
                         }
@@ -141,17 +141,17 @@ static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
                             ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
                         }
                     }
-                } else if(appender_node->name_len == 11 && strncasecmp(appender_node->name, "RollingFile", 11)) {
+                } else if(appender_node->name_len == 11 && !strncasecmp(appender_node->name, "RollingFile", 11)) {
                     rolling_file_t* apd = (rolling_file_t*)malloc(sizeof(rolling_file_t));
-                    for(attr = root->attr; attr; attr = attr->next) {
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)malloc(attr->value_len+1);
+                            apd->name = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->name, attr->value, attr->value_len);
                         } else if (attr->name_len == 8 && !strncasecmp(attr->name, "fileName", 8)) {
-                            apd->file_name = (char*)malloc(attr->value_len+1);
+                            apd->file_name = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->file_name, attr->value, attr->value_len);
                         } else if (attr->name_len == 8 && !strncasecmp(attr->name, "filePattern", 8)){
-                            apd->filePattern = (char*)malloc(attr->value_len+1);
+                            apd->filePattern = (char*)calloc(attr->value_len+1,1);
                             strncpy(apd->filePattern, attr->value, attr->value_len);
                         }
                     }
