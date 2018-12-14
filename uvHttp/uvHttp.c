@@ -70,6 +70,7 @@ http_t* uvHttp(config_t cof, void* uv) {
 		h->inner_uv = false;
 	} else {
         int ret;
+        uv_thread_t tid;
 		h->uv = (uv_loop_t*)malloc(sizeof(uv_loop_t));
 		ret = uv_loop_init(h->uv);
         if(ret < 0) {
@@ -79,7 +80,7 @@ http_t* uvHttp(config_t cof, void* uv) {
             return NULL;
         }
 		h->inner_uv = true;
-        uv_thread_t tid;
+
         ret = uv_thread_create(&tid, run_loop_thread, h);
         if(ret < 0) {
             printf("uv thread creat failed: %s\n", uv_strerror(ret));

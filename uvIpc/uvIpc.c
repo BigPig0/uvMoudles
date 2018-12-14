@@ -96,7 +96,7 @@ static void on_write_s(uv_write_t *req, int status) {
 static void on_read_s(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf) {
     uv_ipc_clients_t* c = (uv_ipc_clients_t*)client->data;
     uv_ipc_handle_t* ipc = (uv_ipc_handle_t*)c->ipc;
-    char *recv_name, *next_name, *recvs, *total, *sender, *msg, *data; 
+    char *recv_name, *next_name, *recvs = NULL, *total, *sender, *msg = NULL, *data = NULL; 
     uint32_t recv_len, total_len, sender_len, msg_len, data_len;
     net_stream_parser_t *s;
     uv_ipc_write_s_t *w;

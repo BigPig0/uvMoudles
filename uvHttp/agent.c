@@ -11,12 +11,13 @@ static void timer_cb(uv_timer_t* handle) {
     agent_t* agent;
     set_iterator_t s_pos, s_end;
     socket_t* s;
+    time_t now;
     http_t* h = (http_t*)handle->data;
     if(!h || !h->agents)
         return;
 
     uv_mutex_lock(&h->uv_mutex_h);
-    time_t now = time(NULL);
+    now = time(NULL);
     it_pos = map_begin(h->agents);
     it_end = map_end(h->agents);
     for(;iterator_not_equal(it_pos, it_end);it_pos = iterator_next(it_pos)) {

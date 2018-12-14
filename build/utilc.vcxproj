@@ -79,6 +79,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\utilc\netstream.h" />
+    <ClInclude Include="..\utilc\ring_buff.h" />
     <ClInclude Include="..\utilc\utilc_api.h" />
     <ClInclude Include="..\utilc\utilc_def.h" />
     <ClInclude Include="..\utilc\memfile.h" />
@@ -88,6 +89,7 @@
   <ItemGroup>
     <ClCompile Include="..\utilc\memfile.c" />
     <ClCompile Include="..\utilc\netstream.c" />
+    <ClCompile Include="..\utilc\ring_buff.c" />
     <ClCompile Include="..\utilc\utilc_api.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

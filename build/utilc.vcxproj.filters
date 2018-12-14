@@ -29,6 +29,9 @@
     <ClInclude Include="..\utilc\utilc_export.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\utilc\ring_buff.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\utilc\memfile.c">
@@ -38,6 +41,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\utilc\utilc_api.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utilc\ring_buff.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
