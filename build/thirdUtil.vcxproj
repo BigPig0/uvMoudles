@@ -15,12 +15,14 @@
     <ClInclude Include="..\thirdParty\faster\fasterjson.h" />
     <ClInclude Include="..\thirdParty\faster\fasterparse.h" />
     <ClInclude Include="..\thirdParty\faster\fasterxml.h" />
+    <ClInclude Include="..\util\cstl_easy.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdParty\cptr\cptr.c" />
     <ClCompile Include="..\thirdParty\faster\fasterjson.c" />
     <ClCompile Include="..\thirdParty\faster\fasterparse.c" />
     <ClCompile Include="..\thirdParty\faster\fasterxml.c" />
+    <ClCompile Include="..\util\cstl_easy.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42E795E5-3ABC-42BE-8080-D0CD3D0A0B0F}</ProjectGuid>

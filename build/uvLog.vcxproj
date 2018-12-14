@@ -15,6 +15,7 @@
     <ClInclude Include="..\uvLog\uvLog.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\uvLog\logconfig.c" />
     <ClCompile Include="..\uvLog\uvLog.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

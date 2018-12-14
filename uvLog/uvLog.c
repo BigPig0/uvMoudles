@@ -4,6 +4,7 @@
 #include "util.h"
 #include "cptr/cptr.h"
 #include "faster/fasterparse.h"
+#include "cstl_easy.h"
 
 static void _parse_level(fxml_attr_t *attr, level_t *status) {
     if(attr->value_len == 3 && !strncasecmp(attr->value, "All", 3)) {
@@ -34,18 +35,16 @@ static void _parse_match(fxml_attr_t *attr, filter_match_t *match) {
         *match = NEUTRAL;
     } else if(attr->value_len == 5 && !strncasecmp(attr->value, "DENY", 5)) {
         *match = DENY;
-    } else {
-        *match = NEUTRAL;
     }
 }
 
-static int _parse_pattern_layout(fxml_node_t *node, char** value) {
+static int _parse_pattern_layout(fxml_node_t *node, string_t** value) {
     fxml_attr_t *attr;
     if(node->name_len == 13 && !strncasecmp(node->name,"PatternLayout", 13)) {
         for(attr = node->attr; attr; attr = attr->next) {
             if(attr->name_len == 7 && !strncasecmp(attr->name, "pattern", 7)) {
-                *value = (char*)calloc(attr->value_len+1,1);
-                strncpy(*value, attr->value, attr->value_len);
+                *value = create_string();
+                string_init_subcstr(*value, attr->value, attr->value_len);
             }
         }
         return 0;
@@ -53,123 +52,259 @@ static int _parse_pattern_layout(fxml_node_t *node, char** value) {
     return -1;
 }
 
-static int _parse_threshold_filter(fxml_node_t *node, filter_list_t **value) {
+static int _parse_threshold_filter(fxml_node_t *node, list_t *fliter_list) {
     fxml_attr_t *attr;
-    if(node->name_len == 15 && !strncasecmp(node->name,"ThresholdFilter", 15)) {
-        *value = (filter_list_t*)malloc(sizeof(filter_list_t));
+    if(!parse_strcasecmp(node->name, node->name_len, "ThresholdFilter")) {
+        filter_t* value = create_filter();
         for(attr = node->attr; attr; attr = attr->next) {
-            if(attr->name_len == 5 && !strncasecmp(attr->name, "level", 5)) {
-                _parse_level(attr, &(*value)->level);
-            } else if(attr->name_len == 7 && !strncasecmp(attr->name, "onMatch", 7)) {
-                _parse_match(attr, &(*value)->on_match);
+            if(!parse_strcasecmp(attr->name, attr->name_len, "level")) {
+                _parse_level(attr, &value->level);
+            } else if(!parse_strcasecmp(attr->name, attr->name_len, "onMatch")) {
+                _parse_match(attr, &value->on_match);
             } else if(attr->name_len == 10 && !strncasecmp(attr->name, "onMismatch", 10)) {
-                _parse_match(attr, &(*value)->mis_match);
+                _parse_match(attr, &value->mis_match);
             } 
         }
+        list_push_back(fliter_list, value);
         return 0;
     }
     return -1;
 }
 
-static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
-    fxml_node_t *root = NULL, *tmp_node;
+static int _parse_filters(fxml_node_t *node, list_t *fliter_list) {
+    fxml_node_t *filters_child_node;
+
+    if(parse_xmlnode_namecmp(node, "Filters"))
+        return -1;
+
+    for(filters_child_node= node->first_child; filters_child_node; filters_child_node = filters_child_node->next){
+        _parse_threshold_filter(filters_child_node, fliter_list);
+    }
+    return 0;
+}
+
+static int _parse_policies(fxml_node_t *node, policies_t *policies) {
+    fxml_node_t *policies_child_node;
+
+    if(parse_xmlnode_namecmp(node, "Policies"))
+        return -1;
+
+    for (policies_child_node = node->first_child; policies_child_node; policies_child_node = policies_child_node->next) {
+        if (!parse_xmlnode_namecmp(policies_child_node, "TimeBasedTriggeringPolicy")) {
+            fxml_attr_t *attr;
+            for(attr = policies_child_node->attr; attr; attr = attr->next) {
+                if(!parse_strcasecmp(attr->name, attr->name_len, "interval")) {
+                    char value[100]={0};
+                    strncpy(value, attr->value, attr->value_len);
+                    policies->time_policy.interval = atoi(value);
+                } else if(!parse_strcasecmp(attr->name, attr->name_len, "modulate")) {
+                    if(!parse_xmlattr_valuecmp(attr, "true"))
+                        policies->time_policy.modulate = true;
+                }
+            }
+        } else if (!parse_xmlnode_namecmp(policies_child_node, "SizeBasedTriggeringPolicy")) {
+            fxml_attr_t *attr;
+            for(attr = policies_child_node->attr; attr; attr = attr->next) {
+                if(!parse_strcasecmp(attr->name, attr->name_len, "size")) {
+                    char value[100]={0};
+                    strncpy(value, attr->value, attr->value_len);
+                    policies->size_policy.size = atoi(value);
+                    break;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+static int _parse_default_rollover_strategy(fxml_node_t *node, int *max) {
+    fxml_attr_t *attr;
+
+    if(parse_xmlnode_namecmp(node, "DefaultRolloverStrategy"))
+        return -1;
+
+    for(attr = node->attr; attr; attr = attr->next) {
+        if(!parse_strcasecmp(attr->name, attr->name_len, "max")) {
+            char value[100]={0};
+            strncpy(value, attr->value, attr->value_len);
+            *max = atoi(value);
+            break;
+        }
+    }
+    return 0;
+}
+
+static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
+    fxml_node_t *tmp_node;
     fxml_attr_t *attr = NULL;
+    if(parse_strcasecmp(root->name, root->name_len, "configuration"))
+        return -1;
+
+    //根节点的属性
+    for(attr = root->attr; attr; attr = attr->next) {
+        if(!parse_strcasecmp(attr->name, attr->name_len, "status")) {
+            _parse_level(attr, &(config->status));
+        } else if(!parse_strcasecmp(attr->name, attr->name_len, "monitorInterval")) {
+            char buff[100]={0};
+            strncpy(buff, attr->value, attr->value_len);
+            config->monitorinterval = atoi(buff);
+        }
+    }
+
+    for(tmp_node = root->first_child; tmp_node; tmp_node=tmp_node->next) {
+        if(!parse_xmlnode_namecmp(tmp_node, "appenders")) {
+            fxml_node_t *appender_node = tmp_node->first_child;
+            for(;appender_node; appender_node = appender_node->next) {
+                // 控制台输出的appender
+                if(!parse_xmlnode_namecmp(appender_node, "console")) {
+                    consol_t* apd = create_appender_consol();
+                    // 属性
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
+                        if(!parse_xmlattr_namecmp(attr, "name")) {
+                            apd->name = create_string();
+                            string_init_subcstr(apd->name, attr->value, attr->value_len);
+                        } else if (!parse_xmlattr_namecmp(attr, "target")) {
+                            if(!parse_xmlattr_valuecmp(attr, "SYSTEM_ERR")) {
+                                apd->target = SYSTEM_ERR;
+                            }
+                        }
+                    }
+                    // 子节点
+                    if(appender_node->first_child) {
+                        fxml_node_t *appender_child_node;
+                        int ret = 0;
+                        for(appender_child_node= appender_node->first_child; appender_child_node; appender_child_node = appender_child_node->next){
+                            ret = _parse_pattern_layout(appender_child_node, &apd->pattern_layout);
+                            if(!ret) ret = _parse_threshold_filter(appender_child_node, apd->filter);
+                            if(!ret) ret = _parse_filters(appender_child_node, apd->filter);
+                        }
+                    }
+                } else if(!parse_xmlnode_namecmp(appender_node, "File")) {
+                    file_t* apd = create_appender_file();
+                    //属性
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
+                        if(!parse_xmlattr_namecmp(attr, "name")) {
+                            apd->name = create_string();
+                            string_init_subcstr(apd->name, attr->value, attr->value_len);
+                        } else if (!parse_xmlattr_namecmp(attr, "fileName")) {
+                            apd->file_name = create_string();
+                            string_init_subcstr(apd->file_name, attr->value, attr->value_len);
+                        } else if (!parse_xmlattr_namecmp(attr, "append")){
+                            if(!parse_xmlattr_valuecmp(attr, "true")){
+                                apd->append = true;
+                            }
+                        }
+                    }
+                    //子节点
+                    if(appender_node->first_child) {
+                        fxml_node_t *appender_child_node;
+                        int ret = 0;
+                        for(appender_child_node= appender_node->first_child; appender_child_node; appender_child_node = appender_child_node->next){
+                            ret = _parse_pattern_layout(appender_child_node, &apd->pattern_layout);
+                            if(!ret) ret = _parse_threshold_filter(appender_child_node, apd->filter);
+                            if(!ret) ret = _parse_filters(appender_child_node, apd->filter);
+                        }
+                    }
+                } else if(appender_node->name_len == 11 && !strncasecmp(appender_node->name, "RollingFile", 11)) {
+                    rolling_file_t* apd = create_appender_rolling_file();
+                    //属性
+                    for(attr = appender_node->attr; attr; attr = attr->next) {
+                        if(!parse_xmlattr_namecmp(attr, "name")) {
+                            apd->name = create_string();
+                            string_init_subcstr(apd->name, attr->value, attr->value_len);
+                        } else if (!parse_xmlattr_namecmp(attr, "filePattern")){
+                            apd->filePattern = create_string();
+                            string_init_subcstr(apd->filePattern, attr->value, attr->value_len);
+                        }
+                    }
+                    //子节点
+                    if(appender_node->first_child) {
+                        fxml_node_t *appender_child_node;
+                        int ret = 0;
+                        for(appender_child_node= appender_node->first_child; appender_child_node; appender_child_node = appender_child_node->next){
+                            ret = _parse_pattern_layout(appender_child_node, &apd->pattern_layout);
+                            if(!ret) ret = _parse_threshold_filter(appender_child_node, apd->filter);
+                            if(!ret) ret = _parse_filters(appender_child_node, apd->filter);
+                            if(!ret) ret = _parse_policies(appender_child_node, &apd->policies);
+                            if(!ret) ret = _parse_default_rollover_strategy(appender_child_node, &apd->drs.max);
+                        }
+                    }
+                }
+            }
+        } else if (!parse_xmlnode_namecmp(tmp_node, "loggers")) {
+            fxml_node_t *logger_node = tmp_node->first_child;
+            for(;logger_node; logger_node = logger_node->next) {
+                if (!parse_strcasecmp(logger_node->name, logger_node->name_len, "logger")) {
+                    logger_t *log = create_logger();
+                    fxml_node_t *ref_node;
+                    //属性
+                    for(attr = logger_node->attr; attr; attr = attr->next) {
+                        if(!parse_strcasecmp(attr->name, attr->name_len, "name")) {
+                            log->name = create_string();
+                            string_init_subcstr(log->name, attr->value, attr->value_len);
+                        } else if(!parse_strcasecmp(attr->name, attr->name_len, "level")) {
+                            _parse_level(attr, &log->level);
+                        } else if(!parse_strcasecmp(attr->name, attr->name_len, "additivity")) {
+                            if(!parse_xmlattr_valuecmp(attr,"false")) {
+                                log->additivity = false;
+                            }
+                        }
+                    }
+                    //ref
+                    for(ref_node = logger_node->first_child; ref_node; ref_node = tmp_node->next) {
+                        if (!parse_strcasecmp(ref_node->name, ref_node->name_len, "appender-ref")) {
+                            for(attr = logger_node->attr; attr; attr = attr->next) {
+                                if(!parse_strcasecmp(attr->name, attr->name_len, "name")) {
+                                    string_t *ref = create_string();
+                                    string_init_subcstr(ref, attr->value, attr->value_len);
+                                    list_push_back(log->appender_ref, ref);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    hash_map_insert_easy(config->loggers, log->name, log);
+                } else if(!parse_strcasecmp(logger_node->name, logger_node->name_len, "root")) {
+                    fxml_node_t *ref_node;
+                    //属性
+                    for(attr = logger_node->attr; attr; attr = attr->next) {
+                        if(!parse_strcasecmp(attr->name, attr->name_len, "level")) {
+                            _parse_level(attr, &config->root->level);
+                            break;
+                        }
+                    }
+                    //ref
+                    for(ref_node = logger_node->first_child; ref_node; ref_node = tmp_node->next) {
+                        if (!parse_strcasecmp(ref_node->name, ref_node->name_len, "appender-ref")) {
+                            for(attr = logger_node->attr; attr; attr = attr->next) {
+                                if(!parse_strcasecmp(attr->name, attr->name_len, "name")) {
+                                    string_t *ref = create_string();
+                                    string_init_subcstr(ref, attr->value, attr->value_len);
+                                    list_push_back(config->root->appender_ref, ref);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }//end root
+            }//end logger node
+        }//end loggers
+    }//end root
+
+    return 0;
+}
+
+static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
+    fxml_node_t *root = NULL;
     int ret = parse_json(&root, conf_buff);
     if(ret < 0) {
         ret = parse_xml(&root, conf_buff);
     }
 
-    if(root->name_len != 13 || strncasecmp(root->name, "configuration", 13))
-        return -1;
-    for(attr = root->attr; attr; attr = attr->next) {
-        if(attr->name_len == 6 && !strncasecmp(attr->name, "status", 6)) {
-            _parse_level(attr, &(h->config.status));
-        } else if (attr->name_len == 15 && !strncasecmp(attr->name, "monitorInterval", 15)) {
-            char buff[100]={0};
-            strncpy(buff, attr->value, attr->value_len);
-            h->config.monitorinterval = atoi(buff);
-        }
+    if (!ret) {
+        ret = _parse_xml_config(root, h->config);
     }
-
-    for(tmp_node = root->first_child; tmp_node; tmp_node=tmp_node->next) {
-        if (tmp_node->name_len == 9 && !strncasecmp(tmp_node->name, "appenders", 9)) {
-            fxml_node_t *appender_node = tmp_node->first_child;
-            for(;appender_node; appender_node = appender_node->next) {
-                if(appender_node->name_len == 7 && !strncasecmp(appender_node->name, "console", 7)) {
-                    consol_t* apd = (consol_t*)malloc(sizeof(consol_t));
-                    apd->target = SYSTEM_OUT;
-                    for(attr = appender_node->attr; attr; attr = attr->next) {
-                        if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 4 && !strncasecmp(attr->name, "target", 6)) {
-                            if(attr->value_len == 10 && !strncasecmp(attr->value, "SYSTEM_ERR", 10)){
-                                apd->target = SYSTEM_ERR;
-                            }
-                        }
-                    }
-                    apd->pattern_layout = NULL;
-                    if(appender_node->first_child) {
-                        fxml_node_t *partten_node;
-                        int ret = 0;
-                        for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
-                            ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
-                            if(!ret) ret = _parse_threshold_filter(appender_node->first_child, &apd->filter);
-                        }
-                    }
-                } else if(appender_node->name_len == 4 && !strncasecmp(appender_node->name, "File", 4)) {
-                    file_t* apd = (file_t*)malloc(sizeof(file_t));
-                    apd->append = 0;
-                    for(attr = appender_node->attr; attr; attr = attr->next) {
-                        if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 8 && !strncasecmp(attr->name, "fileName", 8)) {
-                            apd->file_name = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->file_name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 8 && !strncasecmp(attr->name, "append", 8)){
-                            if(attr->value_len == 10 && !strncasecmp(attr->value, "true", 10)){
-                                apd->append = 1;
-                            }
-                        }
-                    }
-                    apd->pattern_layout = NULL;
-                    if(appender_node->first_child) {
-                        fxml_node_t *partten_node;
-                        int ret = 0;
-                        for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
-                            ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
-                        }
-                    }
-                } else if(appender_node->name_len == 11 && !strncasecmp(appender_node->name, "RollingFile", 11)) {
-                    rolling_file_t* apd = (rolling_file_t*)malloc(sizeof(rolling_file_t));
-                    for(attr = appender_node->attr; attr; attr = attr->next) {
-                        if(attr->name_len == 4 && !strncasecmp(attr->name, "name", 4)) {
-                            apd->name = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 8 && !strncasecmp(attr->name, "fileName", 8)) {
-                            apd->file_name = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->file_name, attr->value, attr->value_len);
-                        } else if (attr->name_len == 8 && !strncasecmp(attr->name, "filePattern", 8)){
-                            apd->filePattern = (char*)calloc(attr->value_len+1,1);
-                            strncpy(apd->filePattern, attr->value, attr->value_len);
-                        }
-                    }
-                    apd->pattern_layout = NULL;
-                    if(appender_node->first_child) {
-                        fxml_node_t *partten_node;
-                        int ret = 0;
-                        for(partten_node= appender_node->first_child; partten_node; partten_node = partten_node->next){
-                            ret = _parse_pattern_layout(appender_node->first_child, &apd->pattern_layout);
-                        }
-                    }
-                }
-            }
-        } else if (tmp_node->name_len == 7 && !strncasecmp(tmp_node->name, "loggers", 7)) {
-            fxml_node_t *logger_node = tmp_node->first_child;
-            for(;logger_node; logger_node = logger_node->next) {}
-        }
-    }
+    
     
     return ret;
 }
@@ -190,8 +325,7 @@ static int _uv_log_init_conf(uv_log_handle_t *h, uv_file file) {
 
 static uv_log_handle_t* _uv_log_init() {
     uv_log_handle_t* logger = (uv_log_handle_t*)malloc(sizeof(uv_log_handle_t));
-    logger->config.appenders = create_hash_map(char*, void*);
-    logger->config.loggers = create_hash_map(char*, void*);
+    logger->config = create_config();
     if(uv_loop_init(&logger->uv) < 0) {
         printf("uv loop init failed\n");
     }
@@ -252,8 +386,8 @@ int uv_log_init_conf_buff(uv_log_handle_t **h, char* conf_buff) {
 }
 
 int uv_log_close(uv_log_handle_t *h) {
-    hash_map_destroy(h->config.appenders);
-    hash_map_destroy(h->config.loggers);
+    CHECK_POINT_INT(h,-1);
+    destory_config(h->config);
     free(h);
     return 0;
 }

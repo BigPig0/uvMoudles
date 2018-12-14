@@ -9,6 +9,9 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="libcstl">
+      <UniqueIdentifier>{fb2a6781-aeb4-4fee-a8b8-dfaba54b9a15}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\thirdParty\cptr\cptr.h">
@@ -23,6 +26,9 @@
     <ClInclude Include="..\thirdParty\faster\fasterparse.h">
       <Filter>faster</Filter>
     </ClInclude>
+    <ClInclude Include="..\util\cstl_easy.h">
+      <Filter>libcstl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdParty\cptr\cptr.c">
@@ -36,6 +42,9 @@
     </ClCompile>
     <ClCompile Include="..\thirdParty\faster\fasterparse.c">
       <Filter>faster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\util\cstl_easy.c">
+      <Filter>libcstl</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

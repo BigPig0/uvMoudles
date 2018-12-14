@@ -45,6 +45,14 @@ _THIRD_UTIL_API int parse_xml(fxml_node_t** root, char* buff);
 
 _THIRD_UTIL_API void free_faster_node(fxml_node_t* root);
 
+_THIRD_UTIL_API int parse_strcasecmp(char* buff, int len, char* str);
+
+_THIRD_UTIL_API int parse_xmlnode_namecmp(fxml_node_t* node, char* str);
+
+_THIRD_UTIL_API int parse_xmlattr_namecmp(fxml_attr_t* attr, char* str);
+
+_THIRD_UTIL_API int parse_xmlattr_valuecmp(fxml_attr_t* attr, char* str);
+
 #ifdef __cplusplus
 }
 #endif

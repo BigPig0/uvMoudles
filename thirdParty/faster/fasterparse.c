@@ -15,6 +15,7 @@
 #include "fasterxml.h"
 #include "fasterjson.h"
 #include "fasterparse.h"
+#include "util.h"
 
 enum xml_state {
     xml_state_no = 0,
@@ -247,4 +248,24 @@ void free_faster_node(fxml_node_t* root) {
     free_faster_node(root->first_child);
     free_faster_node(root->next);
     free(root);
+}
+
+int parse_strcasecmp(char* buff, int len, char* str) {
+    int str_len = strlen(str);
+    if(len == str_len && !strncasecmp(buff, str, str_len))
+        return 0;
+
+    return 1;
+}
+
+int parse_xmlnode_namecmp(fxml_node_t* node, char* str) {
+    return parse_strcasecmp(node->name, node->name_len, str);
+}
+
+int parse_xmlattr_namecmp(fxml_attr_t* attr, char* str) {
+    return parse_strcasecmp(attr->name, attr->name_len, str);
+}
+
+int parse_xmlattr_valuecmp(fxml_attr_t* attr, char* str){
+    return parse_strcasecmp(attr->value, attr->value_len, str);
 }
