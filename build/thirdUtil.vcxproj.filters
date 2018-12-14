@@ -26,7 +26,7 @@
     <ClInclude Include="..\thirdParty\faster\fasterparse.h">
       <Filter>faster</Filter>
     </ClInclude>
-    <ClInclude Include="..\util\cstl_easy.h">
+    <ClInclude Include="..\thirdParty\libcstl\cstl_easy.h">
       <Filter>libcstl</Filter>
     </ClInclude>
   </ItemGroup>
@@ -43,7 +43,7 @@
     <ClCompile Include="..\thirdParty\faster\fasterparse.c">
       <Filter>faster</Filter>
     </ClCompile>
-    <ClCompile Include="..\util\cstl_easy.c">
+    <ClCompile Include="..\thirdParty\libcstl\cstl_easy.c">
       <Filter>libcstl</Filter>
     </ClCompile>
   </ItemGroup>

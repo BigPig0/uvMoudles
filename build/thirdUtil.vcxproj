@@ -15,14 +15,14 @@
     <ClInclude Include="..\thirdParty\faster\fasterjson.h" />
     <ClInclude Include="..\thirdParty\faster\fasterparse.h" />
     <ClInclude Include="..\thirdParty\faster\fasterxml.h" />
-    <ClInclude Include="..\util\cstl_easy.h" />
+    <ClInclude Include="..\thirdParty\libcstl\cstl_easy.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\thirdParty\cptr\cptr.c" />
     <ClCompile Include="..\thirdParty\faster\fasterjson.c" />
     <ClCompile Include="..\thirdParty\faster\fasterparse.c" />
     <ClCompile Include="..\thirdParty\faster\fasterxml.c" />
-    <ClCompile Include="..\util\cstl_easy.c" />
+    <ClCompile Include="..\thirdParty\libcstl\cstl_easy.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42E795E5-3ABC-42BE-8080-D0CD3D0A0B0F}</ProjectGuid>
@@ -66,7 +66,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -82,7 +82,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../thirdParty/libcstl;../util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../thirdParty/libcstl;../utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

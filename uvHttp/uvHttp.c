@@ -1,5 +1,6 @@
 #include "uvHttp.h"
 #include "private_def.h"
+#include "uv.h"
 
 char* url_encode(char* src) {
     size_t len;

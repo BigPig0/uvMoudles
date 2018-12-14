@@ -24,7 +24,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcstl", "libcstl.vcxproj"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libuv", "libuv.vcxproj", "{6197738F-BB03-47B6-8685-677BC2C346BC}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "util", "util.vcxproj", "{C00F783B-0E57-400D-A1B7-9FE3985A1B1D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utilc", "utilc.vcxproj", "{C00F783B-0E57-400D-A1B7-9FE3985A1B1D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParty", "ThirdParty", "{8023B0AD-1048-4B65-8D8E-F522EE4C0209}"
 EndProject

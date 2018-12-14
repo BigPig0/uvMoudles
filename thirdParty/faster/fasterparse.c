@@ -15,7 +15,7 @@
 #include "fasterxml.h"
 #include "fasterjson.h"
 #include "fasterparse.h"
-#include "util.h"
+#include "utilc.h"
 
 enum xml_state {
     xml_state_no = 0,

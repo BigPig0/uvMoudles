@@ -2,7 +2,7 @@
 #include <tchar.h>
 #include "uvIpc.h"
 #include "uv.h"
-#include "util_api.h"
+#include "utilc_api.h"
 
 uv_loop_t *loop;
 uv_process_t child_req;
