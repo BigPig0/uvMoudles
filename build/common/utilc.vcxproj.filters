@@ -11,39 +11,39 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\utilc\memfile.h">
+    <ClInclude Include="..\..\common\utilc\memfile.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\netstream.h">
+    <ClInclude Include="..\..\common\utilc\netstream.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\utilc.h">
+    <ClInclude Include="..\..\common\utilc\utilc.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\utilc_api.h">
+    <ClInclude Include="..\..\common\utilc\utilc_api.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\utilc_def.h">
+    <ClInclude Include="..\..\common\utilc\utilc_def.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\utilc_export.h">
+    <ClInclude Include="..\..\common\utilc\utilc_export.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\utilc\ring_buff.h">
+    <ClInclude Include="..\..\common\utilc\ring_buff.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\utilc\memfile.c">
+    <ClCompile Include="..\..\common\utilc\memfile.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\utilc\netstream.c">
+    <ClCompile Include="..\..\common\utilc\netstream.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\utilc\utilc_api.c">
+    <ClCompile Include="..\..\common\utilc\utilc_api.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\utilc\ring_buff.c">
+    <ClCompile Include="..\..\common\utilc\ring_buff.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

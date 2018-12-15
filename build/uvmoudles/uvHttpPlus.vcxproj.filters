@@ -11,42 +11,42 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\uvHttp\uvHttp.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttp.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\error.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\error.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\agent.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\agent.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\uvHttpPlus.cpp">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttpPlus.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\socket.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\socket.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\dns.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\dns.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\request.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\request.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\uvHttp\response.c">
+    <ClCompile Include="...\..\uvmoudles\uvhttp\response.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvHttp\uvHttp.h">
+    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttp.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttp\uvHttpPlus.h">
+    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttpPlus.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttp\private_def.h">
+    <ClInclude Include="...\..\uvmoudles\uvhttp\private_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\uvHttp\public_def.h">
+    <ClInclude Include="...\..\uvmoudles\uvhttp\public_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

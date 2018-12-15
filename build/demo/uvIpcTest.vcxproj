@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Demo\uvIpcTest.c" />
+    <ClCompile Include="..\..\demo\uvIpcTest.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AEC4CD68-9B3A-4CCD-B39A-283D2E481E8A}</ProjectGuid>

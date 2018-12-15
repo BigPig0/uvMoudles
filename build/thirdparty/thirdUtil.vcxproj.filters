@@ -14,36 +14,36 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\thirdParty\cptr\cptr.h">
+    <ClInclude Include="..\..\thirdParty\cptr\cptr.h">
       <Filter>cptr</Filter>
     </ClInclude>
-    <ClInclude Include="..\thirdParty\faster\fasterxml.h">
+    <ClInclude Include="..\..\thirdParty\faster\fasterxml.h">
       <Filter>faster</Filter>
     </ClInclude>
-    <ClInclude Include="..\thirdParty\faster\fasterjson.h">
+    <ClInclude Include="..\..\thirdParty\faster\fasterjson.h">
       <Filter>faster</Filter>
     </ClInclude>
-    <ClInclude Include="..\thirdParty\faster\fasterparse.h">
+    <ClInclude Include="..\..\thirdParty\faster\fasterparse.h">
       <Filter>faster</Filter>
     </ClInclude>
-    <ClInclude Include="..\thirdParty\libcstl\cstl_easy.h">
+    <ClInclude Include="..\..\thirdParty\libcstl\cstl_easy.h">
       <Filter>libcstl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\thirdParty\cptr\cptr.c">
+    <ClCompile Include="..\..\thirdParty\cptr\cptr.c">
       <Filter>cptr</Filter>
     </ClCompile>
-    <ClCompile Include="..\thirdParty\faster\fasterxml.c">
+    <ClCompile Include="..\..\thirdParty\faster\fasterxml.c">
       <Filter>faster</Filter>
     </ClCompile>
-    <ClCompile Include="..\thirdParty\faster\fasterjson.c">
+    <ClCompile Include="..\..\thirdParty\faster\fasterjson.c">
       <Filter>faster</Filter>
     </ClCompile>
-    <ClCompile Include="..\thirdParty\faster\fasterparse.c">
+    <ClCompile Include="..\..\thirdParty\faster\fasterparse.c">
       <Filter>faster</Filter>
     </ClCompile>
-    <ClCompile Include="..\thirdParty\libcstl\cstl_easy.c">
+    <ClCompile Include="..\..\thirdParty\libcstl\cstl_easy.c">
       <Filter>libcstl</Filter>
     </ClCompile>
   </ItemGroup>

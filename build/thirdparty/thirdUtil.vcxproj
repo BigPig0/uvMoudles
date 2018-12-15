@@ -11,18 +11,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\thirdParty\cptr\cptr.h" />
-    <ClInclude Include="..\thirdParty\faster\fasterjson.h" />
-    <ClInclude Include="..\thirdParty\faster\fasterparse.h" />
-    <ClInclude Include="..\thirdParty\faster\fasterxml.h" />
-    <ClInclude Include="..\thirdParty\libcstl\cstl_easy.h" />
+    <ClInclude Include="..\..\thirdParty\cptr\cptr.h" />
+    <ClInclude Include="..\..\thirdParty\faster\fasterjson.h" />
+    <ClInclude Include="..\..\thirdParty\faster\fasterparse.h" />
+    <ClInclude Include="..\..\thirdParty\faster\fasterxml.h" />
+    <ClInclude Include="..\..\thirdParty\libcstl\cstl_easy.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\thirdParty\cptr\cptr.c" />
-    <ClCompile Include="..\thirdParty\faster\fasterjson.c" />
-    <ClCompile Include="..\thirdParty\faster\fasterparse.c" />
-    <ClCompile Include="..\thirdParty\faster\fasterxml.c" />
-    <ClCompile Include="..\thirdParty\libcstl\cstl_easy.c" />
+    <ClCompile Include="..\..\thirdParty\cptr\cptr.c" />
+    <ClCompile Include="..\..\thirdParty\faster\fasterjson.c" />
+    <ClCompile Include="..\..\thirdParty\faster\fasterparse.c" />
+    <ClCompile Include="..\..\thirdParty\faster\fasterxml.c" />
+    <ClCompile Include="..\..\thirdParty\libcstl\cstl_easy.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42E795E5-3ABC-42BE-8080-D0CD3D0A0B0F}</ProjectGuid>

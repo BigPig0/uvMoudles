@@ -11,12 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\uvLog\st.h" />
-    <ClInclude Include="..\uvLog\uvLog.h" />
+    <ClInclude Include="..\..\uvmoudles\uvLog\st.h" />
+    <ClInclude Include="..\..\uvmoudles\uvLog\uvLog.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\uvLog\logconfig.c" />
-    <ClCompile Include="..\uvLog\uvLog.c" />
+    <ClCompile Include="..\..\uvmoudles\uvLog\logconfig.c" />
+    <ClCompile Include="..\..\uvmoudles\uvLog\uvLog.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E8360DC8-679B-4B04-8B8D-3758D605D739}</ProjectGuid>

@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Demo\uvLogTest.cpp" />
+    <ClCompile Include="..\..\demo\uvLogTest.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1E32AD75-DCFF-4DFE-AABC-30B8A2F03190}</ProjectGuid>
