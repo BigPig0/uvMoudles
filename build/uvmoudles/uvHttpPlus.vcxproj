@@ -40,10 +40,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Configuration)\TMP\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)$(Configuration)\TMP\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../uvHttp;../utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmoudles/uvHttp;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -70,7 +70,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../thirdParty/libUV/include;../thirdParty/libcstl;../uvHttp;../utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmoudles/uvHttp;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -80,20 +80,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\agent.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\dns.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\error.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\request.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\response.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\socket.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttp.c" />
-    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttpPlus.cpp" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\agent.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\error.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\request.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\response.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttp.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttpPlus.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="...\..\uvmoudles\uvhttp\private_def.h" />
-    <ClInclude Include="...\..\uvmoudles\uvhttp\public_def.h" />
-    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttp.h" />
-    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttpPlus.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttpPlus.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

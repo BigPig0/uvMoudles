@@ -11,42 +11,42 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttp.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttp.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\error.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\error.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\agent.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\agent.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\uvHttpPlus.cpp">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttpPlus.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\socket.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\dns.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\request.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\request.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="...\..\uvmoudles\uvhttp\response.c">
+    <ClCompile Include="..\..\uvmoudles\uvhttp\response.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttp.h">
+    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="...\..\uvmoudles\uvhttp\uvHttpPlus.h">
+    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttpPlus.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="...\..\uvmoudles\uvhttp\private_def.h">
+    <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="...\..\uvmoudles\uvhttp\public_def.h">
+    <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
