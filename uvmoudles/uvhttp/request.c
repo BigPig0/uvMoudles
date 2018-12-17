@@ -52,8 +52,7 @@ void add_req_header(request_t* req, const char* key, const char* value) {
             pair_init_elem(pt_pair, str_key, str_value);
             map_insert(req_p->headers, pt_pair);
             pair_destroy(pt_pair);
-        }
-        else {
+        } else {
             pair_t* pt_pair;
             string_t* str_value;
             pt_pair = (pair_t*)iterator_get_pointer(it_pos);

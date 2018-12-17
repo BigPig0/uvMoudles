@@ -323,12 +323,30 @@ static int _uv_log_init_conf(uv_log_handle_t *h, uv_file file) {
     return ret;
 }
 
-static uv_log_handle_t* _uv_log_init() {
-    uv_log_handle_t* logger = (uv_log_handle_t*)malloc(sizeof(uv_log_handle_t));
-    logger->config = create_config();
-    if(uv_loop_init(&logger->uv) < 0) {
-        printf("uv loop init failed\n");
+static void uv_loop_thread_cb(void* arg) {
+    uv_log_handle_t* log = (uv_log_handle_t*)arg;
+    while (true) {
+        uv_run(&log->uv, UV_RUN_DEFAULT);
+        Sleep(1000);
     }
+}
+
+static void uv_task_timer_cb(uv_timer_t* handle);
+static uv_log_handle_t* _uv_log_init() {
+    int uv_ret;
+    uv_thread_t th;
+    SAFE_MALLOC(uv_log_handle_t, logger);
+    logger->config = create_config();
+    logger->task_queue = create_task_fifo_queue();
+    uv_ret = uv_loop_init(&logger->uv);
+    if(uv_ret < 0) {
+        printf("uv loop init failed: %s\n", uv_strerror(uv_ret));
+    }
+    logger->uv.data = logger;
+    uv_ret = uv_timer_init(&logger->uv, &logger->task_timer);
+    logger->task_timer.data = logger;
+    uv_ret = uv_timer_start(&logger->task_timer, uv_task_timer_cb, 10, 10);
+    uv_thread_create(&th, uv_loop_thread_cb, logger);
     return logger;
 }
 
@@ -363,7 +381,7 @@ int uv_log_init_conf(uv_log_handle_t **h, char* conf_path) {
     int ret;
     uv_log_handle_t* logger = _uv_log_init();
 
-    ret = uv_fs_open(&logger->uv, &open_req, conf_path, O_RDONLY, 0, NULL);
+    ret = uv_fs_open(NULL, &open_req, conf_path, O_RDONLY, 0, NULL);
     if(ret < 0) {
         printf("uv fs open %s failed:%s\n", conf_path, uv_strerror(ret));
         return ret;
@@ -390,4 +408,43 @@ int uv_log_close(uv_log_handle_t *h) {
     destory_config(h->config);
     free(h);
     return 0;
+}
+
+void uv_log_write(uv_log_handle_t *h, char *name, int level, 
+                  char *file_name, char *func_name, int line,
+                  char* msg, ...) {
+    va_list args;
+    char buf[2048]={0};
+    task_log_msg_t* task = create_task_log_msg();
+    string_init_cstr(task->name, name);
+    task->level = (level_t)level;
+    task->file_name = file_name;
+    task->func_name = func_name;
+    task->line = line;
+    va_start(args, msg);
+    vsnprintf(buf, 2047, msg, args);
+    va_end(args);
+    string_init_cstr(task->msg, buf);
+
+    add_task(h->task_queue, task);
+}
+
+static void log_task_job(uv_log_handle_t* h, task_log_msg_t* task) {
+    hash_map_iterator_t it_pos = hash_map_find(h->config->loggers, task->name);
+    hash_map_iterator_t it_end = hash_map_end(h->config->loggers);
+    printf("%s,%s,%d,%s,%s\n", string_c_str(task->name), task->file_name, task->line, task->func_name, string_c_str(task->msg));
+    do{
+        pair_t* pt_pair;
+        logger_t* logger;
+        if (iterator_equal(it_pos, it_end)) {
+            break;
+        }
+        pt_pair = (pair_t*)iterator_get_pointer(it_pos);
+        logger = *(logger_t**)pair_second(pt_pair);
+    }while (0);
+}
+
+static void uv_task_timer_cb(uv_timer_t* handle) {
+    uv_log_handle_t* log = (uv_log_handle_t*)handle->data;
+    get_task(log, log->task_queue, log_task_job);
 }

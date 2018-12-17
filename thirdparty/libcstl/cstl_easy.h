@@ -44,6 +44,29 @@ _THIRD_UTIL_API void string_map_compare(const void* cpv_first, const void* cpv_s
 
 _THIRD_UTIL_API void string_map_hash(const void* cpv_input, void* pv_output);
 
+_THIRD_UTIL_API void not_free_int(int n);
+
+#define MAP_INSERT(_mapptr, _keytype, _key, _valuetype, _value) { \
+    pair_t* pt_pair = create_pair(_keytype, _valuetype); \
+    pair_init_elem(pt_pair, _key, _value); \
+    map_insert(_mapptr, pt_pair); \
+    pair_destroy(pt_pair); \
+}
+
+#define MAP_FOR_BEGIN(_mapptr, _keytype, _key, _valuetype, _value) \
+    if (_mapptr) {\
+        map_iterator_t it = map_begin(_mapptr);\
+        map_iterator_t end = map_end(_mapptr);\
+        pair_t* pt_pair;\
+        _keytype _key;\
+        _valuetype _value;\
+    for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+        pt_pair = (pair_t*)iterator_get_pointer(it);\
+        _key = *(_keytype*)pair_first(pt_pair);\
+        _value = *(_valuetype*)pair_second(pt_pair);\
+
+#define MAP_FOR_END }}
+
 #define MAP_DESTORY(_mapptr, _keytype, _valuetype, _keydesfunc, _valuedesfunc) \
     if (_mapptr) {\
         map_iterator_t it = map_begin(_mapptr);\

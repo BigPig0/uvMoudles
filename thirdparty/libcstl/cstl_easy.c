@@ -54,3 +54,7 @@ void string_map_hash(const void* cpv_input, void* pv_output)
 
     *(size_t*)pv_output = t_sum;
 }
+
+void not_free_int(int n){
+
+}

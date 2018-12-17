@@ -7,17 +7,7 @@ extern "C" {
 
 #include "cstl.h"
 #include "uv.h"
-
-typedef enum _level_ {
-    All = 0,
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
-    Fatal,
-    OFF
-}level_t;
+#include "uvLog.h"
 
 typedef enum _appender_type_ {
     consol = 0,
@@ -108,9 +98,32 @@ typedef struct _configuration_ {
     hash_map_t      *loggers;
 }configuration_t;
 
+typedef struct _task_log_msg {
+    string_t    *name;
+    level_t     level;
+    char        *file_name;
+    char        *func_name;
+    int         line;
+    string_t    *msg;
+}task_log_msg_t;
+
+typedef struct _task_queue {
+    volatile int task_id;
+    map_t        *queue;  //int:task_log_msg_t*
+    uv_rwlock_t  lock;
+}task_queue_t;
+
+typedef struct _task_fifo_queue_ {
+    volatile int last_queue_id; //只能是0或1
+    volatile int queue_id; //只能是0或1
+    task_queue_t queue[2];
+}task_fifo_queue_t;
+
 typedef struct _uv_log_handle_ {
     configuration_t *config;
     uv_loop_t       uv;
+    uv_timer_t      task_timer;
+    task_fifo_queue_t *task_queue;
 }uv_log_handle_t;
 
 extern filter_t*        create_filter();
@@ -121,6 +134,15 @@ extern logger_t*        create_logger();
 extern configuration_t* create_config();
 
 extern void destory_config(configuration_t* conf);
+
+
+extern task_log_msg_t* create_task_log_msg();
+extern void destory_task_log_msg(task_log_msg_t *task);
+extern task_fifo_queue_t* create_task_fifo_queue();
+extern void destory_task_fifo_queue(task_fifo_queue_t *queue);
+extern void add_task(task_fifo_queue_t *queue, task_log_msg_t* task);
+typedef void (*task_func)(uv_log_handle_t* h, task_log_msg_t* task);
+extern void get_task(uv_log_handle_t* h, task_fifo_queue_t *queue, task_func cb);
 
 #ifdef __cplusplus
 }

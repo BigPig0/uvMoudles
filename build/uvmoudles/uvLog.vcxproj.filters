@@ -25,5 +25,8 @@
     <ClCompile Include="..\..\uvmoudles\uvLog\logconfig.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvlog\logtask.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

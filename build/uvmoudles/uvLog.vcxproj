@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmoudles\uvLog\logconfig.c" />
+    <ClCompile Include="..\..\uvmoudles\uvlog\logtask.c" />
     <ClCompile Include="..\..\uvmoudles\uvLog\uvLog.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
