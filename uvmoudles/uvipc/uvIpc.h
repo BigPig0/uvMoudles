@@ -28,6 +28,7 @@ typedef struct _uv_ipc_handle_ uv_ipc_handle_t;
  * @param h 输出句柄
  * @param ipc ipc名字，一个合法的字符串
  * @param uv uv_loop_t指针,外部指定或NULL表示内部创建
+ * @note 外部指定uv_loop_t时，需要外部处理线程间的关系
  */
 _UV_IPC_API int uv_ipc_server(uv_ipc_handle_t** h, char* ipc, void* uv);
 
