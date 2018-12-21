@@ -1,5 +1,7 @@
 #include "public_def.h"
 #include "private_def.h"
+#include "request.h"
+#include "cstl_easy.h"
 
 request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
     request_p_t* req = (request_p_t*)malloc(sizeof(request_p_t));
@@ -243,3 +245,148 @@ void generic_request_header(request_p_t* req) {
     string_connect_cstr(req->str_header, "\r\n");
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+typedef struct _http_client_request_private_ {
+    int               aborted;
+    int               finished;
+    int               maxHeadersCount;
+    socket_t          *socket;
+    //private begin
+    http_request_options_t options;
+    hash_map_t        *headers;     //<string_t*, string_t*> 动态增删的http头
+    int               send_header;  //http头已经发送后置为1
+    on_request_cb     request_cb;
+    on_abort_cb       abort_cb;
+    on_continue_cb    continue_cb;
+    on_information_cb information_cb;
+    on_response_cb    response_cb;
+    on_socket_cb      socket_cb;
+    on_timeout_cb     timeout_cb;
+    on_request_write  write_cb;
+    on_request_end    end_cb;
+}http_client_request_private_t;
+
+http_request_options_t http_request_option() {
+    http_request_options_t ret = {
+        "http:",        //protocol 
+        "localhost",    //host 
+        NULL,           //hostname 
+        0,              //family
+        80,             //port
+        NULL,           //localAddress 
+        NULL,           //socketPath 
+        METHOD_GET,     //method 
+        "/",            //path 
+        NULL,           //headers 
+        NULL,           //auth
+        NULL,           //agent 
+        NULL,           //createConnection 
+        0,              //timeout 
+        1,              //setHost 
+    };
+    return ret;
+}
+
+http_client_request_t* http_request(http_t* h, http_request_options_t *options, on_response_cb cb) {
+    SAFE_MALLOC(http_client_request_private_t, req);
+    req->options = *options;
+    req->response_cb = cb;
+
+    return (http_client_request_t*)req;
+}
+
+void http_request_on_abort(http_client_request_t* req, on_abort_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->abort_cb = cb;
+}
+
+void http_request_on_continue(http_client_request_t* req, on_continue_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->continue_cb = cb;
+}
+
+void http_request_on_information(http_client_request_t* req, on_information_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->information_cb = cb;
+}
+
+void http_request_on_response(http_client_request_t* req, on_response_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->response_cb = cb;
+}
+
+void http_request_on_socket(http_client_request_t* req, on_socket_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->socket_cb = cb;
+}
+
+void http_request_on_timeout(http_client_request_t* req, on_timeout_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->timeout_cb = cb;
+}
+
+void http_request_abort(http_client_request_t* req) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->aborted = 1;
+}
+
+void http_request_flush_headers(http_client_request_t* req) {
+
+}
+
+const char* http_request_get_header(http_client_request_t* req, const char* name) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    if(pri->headers) {
+        string_t *key = create_string();
+        hash_map_iterator_t it;
+        string_init_cstr(key, name);
+        it = hash_map_find(pri->headers, key);
+        if(iterator_not_equal(it, hash_map_end(pri->headers))) {
+            pair_t* pt_pair;
+            string_t* value;
+            pt_pair = (pair_t*)iterator_get_pointer(it);
+            value = *(string_t**)pair_second(pt_pair);
+            return string_c_str(value);
+        }
+    }
+    return NULL;
+}
+
+void http_request_remove_header(http_client_request_t* req, const char* name) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    if(pri->headers) {
+        string_t *key = create_string();
+        string_init_cstr(key, name);
+        hash_map_erase(pri->headers, key);
+    }
+}
+
+void http_request_set_header(http_client_request_t* req, char* name, char* value) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    string_t *_key = create_string();
+    string_t *_value = create_string();
+    if(!pri->headers) {
+        pri->headers = create_hash_map(void*, void*);
+        hash_map_init_ex(pri->headers,0,string_map_hash,string_map_compare);
+    }
+    string_init_cstr(_key, name);
+    string_init_cstr(_value, value);
+    hash_map_insert_easy(pri->headers, _key, _value);
+}
+
+void http_request_set_timeout(http_client_request_t* req, int timeout, on_timeout_cb cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->timeout_cb = cb;
+    pri->options.timeout = timeout;
+}
+
+int http_request_write(http_client_request_t* req, char* chunk, int len, char* encoding, on_request_write cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->write_cb = cb;
+}
+
+void http_request_end(http_client_request_t* req, char* data, int len, char* encoding, on_request_end cb) {
+    http_client_request_private_t* pri = (http_client_request_private_t*)req;
+    pri->end_cb = cb;
+}

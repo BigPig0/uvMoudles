@@ -22,6 +22,7 @@ typedef struct _http_ {
 	uv_mutex_t  uv_mutex_h;
 }http_t;
 
+
 typedef enum _request_step_
 {
     request_step_init,          //建立请求，开始解析dns

@@ -35,6 +35,9 @@
     <ClCompile Include="..\..\uvmoudles\uvhttp\response.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvhttp\net.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h">
@@ -47,6 +50,18 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\request.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -60,12 +60,23 @@ _THIRD_UTIL_API void not_free_int(int n);
         pair_t* pt_pair;\
         _keytype _key;\
         _valuetype _value;\
-    for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
-        pt_pair = (pair_t*)iterator_get_pointer(it);\
-        _key = *(_keytype*)pair_first(pt_pair);\
-        _value = *(_valuetype*)pair_second(pt_pair);\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            pt_pair = (pair_t*)iterator_get_pointer(it);\
+            _key = *(_keytype*)pair_first(pt_pair);\
+            _value = *(_valuetype*)pair_second(pt_pair);\
 
 #define MAP_FOR_END }}
+
+#define HASH_SET_FOR_BEGIN(_setptr, _type, _value) \
+    if (_setptr) {\
+        hash_set_iterator_t it = hash_set_begin(_setptr); \
+        hash_set_iterator_t end = hash_set_end(_setptr); \
+        _type _value;\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            _value = *(_type*)iterator_get_pointer(it);
+
+#define HASH_SET_FOR_END }}
+            
 
 #define MAP_DESTORY(_mapptr, _keytype, _valuetype, _keydesfunc, _valuedesfunc) \
     if (_mapptr) {\
@@ -123,6 +134,18 @@ _THIRD_UTIL_API void not_free_int(int n);
             _desfunc(value);\
         }\
         set_destroy(_setptr);\
+    }
+
+#define HASH_SET_DESTORY(_setptr, _type, _desfunc) \
+    if(_setptr) {\
+        hash_set_iterator_t it = hash_set_begin(_setptr);\
+        hash_set_iterator_t end = hash_set_end(_setptr);\
+        _type value;\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            value = *(_type*)iterator_get_pointer(it);\
+            _desfunc(value);\
+        }\
+        hash_set_destroy(_setptr);\
     }
 
 #define LIST_DESTORY(_listptr, _type, _desfunc) \

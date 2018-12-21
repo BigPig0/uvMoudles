@@ -29,17 +29,19 @@ extern "C" {
         int  response_timeout_secs; //等待应答超时时间，0为默认值30秒，单位秒
     }config_t;
 
+    
+
     typedef struct _http_     http_t;
     typedef struct _response_ response_t;
 
 #define REQUEST_PUBLIC \
-HTTP_METHOD method;\
-const char* url;\
-const char* host;\
-int         keep_alive;\
-int         chunked;\
-int         content_length;\
-void*       user_data;
+    HTTP_METHOD method;\
+    const char* url;\
+    const char* host;\
+    int         keep_alive;\
+    int         chunked;\
+    int         content_length;\
+    void*       user_data;
 
     typedef struct _request_ {
         /*
@@ -55,11 +57,13 @@ void*       user_data;
         response_t* res;
     }request_t;
 
+    
+
 #define RESPONSE_PUBLIC \
-int         status;\
-int         keep_alive;\
-int         chunked;\
-int         content_length;
+    int         status;\
+    int         keep_alive;\
+    int         chunked;\
+    int         content_length;
 
     typedef struct _response_ {
         /*

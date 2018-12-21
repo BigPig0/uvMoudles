@@ -83,6 +83,7 @@
     <ClCompile Include="..\..\uvmoudles\uvhttp\agent.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\error.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\net.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\request.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\response.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c" />
@@ -90,8 +91,12 @@
     <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttpPlus.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\request.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttpPlus.h" />
   </ItemGroup>
