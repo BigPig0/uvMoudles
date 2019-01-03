@@ -106,6 +106,12 @@ extern dns_resolver_t* dns_create_resolver(http_t *handle);
 extern void dns_destory_resolver(dns_resolver_t* res);
 
 /**
+ * 绑定用户数据
+ */
+extern void dns_set_data(dns_resolver_t* res, void* user_data);
+extern void* dns_get_data(dns_resolver_t* res);
+
+/**
  * resolver.cancel()
  * Cancel all outstanding DNS queries made by this resolver. The corresponding callbacks will be called with an error with code ECANCELLED.
  */

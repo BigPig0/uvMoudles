@@ -10,20 +10,31 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\demo\uvNetTest.cpp" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\net.c" />
+    <ClCompile Include="..\..\uvmoudles\uvhttp\uvhttp.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h" />
+    <ClInclude Include="..\..\uvmoudles\uvhttp\uvhttp.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}</ProjectGuid>
+    <ProjectGuid>{930445F9-4F02-4B90-9A08-225AEB0FDB00}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>uvHttp</RootNamespace>
+    <RootNamespace>uvHttpClient</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v110</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -40,9 +51,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)$(Configuration)\TMP\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)$(Configuration)\TMP\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -51,13 +64,15 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmoudles/uvHttp;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../uvmoudles/uvHttp;../../common/utilc;../../thirdParty/libUV/include;../../thirdParty/libcstl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcstl.lib;ws2_32.lib;userenv.lib;psapi.lib;iphlpapi.lib;libuv.lib;thirdUtil.lib;uvHttp.lib;utilc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -68,35 +83,19 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmoudles/uvHttp;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../uvmoudles/uvHttp;../../common/utilc;../../thirdParty/libUV/include;../../thirdParty/libcstl;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcstl.lib;ws2_32.lib;userenv.lib;psapi.lib;iphlpapi.lib;libuv.lib;thirdUtil.lib;uvHttp.lib;utilc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\agent.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\error.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\request.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\response.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c" />
-    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttp.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\request.h" />
-    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

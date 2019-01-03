@@ -18,10 +18,10 @@ typedef struct _agent_options_ {
 }agent_options_t;
 
 typedef struct _http_agent_ {
-
+    int i;
 }http_agent_t;
 
-typedef http_agent_t* (*agent_create_connection)(agent_options_t* options, );
+typedef http_agent_t* (*agent_create_connection)(agent_options_t* options);
 
 extern http_agent_t* new_agent(agent_options_t* options);
 

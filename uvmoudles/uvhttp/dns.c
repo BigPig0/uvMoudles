@@ -117,6 +117,7 @@ typedef struct _dns_resolver_ {
     bool                 destoried;
     hash_set_t           *servers;          //set<string_t*>
     list_t               *querys;           //list<lookup_query_t*>
+    void                 *data;             //用户数据
 }dns_resolver_t;
 
 dns_lookup_options_t* dns_create_lookup_options() {
@@ -136,6 +137,14 @@ void dns_destory_resolver(dns_resolver_t* res) {
     dns_resolver_cancel(res);
 }
 
+void dns_set_data(dns_resolver_t* res, void* user_data){
+    res->data = user_data;
+}
+
+void* dns_get_data(dns_resolver_t* res) {
+    return res->data;
+}
+
 void dns_resolver_cancel(dns_resolver_t* res) {
     CHECK_POINT_VOID(res);
     res->canceled = true;
@@ -152,25 +161,50 @@ int dns_resolver_get_servers(dns_resolver_t* res, char** servers) {
     return hash_set_size(res->servers);
 }
 
+static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+    lookup_query_t *query = (lookup_query_t*)req->data;
+    free(req);
+
+    if(status < 0) {
+        if(query->cb) query->cb(query->resolver, status, NULL, 0);
+        free(res);
+        return;
+    }
+
+    if(res->ai_family == PF_INET) {
+        char addr[17] = {0};
+        uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 17);
+        if(query->cb) query->cb(query->resolver,0,addr,4);
+    } else if(res->ai_family == PF_INET6) {
+        char addr[46] = {0};
+        uv_ip6_name((struct sockaddr_in6*)res->ai_addr, addr, 46);
+        if(query->cb) query->cb(query->resolver,0,addr,6);
+    } else {
+        if(query->cb) query->cb(query->resolver, -1, NULL, 0);
+    }
+
+    free(res);
+}
+
 void dns_lookup(dns_resolver_t* res, char* hostname, dns_lookup_cb cb) {
     int ret;
     SAFE_MALLOC(lookup_query_t, query);
-    SAFE_MALLOC(uv_getaddrinfo_t, resolver);
+    SAFE_MALLOC(uv_getaddrinfo_t, req);
     SAFE_MALLOC(struct addrinfo, hints);
 
     query->resolver = res;
     query->cb = cb;
 
-    resolver->data = query;
+    req->data = query;
 
     hints->ai_family = PF_INET;
     hints->ai_socktype = SOCK_STREAM;
     hints->ai_protocol = IPPROTO_TCP;
     hints->ai_flags = 0;
 
-    ret = uv_getaddrinfo(res->handle->uv, resolver, on_resolved, hostname, NULL, hints);
+    ret = uv_getaddrinfo(res->handle->uv, req, on_uv_getaddrinfo, hostname, NULL, hints);
     if (ret < 0) {
-        free(resolver);
+        free(req);
         free(hints);
     }
 }

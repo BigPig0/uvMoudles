@@ -43,5 +43,17 @@
     <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvhttp\request.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

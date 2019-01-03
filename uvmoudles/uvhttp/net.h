@@ -92,7 +92,7 @@ extern "C" {
 #endif
 
 typedef struct _net_address_ {
-    char      address[20];
+    char      address[46];
     int       family;
     int       port;
 }net_address_t;
@@ -120,9 +120,10 @@ typedef struct _net_server_listen_options_ {
 extern net_server_listen_options_t* net_server_create_listen_options();
 
 typedef struct _net_server_  net_server_t;
+typedef struct _net_socket_  net_socket_t;
 
-typedef void (*on_server_event_connection)(net_server_t* svr, net_socket_t* client);
-typedef void (*on_server_event)(net_server_t* svr);
+typedef void (*on_server_event_connection)(net_server_t* svr, int err, net_socket_t* client);
+typedef void (*on_server_event)(net_server_t* svr, int err);
 
 /**
  * net.createServer([options][, connectionListener])
@@ -137,7 +138,7 @@ typedef void (*on_server_event)(net_server_t* svr);
  * If pauseOnConnect is set to true, then the socket associated with each incoming connection will be paused, and no data will be read from its handle. This allows connections to be passed between processes without any data being read by the original process. To begin reading data from a paused socket, call socket.resume().
  * The server can be a TCP server or an IPC server, depending on what it listen() to.
  */
-extern net_server_t* net_create_server(http_t* h, net_server_options_t* options = NULL, on_server_event_connection connectionListener = NULL);
+extern net_server_t* net_create_server(http_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -179,7 +180,7 @@ extern int net_server_address(net_server_t* svr, net_address_t* address);
  * Returns: <net.Server>
  * Stops the server from accepting new connections and keeps existing connections. This function is asynchronous, the server is finally closed when all connections are ended and the server emits a 'close' event. The optional callback will be called once the 'close' event occurs. Unlike that event, it will be called with an Error as its only argument if the server was not open when it was closed.
  */
-extern void net_server_close(net_server_t* svr, on_server_event cb = NULL);
+extern void net_server_close(net_server_t* svr, on_server_event cb /*= NULL*/);
 
 /**
  * server.getConnections(callback)
@@ -189,7 +190,7 @@ extern void net_server_close(net_server_t* svr, on_server_event cb = NULL);
  * Callback should take two arguments err and count.
  */
 typedef void (*on_server_get_connections)(net_server_t* svr, int error, int num);
-extern void net_server_get_connections(net_server_t* svr, on_server_get_connections cb = NULL);
+extern void net_server_get_connections(net_server_t* svr, on_server_get_connections cb /*= NULL*/);
 
 /**
  * server.listen()
@@ -215,7 +216,7 @@ extern void net_server_get_connections(net_server_t* svr, on_server_get_connecti
  * The handle object can be either a server, a socket (anything with an underlying _handle member), or an object with an fd member that is a valid file descriptor.
  * Listening on a file descriptor is not supported on Windows.
  */
-extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlog = 0, on_server_event_connection callback = NULL);
+extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlog /*= 0*/, on_server_event callback /*= NULL*/);
 
 /**
  * server.listen(options[, callback])
@@ -235,7 +236,7 @@ extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlo
  * If exclusive is false (default), then cluster workers will use the same underlying handle, allowing connection handling duties to be shared. When exclusive is true, the handle is not shared, and attempted port sharing results in an error. An example which listens on an exclusive port is shown below.
  * Starting an IPC server as root may cause the server path to be inaccessible for unprivileged users. Using readableAll and writableAll will make the server accessible for all users.
  */
-extern void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* options, on_server_event_connection callback = NULL);
+extern void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* options, on_server_event callback /*= NULL*/);
 
 /**
  * server.listen(path[, backlog][, callback])
@@ -245,7 +246,7 @@ extern void net_server_listen_options(net_server_t* svr, net_server_listen_optio
  * Returns: <net.Server>
  * Start an IPC server listening for connections on the given path.
  */
-extern void net_server_listen_path(net_server_t* svr, char* path, int backlog = 0, on_server_event_connection callback = NULL);
+extern void net_server_listen_path(net_server_t* svr, char* path, int backlog /*= 0*/, on_server_event callback /*= NULL*/);
 
 /**
  * server.listen([port[, host[, backlog]]][, callback])
@@ -259,7 +260,7 @@ extern void net_server_listen_path(net_server_t* svr, char* path, int backlog = 
  * If host is omitted, the server will accept connections on the unspecified IPv6 address (::) when IPv6 is available, or the unspecified IPv4 address (0.0.0.0) otherwise.
  * In most operating systems, listening to the unspecified IPv6 address (::) may cause the net.Server to also listen on the unspecified IPv4 address (0.0.0.0).
  */
-extern void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog = 0, on_server_event_connection callback = NULL);
+extern void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/);
 
 /**
  * -------------------------------------------------------------------------------------------------------------------------------------------
@@ -280,7 +281,6 @@ typedef struct _net_socket_options_{
     bool   readable;      //Allow reads on the socket when an fd is passed, otherwise ignored. Default: false.
     bool   writable;      //Allow writes on the socket when an fd is passed, otherwise ignored. Default: false.
 }net_socket_options_t;
-extern net_socket_options_t* net_socket_create_options();
 
 typedef struct _net_socket_connect_options_ {
     //For TCP connections, available options are:
@@ -296,7 +296,6 @@ typedef struct _net_socket_connect_options_ {
 }net_socket_connect_options_t;
 extern net_socket_connect_options_t* net_socket_create_connect_options();
 
-typedef struct _net_socket_  net_socket_t;
 
 typedef void (*on_socket_event)(net_socket_t* skt);
 
@@ -311,7 +310,7 @@ typedef void (*on_socket_event)(net_socket_t* skt);
  * Creates a new socket object.
  * The newly created socket can be either a TCP socket or a streaming IPC endpoint, depending on what it connect() to.
  */
-extern net_socket_t* net_create_socket(net_socket_options_t *option = NULL);
+extern net_socket_t* net_create_socket(http_t* h, net_socket_options_t *option /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -368,7 +367,7 @@ extern void net_socket_on_error(net_socket_t* skt, on_socket_event_error cb);
  * family <string> | <null> The address type. See dns.lookup().
  * host <string> The hostname.
  */
-typedef void (*on_socket_event_lookup)(net_socket_t* skt, int error, char *address,char *family, char* host);
+typedef void (*on_socket_event_lookup)(net_socket_t* skt, int error, char *address,int family, char* host);
 extern void net_socket_on_lookup(net_socket_t* skt, on_socket_event_lookup cb);
 
 /**
@@ -409,7 +408,7 @@ extern net_address_t net_socket_address(net_socket_t* skt);
  * Returns: <net.Socket> The socket itself.
  * Initiate a connection on a given socket. Normally this method is not needed, the socket should be created and opened with net.createConnection(). Use this only when implementing a custom Socket.
  */
-extern void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t *options, on_socket_event connectListener = NULL);
+extern void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t *options, on_socket_event connectListener /*= NULL*/);
 
 /**
  * socket.connect(path[, connectListener])
@@ -420,7 +419,7 @@ extern void net_socket_connect_options(net_socket_t* skt, net_socket_connect_opt
  *
  * Alias to socket.connect(options[, connectListener]) called with { path: path } as options.
  */
-extern void net_socket_connect_path(net_socket_t* skt, char* path, on_socket_event connectListener = NULL);
+extern void net_socket_connect_path(net_socket_t* skt, char* path, on_socket_event connectListener /*= NULL*/);
 
 /**
  * socket.connect(port[, host][, connectListener])
@@ -432,7 +431,7 @@ extern void net_socket_connect_path(net_socket_t* skt, char* path, on_socket_eve
  *
  * Alias to socket.connect(options[, connectListener]) called with {port: port, host: host} as options.
  */
-extern void net_socket_connect_port(net_socket_t* skt, int port, char *host = NULL, on_socket_event connectListener = NULL);
+extern void net_socket_connect_port(net_socket_t* skt, int port, char *host /*= NULL*/, on_socket_event connectListener /*= NULL*/);
 
 /**
  * socket.destroy([exception])
@@ -442,7 +441,7 @@ extern void net_socket_connect_port(net_socket_t* skt, int port, char *host = NU
  *
  * If exception is specified, an 'error' event will be emitted and any listeners for that event will receive exception as an argument.
  */
-extern void net_socket_destory(net_socket_t* skt, int err = 0);
+extern void net_socket_destory(net_socket_t* skt, int err /*= 0*/);
 
 /**
  * socket.end([data][, encoding][, callback])
@@ -454,7 +453,7 @@ extern void net_socket_destory(net_socket_t* skt, int err = 0);
  *
  * If data is specified, it is equivalent to calling socket.write(data, encoding) followed by socket.end().
  */
-extern void net_socket_end(net_socket_t* skt, char* data = NULL, int len = 0, on_socket_event cb = NULL);
+extern void net_socket_end(net_socket_t* skt, char* data /*= NULL*/, int len /*= 0*/, on_socket_event cb /*= NULL*/);
 
 /**
  * socket.pause()
@@ -479,7 +478,7 @@ extern void net_socket_resume(net_socket_t* skt);
  *
  * Set initialDelay (in milliseconds) to set the delay between the last data packet received and the first keepalive probe. Setting 0 for initialDelay will leave the value unchanged from the default (or previous) setting.
  */
-extern void net_socket_set_keep_alive(net_socket_t* skt, bool enable = false, int initialDelay = 0);
+extern void net_socket_set_keep_alive(net_socket_t* skt, bool enable /*= false*/, int initialDelay /*= 0*/);
 
 /**
  * socket.setNoDelay([noDelay])
@@ -487,7 +486,7 @@ extern void net_socket_set_keep_alive(net_socket_t* skt, bool enable = false, in
  * Returns: <net.Socket> The socket itself.
  * Disables the Nagle algorithm. By default TCP connections use the Nagle algorithm, they buffer data before sending it off. Setting true for noDelay will immediately fire off data each time socket.write() is called.
  */
-extern void net_socket_set_no_delay(net_socket_t* skt, bool noDelay = true);
+extern void net_socket_set_no_delay(net_socket_t* skt, bool noDelay /*= true*/);
 
 /**
  * socket.setTimeout(timeout[, callback])
@@ -496,7 +495,7 @@ extern void net_socket_set_no_delay(net_socket_t* skt, bool noDelay = true);
  * Returns: <net.Socket> The socket itself.
  * Sets the socket to timeout after timeout milliseconds of inactivity on the socket. By default net.Socket do not have a timeout.
  */
-extern void net_socket_set_timeout(net_socket_t* skt, int timeout, on_socket_event cb = NULL);
+extern void net_socket_set_timeout(net_socket_t* skt, int timeout, on_socket_event cb /*= NULL*/);
 
 /**
  * socket.write(data[, encoding][, callback])
@@ -511,19 +510,12 @@ extern void net_socket_set_timeout(net_socket_t* skt, int timeout, on_socket_eve
  *
  * See Writable stream write() method for more information.
  */
-extern bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_event cb = NULL);
+extern bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_event cb /*= NULL*/);
 
 
 /**
  * ----------------------------------------------------------------------------------------------------
  */
-
-
-typedef struct _net_connect_options_ {
-    net_socket_options_t*            socket_options;
-    net_socket_connect_options_t*    connect_options;
-}net_connect_options_t;
-extern net_connect_options_t* net_create_connect_options();
 
 /**
  * net.connect()
@@ -540,7 +532,7 @@ extern net_connect_options_t* net_create_connect_options();
  * connectListener <Function>
  * Alias to net.createConnection(options[, connectListener]).
  */
-extern net_socket_t* net_connect_options(net_connect_options_t *options, on_socket_event cb = NULL);
+extern net_socket_t* net_connect_options(http_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(path[, connectListener])
@@ -549,7 +541,7 @@ extern net_socket_t* net_connect_options(net_connect_options_t *options, on_sock
  * connectListener <Function>
  * Alias to net.createConnection(path[, connectListener]).
  */
-extern net_socket_t* net_connect_path(char *path, on_socket_event cb = NULL);
+extern net_socket_t* net_connect_path(http_t* h, char *path, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(port[, host][, connectListener])
@@ -558,7 +550,7 @@ extern net_socket_t* net_connect_path(char *path, on_socket_event cb = NULL);
  * host <string>
  * connectListener <Function>
  */
-extern net_socket_t* net_connect_port(int port, char *host, on_socket_event cb = NULL);
+extern net_socket_t* net_connect_port(http_t* h, int port, char *host, on_socket_event cb /*= NULL*/);
 
 /**
  * net.isIP(input)
