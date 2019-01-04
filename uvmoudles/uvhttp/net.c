@@ -5,6 +5,16 @@
 #include "dns.h"
 
 /**
+ * 异步数据
+ */
+typedef struct _net_socket_async_event_ {
+    bool      write_data;
+    bool      end;
+    bool      pause;
+    bool      resume;
+}net_socket_async_event_t;
+
+/**
  * Class: net.Server
  * This class is used to create a TCP or IPC server.
  */
@@ -61,17 +71,21 @@ typedef struct _net_socket_ {
     //client
     bool                     connecting;   //If true, socket.connect(options[, connectListener]) was called and has not yet finished. Will be set to true before emitting 'connect' event and/or calling socket.connect(options[, connectListener])'s callback.
     bool                     pending;      //This is true if the socket is not connected yet, either because .connect() has not yet been called or because it is still in the process of connecting (see socket.connecting).
-    list_t                   *write_list;
-    uv_mutex_t               wrlist_mutex;
-    on_socket_event_lookup   on_event_lookup;
-    on_socket_event          on_event_connect;
-    on_socket_event          on_event_ready;
-    on_socket_event_data     on_event_data;
-    on_socket_event_close    on_event_close;
-    on_socket_event          on_event_drain;
-    on_socket_event          on_event_end;
-    on_socket_event_error    on_event_error;
-    on_socket_event          on_event_timeout;
+    //data
+    list_t                   *write_list;   //向socket写入数据的缓存列表
+    uv_mutex_t               wrlist_mutex;  //向socket写入数据的缓存列表的互斥锁
+    uv_async_t               async_h;       //uv异步事件
+    net_socket_async_event_t async_event;   //存在哪些异步事件类型
+
+    on_socket_event_lookup   on_event_lookup;  //dns解析完成
+    on_socket_event          on_event_connect; //客户端连接完成
+    on_socket_event          on_event_ready;   //socket创建完成
+    on_socket_event_data     on_event_data;    //读取到一段数据
+    on_socket_event_close    on_event_close;   //socket关闭
+    on_socket_event          on_event_drain;   //写数据变空
+    on_socket_event          on_event_end;     //对端发送了FIN，读取到EOF
+    on_socket_event_error    on_event_error;   //发生错误
+    on_socket_event          on_event_timeout; //超时
 }net_socket_t;
 
 
@@ -160,7 +174,9 @@ static void on_uv_close(uv_handle_t* handle) {
 static void on_uv_shutdown(uv_shutdown_t* req, int status) {
     net_socket_t *skt = (net_socket_t*)req->data;
     free(req);
-    uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
+    if(!skt->allowHalfOpen){
+        uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
+    }
 }
 
 static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf){
@@ -171,9 +187,18 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     net_socket_t *skt = (net_socket_t*)stream->data;
     if(nread < 0) {
-        if(nread == UV_EOF) {
+        if(nread == UV__ECONNRESET) {
+            //对端发送了FIN
             if(skt->on_event_end) skt->on_event_end(skt);
-            uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
+            if(!skt->allowHalfOpen){
+                uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
+            }
+        } else if(nread == UV_EOF) {
+            //对端发送了FIN
+            if(skt->on_event_end) skt->on_event_end(skt);
+            if(!skt->allowHalfOpen){
+                uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
+            }
         } else {
             uv_shutdown_t* req = (uv_shutdown_t*)malloc(sizeof(uv_shutdown_t));
             req->data = skt;
@@ -181,7 +206,9 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
             if(skt->on_event_error) skt->on_event_error(skt, nread);
             uv_shutdown(req, stream, on_uv_shutdown);
         }
+        return;
     }
+    skt->bytesRead += nread;
     if (skt->on_event_data) skt->on_event_data(skt, buf->base, nread);
 }
 
@@ -202,6 +229,7 @@ static void on_connection(uv_stream_t* server, int status) {
     client = net_create_socket(svr->handle, NULL);
     client->isServer = true;
     client->server = svr;
+    client->allowHalfOpen = svr->allowHalfOpen;
 
     ret = uv_accept(server, (uv_stream_t*)(&client->uv_tcp_h));
 
@@ -230,7 +258,12 @@ static void on_connection(uv_stream_t* server, int status) {
 
     if(svr->on_connection) svr->on_connection(svr, 0, client);
 
-    ret = uv_read_start((uv_stream_t*)client, on_uv_alloc, on_uv_read);
+    if(!svr->pauseOnConnect){
+        ret = uv_read_start((uv_stream_t*)&client->uv_tcp_h, on_uv_alloc, on_uv_read);
+        if(ret < 0) {
+            printf("error\n");
+        }
+    }
 }
 
 static void on_dns_lookup(dns_resolver_t* res, int err, char *address, int family) {
@@ -245,12 +278,14 @@ static void on_dns_lookup(dns_resolver_t* res, int err, char *address, int famil
         ret = uv_ip4_addr(address, svr->listen_options->port, &addr);
         uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
         uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->listen_options->backlog, on_connection);
+        svr->listening = true;
         svr->on_listening(svr, 0);
     } else if(family == 6) {
         struct sockaddr_in6 addr6;
         ret = uv_ip6_addr(address, svr->listen_options->port, &addr6);
         uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr6, 0);
         uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->listen_options->backlog, on_connection);
+        svr->listening = true;
         svr->on_listening(svr, 0);
     } else {
         svr->on_listening(svr, -1);
@@ -261,6 +296,7 @@ void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* o
     struct sockaddr_in addr;
     struct sockaddr_in6 addr6;
     int ret;
+    if(options->backlog <= 0) options->backlog = 511;
     svr->listen_options = options;
     if(callback) {
         svr->on_listening = callback;
@@ -272,12 +308,16 @@ void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* o
             dns_lookup(dns, options->host, on_dns_lookup);
         } else if(options->ipv6Only) {
             ret = uv_ip6_addr("::", options->port, &addr6);
-            uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
-            uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            ret = uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
+            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            svr->listening = true;
+            svr->on_listening(svr, 0);
         } else {
             ret = uv_ip4_addr("0.0.0.0", options->port, &addr);
-            uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
-            uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            ret = uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
+            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            svr->listening = true;
+            svr->on_listening(svr, 0);
         }
         
     } else if(options->path) {
@@ -297,7 +337,7 @@ void net_server_listen_path(net_server_t* svr, char* path, int backlog /*= 0*/, 
 void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/) {
     net_server_listen_options_t* options = net_server_create_listen_options();
     options->port = port;
-    options->host = host;
+    if(host) options->host = host;
     options->backlog = backlog;
     net_server_listen_options(svr, options, callback);
 }
@@ -311,11 +351,61 @@ net_socket_connect_options_t* net_socket_create_connect_options() {
     return ret;
 }
 
+/** 数据发送完成 */
+static void on_uv_write(uv_write_t* req, int status) {
+    net_socket_t* skt = (net_socket_t*)req->data;
+    printf("write finish %d\n", status);
+}
+
+/** 异步发送数据 */
+static void on_uv_async_event(uv_async_t* handle) {
+    net_socket_t* skt = (net_socket_t*)handle->data;
+    if(skt->async_event.write_data){
+        skt->async_event.write_data = false;
+        uv_mutex_lock(&skt->wrlist_mutex);
+        {
+            int num = list_size(skt->write_list);
+            SAFE_MALLOC(uv_write_t, req);
+            int i=0;
+            uv_buf_t *bufs = (uv_buf_t*)malloc(sizeof(uv_buf_t)*num);
+            LIST_FOR_BEGIN(skt->write_list,uv_buf_t*,wrbuff) {
+                bufs[i].base = wrbuff->base;
+                bufs[i].len = wrbuff->len;
+                free(wrbuff);
+                i++;
+            } LIST_FOR_END;
+            req->data = skt;
+            uv_write(req, (uv_stream_t*)&skt->uv_tcp_h, bufs, num, on_uv_write);
+            list_clear(skt->write_list);
+            free(bufs);
+        }
+        uv_mutex_unlock(&skt->wrlist_mutex);
+    } 
+    if(skt->async_event.end) {
+        uv_shutdown_t* req;
+        skt->async_event.end = false;
+        req = (uv_shutdown_t*)malloc(sizeof(uv_shutdown_t));
+        req->data = skt;
+        uv_shutdown(req, (uv_stream_t*)&skt->uv_tcp_h, on_uv_shutdown);
+    } 
+    if(skt->async_event.pause) {
+        skt->async_event.pause = false;
+        uv_read_stop((uv_stream_t*)&skt->uv_tcp_h);
+    } 
+    if(skt->async_event.resume) {
+        skt->async_event.resume = false;
+        uv_read_start((uv_stream_t*)&skt->uv_tcp_h, on_uv_alloc, on_uv_read);
+    }
+}
+
 net_socket_t* net_create_socket(http_t* h, net_socket_options_t *option /*= NULL*/) {
     SAFE_MALLOC(net_socket_t, ret);
     ret->handle = h;
     uv_tcp_init(h->uv, &ret->uv_tcp_h);
     ret->uv_tcp_h.data = ret;
+    uv_mutex_init(&ret->wrlist_mutex);
+    uv_async_init(h->uv, &ret->async_h, on_uv_async_event);
+    ret->async_h.data = ret;
     if(option){
         ret->allowHalfOpen = option->allowHalfOpen;
         ret->readable = option->readable;
@@ -391,11 +481,14 @@ static void on_uv_connect(uv_connect_t* req, int status){
     net_socket_t* skt = (net_socket_t*)req->data;
     free(req);
     if(skt->on_event_connect) skt->on_event_connect(skt);
+    skt->connecting = false;
+    skt->pending = false;
+    uv_read_start((uv_stream_t*)&skt->uv_tcp_h, on_uv_alloc, on_uv_read);
 }
 
 static void on_socket_dns_lookup(dns_resolver_t* res, int err, char *address, int family) {
     net_socket_t* skt = (net_socket_t*)dns_get_data(res);
-    if(!err) {
+    if(err) {
         if(skt->on_event_lookup) skt->on_event_lookup(skt, err, address, family, 0);
         return;
     } else if(family == 6) {
@@ -477,15 +570,34 @@ void net_socket_destory(net_socket_t* skt, int err /*= 0*/) {
 }
 
 void net_socket_end(net_socket_t* skt, char* data /*= NULL*/, int len /*= 0*/, on_socket_event cb /*= NULL*/) {
-    if(cb) skt->on_event_end = cb;
+    //if(cb) skt->on_event_end = cb;
+    if(data != NULL && len != 0) {
+        uv_buf_t* wrdata = (uv_buf_t*)malloc(sizeof(uv_buf_t));
+        wrdata->base = data;
+        wrdata->len = len;
+        uv_mutex_lock(&skt->wrlist_mutex);
+        if(!skt->write_list) {
+            skt->write_list = create_list(void*);
+            list_init(skt->write_list);
+        }
+        list_push_back(skt->write_list, (void*)wrdata);
+        uv_mutex_unlock(&skt->wrlist_mutex);
+
+        skt->async_event.write_data = true;
+        uv_async_send(&skt->async_h);
+    }
+    skt->async_event.end = true;
+    uv_async_send(&skt->async_h);
 }
 
 void net_socket_pause(net_socket_t* skt) {
-
+    skt->async_event.pause = true;
+    uv_async_send(&skt->async_h);
 }
 
 void net_socket_resume(net_socket_t* skt) {
-
+    skt->async_event.resume = true;
+    uv_async_send(&skt->async_h);
 }
 
 void net_socket_set_keep_alive(net_socket_t* skt, bool enable /*= false*/, int initialDelay /*= 0*/) {
@@ -501,11 +613,19 @@ void net_socket_set_timeout(net_socket_t* skt, int timeout, on_socket_event cb /
 }
 
 bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_event cb /*= NULL*/) {
-    if(list_empty(skt->write_list)) {
-
-    } else {
-
+    uv_buf_t* wrdata = (uv_buf_t*)malloc(sizeof(uv_buf_t));
+    wrdata->base = data;
+    wrdata->len = len;
+    uv_mutex_lock(&skt->wrlist_mutex);
+    if(!skt->write_list) {
+        skt->write_list = create_list(void*);
+        list_init(skt->write_list);
     }
+    list_push_back(skt->write_list, (void*)wrdata);
+    uv_mutex_unlock(&skt->wrlist_mutex);
+
+    skt->async_event.write_data = true;
+    uv_async_send(&skt->async_h);
     return true;
 }
 
