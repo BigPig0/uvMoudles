@@ -2,5 +2,5 @@
 *.sdf
 *.opensdf
 *.vs/
-/build/Debug
+/vs2012/Debug
 *.user
