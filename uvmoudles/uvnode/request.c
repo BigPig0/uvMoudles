@@ -1,9 +1,9 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 #include "request.h"
 #include "cstl_easy.h"
 
-request_t* creat_request(http_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
+request_t* creat_request(uv_node_t* h, request_cb req_cb, response_data res_data, response_cb res_cb) {
     request_p_t* req = (request_p_t*)malloc(sizeof(request_p_t));
     memset(req, 0, sizeof(request_p_t));
     req->keep_alive = 1;
@@ -288,7 +288,7 @@ http_request_options_t http_request_option() {
     return ret;
 }
 
-http_client_request_t* http_request(http_t* h, http_request_options_t *options, on_response_cb cb) {
+http_client_request_t* http_request(uv_node_t* h, http_request_options_t *options, on_response_cb cb) {
     SAFE_MALLOC(http_client_request_private_t, req);
     req->options = *options;
     req->response_cb = cb;

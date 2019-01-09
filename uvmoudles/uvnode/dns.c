@@ -1,5 +1,5 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 #include "dns.h"
 #include "cstl_easy.h"
 
@@ -112,7 +112,7 @@ typedef struct _lookup_query_ {
 }lookup_query_t;
 
 typedef struct _dns_resolver_ {
-    http_t               *handle;
+    uv_node_t               *handle;
     bool                 canceled;
     bool                 destoried;
     hash_set_t           *servers;          //set<string_t*>
@@ -125,7 +125,7 @@ dns_lookup_options_t* dns_create_lookup_options() {
     return ret;
 }
 
-dns_resolver_t* dns_create_resolver(http_t *handle) {
+dns_resolver_t* dns_create_resolver(uv_node_t *handle) {
     SAFE_MALLOC(dns_resolver_t, ret);
     ret->handle = handle;
     return ret;

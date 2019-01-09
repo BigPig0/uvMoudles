@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvnode\uvHttp.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\uvmoudles\uvnode\error.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -35,17 +32,11 @@
     <ClCompile Include="..\..\uvmoudles\uvnode\http.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnode\uvnode.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvnode\uvHttp.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnode\public_def.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnode\private_def.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvnode\agent.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -59,6 +50,15 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvnode\http.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnode\uvnode.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnode\public.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnode\private.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

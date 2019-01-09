@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "public_def.h"
+#include "public.h"
 #include "agent.h"
 
 typedef struct _socket_ socket_t;
@@ -55,7 +55,7 @@ extern http_request_options_t http_request_option();
  */
 typedef void (*on_request_cb)(response_t res);
 typedef void (*on_response_cb)(response_t* res);
-extern http_client_request_t* http_request(http_t* h, http_request_options_t *options, on_response_cb cb);
+extern http_client_request_t* http_request(uv_node_t* h, http_request_options_t *options, on_response_cb cb);
 //extern http_client_request_t* http_request(http_t* h, char* url, http_request_options_t *options, on_request_cb cb);
 
 /**

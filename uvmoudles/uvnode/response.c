@@ -1,5 +1,5 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 
 /* 十六进制字符串转为数字*/
 static int htoi(char *s) {

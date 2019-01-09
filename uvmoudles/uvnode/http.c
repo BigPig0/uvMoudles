@@ -1,4 +1,4 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 #include "http.h"
 

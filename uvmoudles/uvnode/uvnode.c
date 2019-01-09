@@ -1,5 +1,5 @@
-#include "uvHttp.h"
-#include "private_def.h"
+#include "uvnode.h"
+#include "private.h"
 #include "uv.h"
 
 char* url_encode(char* src) {
@@ -51,7 +51,7 @@ char* url_decode(char* src) {
 
 void run_loop_thread(void* arg)
 {
-    http_t* h = (http_t*)arg;
+    uv_node_t* h = (uv_node_t*)arg;
     while (h->is_run) {
         uv_run(h->uv, UV_RUN_DEFAULT);
         Sleep(2000);
@@ -60,8 +60,8 @@ void run_loop_thread(void* arg)
     free(h);
 }
 
-http_t* uvHttp(config_t cof, void* uv) {
-    http_t* h = (http_t*)malloc(sizeof(http_t));
+uv_node_t* uv_node_create( void* uv) {
+    uv_node_t* h = (uv_node_t*)malloc(sizeof(uv_node_t));
     h->conf = cof;
 	uv_mutex_init(&h->uv_mutex_h);
 	h->is_run = true;
@@ -93,7 +93,7 @@ http_t* uvHttp(config_t cof, void* uv) {
 	return h;
 }
 
-void uvHttpClose(http_t* h) {
+void uv_node_close(uv_node_t* h) {
 	agents_destory(h);
 	uv_mutex_destroy(&h->uv_mutex_h);
 	if (h->inner_uv == true) {

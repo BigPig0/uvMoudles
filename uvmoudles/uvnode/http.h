@@ -134,7 +134,7 @@ typedef struct _http_agent_ {
     list_t         *requests;      //An object which contains queues of requests that have not yet been assigned to sockets. Do not modify.
     int            maxFreeSockets; //By default set to 256. For agents with keepAlive enabled, this sets the maximum number of sockets that will be left open in the free state.
     int            maxSockets;     //By default set to Infinity. Determines how many concurrent sockets the agent can have open per origin. Origin is the returned value of agent.getName().
-    http_t*        h;
+    uv_node_t*        h;
 }http_agent_t;
 
 typedef struct _http_agent_options_ {
@@ -245,7 +245,7 @@ typedef struct _http_server_response_ {
     char      *status_message; //When using implicit headers (not calling response.writeHead() explicitly), this property controls the status message that will be sent to the client when the headers get flushed. If this is left as undefined then the standard message for the status code will be used.
 }http_server_response_t;
 
-http_agent_t* http_create_agent(http_t* h, http_agent_options_t options);
+http_agent_t* http_create_agent(uv_node_t* h, http_agent_options_t options);
 
 /**
  * agent.createConnection(options[, callback])
@@ -770,7 +770,7 @@ void http_incoming_message_set_timeout(http_incoming_message_t *message, int mse
  * Returns a new instance of http.Server.
  * The requestListener is a function which is automatically added to the 'request' event.
  */
-http_server_t* http_create_server(http_t* h,http_server_on_request_cb cb);
+http_server_t* http_create_server(uv_node_t* h,http_server_on_request_cb cb);
 
 /**
  * http.get(options[, callback])
@@ -782,7 +782,7 @@ http_server_t* http_create_server(http_t* h,http_server_on_request_cb cb);
  * Since most requests are GET requests without bodies, Node.js provides this convenience method. The only difference between this method and http.request() is that it sets the method to GET and calls req.end() automatically. Note that the callback must take care to consume the response data for reasons stated in http.ClientRequest section.
  * The callback is invoked with a single argument that is an instance of http.IncomingMessage.
  */
-http_client_request_t* http_get(http_t* h,char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
+http_client_request_t* http_get(uv_node_t* h,char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
 
 /**
  * http.request(options[, callback])
@@ -815,7 +815,7 @@ http_client_request_t* http_get(http_t* h,char *url, http_client_request_options
  * The optional callback parameter will be added as a one-time listener for the 'response' event.
  * http.request() returns an instance of the http.ClientRequest class. The ClientRequest instance is a writable stream. If one needs to upload a file with a POST request, then write to the ClientRequest object.
  */
-http_client_request_t* http_request(http_t* h, char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
+http_client_request_t* http_request(uv_node_t* h, char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
 
 #ifdef __cplusplus
        }

@@ -12,7 +12,7 @@ extern "C" {
 #define SOCKET_RECV_BUFF_LEN 1024*1024
 
 /** http环境结构 */
-typedef struct _http_ {
+typedef struct _uv_node_ {
     config_t    conf;
     map_t*      agents;
 	uv_loop_t*  uv;
@@ -20,7 +20,7 @@ typedef struct _http_ {
 	bool_t      inner_uv;
 	bool_t      is_run;
 	uv_mutex_t  uv_mutex_h;
-}http_t;
+}uv_node_t;
 
 
 typedef enum _request_step_
@@ -43,7 +43,7 @@ typedef struct _request_p_ {
 	string_t*      str_path;    //uri的path部分
     struct sockaddr* addr;      //tcp连接地址
     string_t*      str_header;  //根据用户填写的内容生成的http头
-    http_t*        handle;
+    uv_node_t*        handle;
     map_t*         headers;     //用户填写的http头 map<string,string>
 	list_t*        body;        //用户填写的http内容体 list<membuff>
 	uv_mutex_t     uv_mutex_h;
@@ -76,7 +76,7 @@ typedef struct _response_p_ {
     request_p_t* req;
 
     //private
-    http_t*       handle;
+    uv_node_t*       handle;
     map_t*        headers;        //解析后的应答头内容
     string_t*     vesion;         //http协议版本
     string_t*     status_desc;    //状态说明
@@ -92,7 +92,7 @@ typedef struct _response_p_ {
 /** 客户端数据结构 */
 typedef struct _agent_
 {
-    http_t*     handle;
+    uv_node_t*     handle;
     list_t*     req_list;
     set_t*      sockets;		//工作中的连接
     set_t*      free_sockets;   //空闲可用连接
@@ -148,8 +148,8 @@ typedef enum _err_code_
     uv_http_err_local_disconnect
 }err_code_t;
 
-extern void agents_init(http_t* h);
-extern void agents_destory(http_t* h);
+extern void agents_init(uv_node_t* h);
+extern void agents_destory(uv_node_t* h);
 
 extern int agent_request(request_p_t* req);
 extern void agent_request_finish(bool_t ok, socket_t* socket);

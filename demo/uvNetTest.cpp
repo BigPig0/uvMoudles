@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <tchar.h>
-#include "uvHttp.h"
+#include "uvnode.h"
 #include "dns.h"
 #include "net.h"
 #include <windows.h>
@@ -63,7 +63,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cof.keep_alive_secs = 0;
 	cof.max_sockets = 10;
 	cof.max_free_sockets = 10;
-    http_t* h = uvHttp(cof, NULL);
+    uv_node_t* h = uv_node_create(cof, NULL);
 #if 0
     dns_resolver_t* dns = dns_create_resolver(h);
     dns_lookup(dns, "www.baidu.com", on_dns_lookup);

@@ -138,7 +138,7 @@ typedef void (*on_server_event)(net_server_t* svr, int err);
  * If pauseOnConnect is set to true, then the socket associated with each incoming connection will be paused, and no data will be read from its handle. This allows connections to be passed between processes without any data being read by the original process. To begin reading data from a paused socket, call socket.resume().
  * The server can be a TCP server or an IPC server, depending on what it listen() to.
  */
-extern net_server_t* net_create_server(http_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/);
+extern net_server_t* net_create_server(uv_node_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -310,7 +310,7 @@ typedef void (*on_socket_event)(net_socket_t* skt);
  * Creates a new socket object.
  * The newly created socket can be either a TCP socket or a streaming IPC endpoint, depending on what it connect() to.
  */
-extern net_socket_t* net_create_socket(http_t* h, net_socket_options_t *option /*= NULL*/);
+extern net_socket_t* net_create_socket(uv_node_t* h, net_socket_options_t *option /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -532,7 +532,7 @@ extern bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_e
  * connectListener <Function>
  * Alias to net.createConnection(options[, connectListener]).
  */
-extern net_socket_t* net_connect_options(http_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
+extern net_socket_t* net_connect_options(uv_node_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(path[, connectListener])
@@ -541,7 +541,7 @@ extern net_socket_t* net_connect_options(http_t* h, net_socket_options_t *conf, 
  * connectListener <Function>
  * Alias to net.createConnection(path[, connectListener]).
  */
-extern net_socket_t* net_connect_path(http_t* h, char *path, on_socket_event cb /*= NULL*/);
+extern net_socket_t* net_connect_path(uv_node_t* h, char *path, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(port[, host][, connectListener])
@@ -550,7 +550,7 @@ extern net_socket_t* net_connect_path(http_t* h, char *path, on_socket_event cb 
  * host <string>
  * connectListener <Function>
  */
-extern net_socket_t* net_connect_port(http_t* h, int port, char *host, on_socket_event cb /*= NULL*/);
+extern net_socket_t* net_connect_port(uv_node_t* h, int port, char *host, on_socket_event cb /*= NULL*/);
 
 /**
  * net.isIP(input)

@@ -86,17 +86,17 @@
     <ClCompile Include="..\..\uvmoudles\uvnode\request.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\response.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\socket.c" />
-    <ClCompile Include="..\..\uvmoudles\uvnode\uvHttp.c" />
+    <ClCompile Include="..\..\uvmoudles\uvnode\uvnode.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\http.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\uvmoudles\uvnode\agent.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\dns.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\net.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnode\public_def.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnode\private_def.h" />
+    <ClInclude Include="..\..\uvmoudles\uvnode\public.h" />
+    <ClInclude Include="..\..\uvmoudles\uvnode\private.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\request.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnode\uvHttp.h" />
+    <ClInclude Include="..\..\uvmoudles\uvnode\uvnode.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\http.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

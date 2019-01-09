@@ -49,11 +49,10 @@ extern "C" {
 #endif
 
 /**
-* Supported getaddrinfo flags
-The following flags can be passed as hints to dns.lookup().
-
-dns.ADDRCONFIG: Returned address types are determined by the types of addresses supported by the current system. For example, IPv4 addresses are only returned if the current system has at least one IPv4 address configured. Loopback addresses are not considered.
-dns.V4MAPPED: If the IPv6 family was specified, but no IPv6 addresses were found, then return IPv4 mapped IPv6 addresses. Note that it is not supported on some operating systems (e.g FreeBSD 10.1).
+ * Supported getaddrinfo flags
+ * The following flags can be passed as hints to dns.lookup().
+ * dns.ADDRCONFIG: Returned address types are determined by the types of addresses supported by the current system. For example, IPv4 addresses are only returned if the current system has at least one IPv4 address configured. Loopback addresses are not considered.
+ * dns.V4MAPPED: If the IPv6 family was specified, but no IPv6 addresses were found, then return IPv4 mapped IPv6 addresses. Note that it is not supported on some operating systems (e.g FreeBSD 10.1).
  */
 #define DNS_GETADDRINFO_TAG_ADDRCONFIG 1
 #define DNS_GETADDRINFO_TAG_V4MAPPED   2
@@ -102,7 +101,7 @@ typedef struct _dns_resolver_ dns_resolver_t;
  * An independent resolver for DNS requests.
  * Note that creating a new resolver uses the default server settings. Setting the servers used for a resolver using resolver.setServers() does not affect other resolvers:
  */
-extern dns_resolver_t* dns_create_resolver(http_t *handle);
+extern dns_resolver_t* dns_create_resolver(uv_node_t *handle);
 extern void dns_destory_resolver(dns_resolver_t* res);
 
 /**

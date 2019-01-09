@@ -1,5 +1,5 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 
 
 
@@ -12,7 +12,7 @@ static void timer_cb(uv_timer_t* handle) {
     set_iterator_t s_pos, s_end;
     socket_t* s;
     time_t now;
-    http_t* h = (http_t*)handle->data;
+    uv_node_t* h = (uv_node_t*)handle->data;
     if(!h || !h->agents)
         return;
 
@@ -51,7 +51,7 @@ void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_
 }
 
 /** 模块初始化 */
-void agents_init(http_t* h) {
+void agents_init(uv_node_t* h) {
     int ret;
     h->agents = create_map(void*, void*); //map<string_t*, agent_t*>
     map_init_ex(h->agents, string_map_compare);
@@ -61,13 +61,13 @@ void agents_init(http_t* h) {
 }
 
 /** 模块销毁 */
-void agents_destory(http_t* h) {
+void agents_destory(uv_node_t* h) {
     uv_timer_stop(&h->timeout_timer);
     map_destroy(h->agents);
 }
 
 /** 根据ip和端口获取一个agent */
-agent_t* get_agent(http_t* h, string_t* addr) {
+agent_t* get_agent(uv_node_t* h, string_t* addr) {
     agent_t* ret;
     map_iterator_t it_pos;
     uv_mutex_lock(&h->uv_mutex_h);

@@ -19,19 +19,11 @@ extern "C" {
         METHOD_CONNECT
     }HTTP_METHOD;
 
-    typedef struct _config_
-    {
-        int  keep_alive_secs;   //http请求keepalive时,tcp连接空闲时保活时间，0为永久,单位秒
-        int  max_sockets;       //同一个ip:port的服务，最多同时工作的连接数，0为不限制
-        int  max_free_sockets;  //同一个ip:port的服务，最多保留的空闲连接数，0为不限制
-        int  dns_timeout_secs;  //解析dns超时时间，0为默认值30秒，单位秒
-        int  request_timeout_secs; //请求超时时间，0为默认值30秒，单位秒
-        int  response_timeout_secs; //等待应答超时时间，0为默认值30秒，单位秒
-    }config_t;
+
 
     
 
-    typedef struct _http_     http_t;
+    typedef struct _uv_node_  uv_node_t;
     typedef struct _response_ response_t;
 
 #define REQUEST_PUBLIC \
