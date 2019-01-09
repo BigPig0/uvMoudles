@@ -32,6 +32,9 @@
     <ClCompile Include="..\..\uvmoudles\uvhttp\response.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="http.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h">
@@ -53,6 +56,9 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvhttp\request.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="http.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

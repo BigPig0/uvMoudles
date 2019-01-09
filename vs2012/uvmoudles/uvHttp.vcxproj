@@ -87,6 +87,7 @@
     <ClCompile Include="..\..\uvmoudles\uvhttp\response.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c" />
     <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttp.c" />
+    <ClCompile Include="http.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h" />
@@ -96,6 +97,7 @@
     <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\request.h" />
     <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h" />
+    <ClInclude Include="http.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
