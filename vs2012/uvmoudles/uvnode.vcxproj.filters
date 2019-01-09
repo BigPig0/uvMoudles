@@ -11,54 +11,54 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\uvHttp.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\uvHttp.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\error.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\error.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\agent.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\agent.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\socket.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\socket.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\dns.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\dns.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\request.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\request.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvhttp\response.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\response.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="http.c">
+    <ClCompile Include="..\..\uvmoudles\uvnode\http.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\uvHttp.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\uvHttp.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\public_def.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\public_def.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\private_def.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\private_def.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\agent.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\agent.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\dns.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\dns.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\net.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\net.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvhttp\request.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\request.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="http.h">
+    <ClInclude Include="..\..\uvmoudles\uvnode\http.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
