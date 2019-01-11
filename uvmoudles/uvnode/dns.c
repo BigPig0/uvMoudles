@@ -3,71 +3,6 @@
 #include "dns.h"
 #include "cstl_easy.h"
 
-
-static void on_resolved(uv_getaddrinfo_t *resolver, int status, struct addrinfo *res) {
-    request_p_t* req_p = (request_p_t*)resolver->data;
-    char addr[17] = { '\0' };
-    int err;
-    free(resolver);
-    uv_mutex_lock(&req_p->uv_mutex_h);
-    do {
-        if (status < 0) {
-            fprintf(stderr, "getaddrinfo callback error %s\n", uv_err_name(status)); 
-            if (req_p->req_cb) {
-                req_p->req_cb((request_t*)req_p, uv_http_err_dns_parse);
-            }
-            break;
-        } 
-        //保存地址
-        req_p->addr = (struct sockaddr*)malloc(sizeof(struct sockaddr));
-        memcpy(req_p->addr, res->ai_addr, sizeof(struct sockaddr));
-        //解析出ip
-        uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 16);
-        printf("get ip from dns: %s\n", addr);
-        //此处将原先的域名改为ip
-        string_clear(req_p->str_addr);
-        string_connect_cstr(req_p->str_addr, addr);
-
-        //状态更新
-        req_p->req_time = time(NULL);
-        req_p->req_step = request_step_dns;
-
-        //交由agent发送请求
-        err = agent_request(req_p);
-        if(uv_http_ok != err && req_p->req_cb) {
-            req_p->req_cb((request_t*)req_p, err);
-            break;
-        }
-    } while(0);
-
-    uv_freeaddrinfo(res);
-    uv_mutex_unlock(&req_p->uv_mutex_h);
-}
-
-int parse_dns(request_p_t* req) {
-    uv_getaddrinfo_t* resolver;
-    struct addrinfo *hints;
-    int ret;
-
-    resolver = (uv_getaddrinfo_t*)malloc(sizeof(uv_getaddrinfo_t));
-    resolver->data = req;
-    hints = (struct addrinfo *)malloc(sizeof(struct addrinfo));
-    hints->ai_family = PF_INET;
-    hints->ai_socktype = SOCK_STREAM;
-    hints->ai_protocol = IPPROTO_TCP;
-    hints->ai_flags = 0;
-    ret = uv_getaddrinfo(req->handle->uv, resolver, on_resolved, string_c_str(req->str_addr), string_c_str(req->str_port), hints);
-    if (ret < 0) {
-        free(resolver);
-        free(hints);
-        return uv_http_err_dns_parse;
-    }
-
-    return uv_http_ok;
-}
-
-
-/////////////////////////////////////////////////////////////////
 char* dns_strerror(int err) {
     static char *dns_error[] = {
         "success",
@@ -102,28 +37,123 @@ char* dns_strerror(int err) {
     return NULL;
 }
 
-typedef struct _lookup_query_ {
-    char                    *hostname;
-    dns_lookup_options_t    *options;
+//////////////////////////////////////////////////////////////////////////
+
+typedef struct _dns_lookup_query_ {
+    uv_node_t               *handle;
+    string_t                *hostname;
+    int                     family;
+    int                     hints;
+    bool                    all;
+    bool                    verbatim;
     dns_lookup_cb           cb;
-    list_t                  jobs;          //list<>
-    list_t                  answers;       //list<>
-    dns_resolver_t          *resolver;
-}lookup_query_t;
+    void                    *user;
+}dns_lookup_query_t;
+
+static void dns_destory_lookup_query(dns_lookup_query_t *query) {
+    if(query->hostname)
+        string_destroy(query->hostname);
+    free(query);
+}
+
+static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+    dns_lookup_query_t *query = (dns_lookup_query_t*)req->data;
+    free(req);
+
+    if(status < 0) {
+        if(query->cb) query->cb(status, NULL, 0, query->user);
+        free(query);
+        uv_freeaddrinfo(res);
+        return;
+    }
+
+    //lookup的回调只需要第一个地址
+    if(res->ai_family == PF_INET) {
+        char addr[17] = {0};
+        uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 17);
+        if(query->cb) query->cb(0,addr,4, query->user);
+    } else if(res->ai_family == PF_INET6) {
+        char addr[46] = {0};
+        uv_ip6_name((struct sockaddr_in6*)res->ai_addr, addr, 46);
+        if(query->cb) query->cb(0,addr,6, query->user);
+    } else {
+        if(query->cb) query->cb(-1, NULL, 0, query->user);
+    }
+
+    uv_freeaddrinfo(res);
+    dns_destory_lookup_query(query);
+}
+
+void dns_lookup_async(void *p ){
+    dns_lookup_query_t* query = (dns_lookup_query_t*)p;
+    SAFE_MALLOC(uv_getaddrinfo_t, req);
+    SAFE_MALLOC(struct addrinfo, hints);
+    int ret;
+    req->data = query;
+    if(query->family == 4)
+        hints->ai_family = PF_INET;
+    else if(query->family == 6)
+        hints->ai_family = PF_INET6;
+    else
+        hints->ai_family = PF_UNSPEC;
+
+    hints->ai_socktype = SOCK_STREAM;
+    hints->ai_protocol = IPPROTO_TCP;
+    hints->ai_flags = 0;
+
+    ret = uv_getaddrinfo(query->handle->uv, req, on_uv_getaddrinfo, string_c_str(query->hostname), NULL, hints);
+    if (ret < 0) {
+        if(query->cb) query->cb(-1, NULL, 0, query->user);
+        free(req);
+        free(hints);
+        dns_destory_lookup_query(query);
+    }
+}
+
+void dns_lookup(uv_node_t* h, char* hostname, dns_lookup_cb cb, void *user) {
+    dns_lookup_options_t options = { 0 };
+    dns_lookup_options(h, hostname, options, cb, user);
+}
+
+void dns_lookup_family(uv_node_t* h, char* hostname, int family, dns_lookup_cb cb, void *user) {
+    dns_lookup_options_t options = { family, 0 };
+    dns_lookup_options(h, hostname, options, cb, user);
+}
+
+void dns_lookup_options(uv_node_t* h, char* hostname, dns_lookup_options_t options, dns_lookup_cb cb, void *user) {
+    uv_thread_t tid = uv_thread_self();
+    SAFE_MALLOC(dns_lookup_query_t, query);
+    query->handle   = h;
+    query->hostname = create_string();
+    string_init_cstr(query->hostname, hostname);
+    query->family   = options.family;
+    query->hints    = options.hints;
+    query->all      = options.all;
+    query->verbatim = options.verbatim;
+    query->cb       = cb;
+    query->user     = user;
+
+    if(tid == h->loop_tid) {
+        dns_lookup_async(query);
+    } else {
+        send_async_event(h, ASYNC_EVENT_THREAD_ID, query);
+    }
+}
+
+void dns_lookup_service(uv_node_t* h, char *address, int port, dns_lookup_service_cb cb, void *user) {
+
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 typedef struct _dns_resolver_ {
-    uv_node_t               *handle;
+    uv_node_t            *handle;
     bool                 canceled;
     bool                 destoried;
     hash_set_t           *servers;          //set<string_t*>
     list_t               *querys;           //list<lookup_query_t*>
     void                 *data;             //用户数据
 }dns_resolver_t;
-
-dns_lookup_options_t* dns_create_lookup_options() {
-    SAFE_MALLOC(dns_lookup_options_t, ret);
-    return ret;
-}
 
 dns_resolver_t* dns_create_resolver(uv_node_t *handle) {
     SAFE_MALLOC(dns_resolver_t, ret);
@@ -159,74 +189,6 @@ int dns_resolver_get_servers(dns_resolver_t* res, char** servers) {
         servers[i++] = (char*)string_c_str(server);
     HASH_SET_FOR_END
     return hash_set_size(res->servers);
-}
-
-static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
-    lookup_query_t *query = (lookup_query_t*)req->data;
-    free(req);
-
-    if(status < 0) {
-        if(query->cb) query->cb(query->resolver, status, NULL, 0);
-        free(res);
-        return;
-    }
-
-    if(res->ai_family == PF_INET) {
-        char addr[17] = {0};
-        uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 17);
-        if(query->cb) query->cb(query->resolver,0,addr,4);
-    } else if(res->ai_family == PF_INET6) {
-        char addr[46] = {0};
-        uv_ip6_name((struct sockaddr_in6*)res->ai_addr, addr, 46);
-        if(query->cb) query->cb(query->resolver,0,addr,6);
-    } else {
-        if(query->cb) query->cb(query->resolver, -1, NULL, 0);
-    }
-
-    free(res);
-}
-
-void dns_lookup(dns_resolver_t* res, char* hostname, dns_lookup_cb cb) {
-    int ret;
-    SAFE_MALLOC(lookup_query_t, query);
-    SAFE_MALLOC(uv_getaddrinfo_t, req);
-    SAFE_MALLOC(struct addrinfo, hints);
-
-    query->resolver = res;
-    query->cb = cb;
-
-    req->data = query;
-
-    hints->ai_family = PF_INET;
-    hints->ai_socktype = SOCK_STREAM;
-    hints->ai_protocol = IPPROTO_TCP;
-    hints->ai_flags = 0;
-
-    ret = uv_getaddrinfo(res->handle->uv, req, on_uv_getaddrinfo, hostname, NULL, hints);
-    if (ret < 0) {
-        free(req);
-        free(hints);
-    }
-}
-
-void dns_lookup_options(dns_resolver_t* res, char* hostname, dns_lookup_options_t *options, dns_lookup_cb cb) {
-    SAFE_MALLOC(lookup_query_t, query);
-    query->resolver = res;
-    query->options = options;
-    query->cb = cb;
-}
-
-void dns_lookup_family(dns_resolver_t* res, char* hostname, int family, dns_lookup_cb cb) {
-    SAFE_MALLOC(lookup_query_t, query);
-    SAFE_MALLOC(dns_lookup_options_t, options);
-    query->resolver = res;
-    options->family = family;
-    query->options = options;
-    query->cb = cb;
-}
-
-void dns_lookup_service(dns_resolver_t* res, char *address, int port, dns_lookup_service_cb cb) {
-
 }
 
 void dns_set_servers(dns_resolver_t* res, char **servers, int num) {

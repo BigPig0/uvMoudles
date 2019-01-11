@@ -86,13 +86,55 @@ enum _dns_error_code_ {
     DNS_ERROR_MAX
 }dns_error_code_t;
 
+//////////////////////////////////////////////////////////////////////////
+
 typedef struct _dns_lookup_options_ {
     int    family;   //The record family. Must be 4 or 6. IPv4 and IPv6 addresses are both returned by default.
     int    hints;    //One or more supported getaddrinfo flags. Multiple flags may be passed by bitwise ORing their values.
     bool   all;      //When true, the callback returns all resolved addresses in an array. Otherwise, returns a single address. Default: false.
     bool   verbatim; //When true, the callback receives IPv4 and IPv6 addresses in the order the DNS resolver returned them. When false, IPv4 addresses are placed before IPv6 addresses. Default: currently false (addresses are reordered) but this is expected to change in the not too distant future. New code should use { verbatim: true }.
 }dns_lookup_options_t;
-extern dns_lookup_options_t* dns_create_lookup_options();
+
+/**
+ * dns.lookup(hostname[, options], callback)
+ * hostname <string>
+ * options <integer> | <Object>
+ *    family <integer> The record family. Must be 4 or 6. IPv4 and IPv6 addresses are both returned by default.
+ *    hints <number> One or more supported getaddrinfo flags. Multiple flags may be passed by bitwise ORing their values.
+ *    all <boolean> When true, the callback returns all resolved addresses in an array. Otherwise, returns a single address. Default: false.
+ *    verbatim <boolean> When true, the callback receives IPv4 and IPv6 addresses in the order the DNS resolver returned them. When false, IPv4 addresses are placed before IPv6 addresses. Default: currently false (addresses are reordered) but this is expected to change in the not too distant future. New code should use { verbatim: true }.
+ * callback <Function>
+ *    err <Error>
+ *    address <string> A string representation of an IPv4 or IPv6 address.
+ *    family <integer> 4 or 6, denoting the family of address.
+ * Resolves a hostname (e.g. 'nodejs.org') into the first found A (IPv4) or AAAA (IPv6) record. All option properties are optional. If options is an integer, then it must be 4 or 6 ¨C if options is not provided, then IPv4 and IPv6 addresses are both returned if found.
+
+ * With the all option set to true, the arguments for callback change to (err, addresses), with addresses being an array of objects with the properties address and family.
+ * On error, err is an Error object, where err.code is the error code. Keep in mind that err.code will be set to 'ENOENT' not only when the hostname does not exist but also when the lookup fails in other ways such as no available file descriptors.
+ * dns.lookup() does not necessarily have anything to do with the DNS protocol. The implementation uses an operating system facility that can associate names with addresses, and vice versa. This implementation can have subtle but important consequences on the behavior of any Node.js program. Please take some time to consult the Implementation considerations section before using dns.lookup().
+ */
+typedef void (*dns_lookup_cb)(int err, char *address, int family, void *user);
+extern void dns_lookup(uv_node_t* h, char* hostname, dns_lookup_cb cb, void *user);
+extern void dns_lookup_family(uv_node_t* h, char* hostname, int family, dns_lookup_cb cb, void *user);
+extern void dns_lookup_options(uv_node_t* h, char* hostname, dns_lookup_options_t options, dns_lookup_cb cb, void *user);
+
+/**
+ * dns.lookupService(address, port, callback)
+ * address <string>
+ * port <number>
+ * callback <Function>
+ *     err <Error>
+ *     hostname <string> e.g. example.com
+ *     service <string> e.g. http
+ * Resolves the given address and port into a hostname and service using the operating system's underlying getnameinfo implementation.
+ *
+ * If address is not a valid IP address, a TypeError will be thrown. The port will be coerced to a number. If it is not a legal port, a TypeError will be thrown.
+ * On an error, err is an Error object, where err.code is the error code.
+ */
+typedef void (*dns_lookup_service_cb)(int err, char *hostname, char *service, void *user);
+extern void dns_lookup_service(uv_node_t* h, char *address, int port, dns_lookup_service_cb cb, void *user);
+
+//////////////////////////////////////////////////////////////////////////
 
 typedef struct _dns_resolver_ dns_resolver_t;
 
@@ -122,45 +164,6 @@ extern void dns_resolver_cancel(dns_resolver_t* res);
  * Returns an array of IP address strings, formatted according to rfc5952, that are currently configured for DNS resolution. A string will include a port section if a custom port is used.
  */
 extern int dns_resolver_get_servers(dns_resolver_t* res, char** servers);
-
-/**
- * dns.lookup(hostname[, options], callback)
- * hostname <string>
- * options <integer> | <Object>
- *    family <integer> The record family. Must be 4 or 6. IPv4 and IPv6 addresses are both returned by default.
- *    hints <number> One or more supported getaddrinfo flags. Multiple flags may be passed by bitwise ORing their values.
- *    all <boolean> When true, the callback returns all resolved addresses in an array. Otherwise, returns a single address. Default: false.
- *    verbatim <boolean> When true, the callback receives IPv4 and IPv6 addresses in the order the DNS resolver returned them. When false, IPv4 addresses are placed before IPv6 addresses. Default: currently false (addresses are reordered) but this is expected to change in the not too distant future. New code should use { verbatim: true }.
- * callback <Function>
- *    err <Error>
- *    address <string> A string representation of an IPv4 or IPv6 address.
- *    family <integer> 4 or 6, denoting the family of address.
- * Resolves a hostname (e.g. 'nodejs.org') into the first found A (IPv4) or AAAA (IPv6) record. All option properties are optional. If options is an integer, then it must be 4 or 6 ¨C if options is not provided, then IPv4 and IPv6 addresses are both returned if found.
-
- * With the all option set to true, the arguments for callback change to (err, addresses), with addresses being an array of objects with the properties address and family.
- * On error, err is an Error object, where err.code is the error code. Keep in mind that err.code will be set to 'ENOENT' not only when the hostname does not exist but also when the lookup fails in other ways such as no available file descriptors.
- * dns.lookup() does not necessarily have anything to do with the DNS protocol. The implementation uses an operating system facility that can associate names with addresses, and vice versa. This implementation can have subtle but important consequences on the behavior of any Node.js program. Please take some time to consult the Implementation considerations section before using dns.lookup().
- */
-typedef void (*dns_lookup_cb)(dns_resolver_t* res, int err, char *address, int family);
-extern void dns_lookup(dns_resolver_t* res, char* hostname, dns_lookup_cb cb);
-extern void dns_lookup_options(dns_resolver_t* res, char* hostname, dns_lookup_options_t *options, dns_lookup_cb cb);
-extern void dns_lookup_family(dns_resolver_t* res, char* hostname, int family, dns_lookup_cb cb);
-
-/**
- * dns.lookupService(address, port, callback)
- * address <string>
- * port <number>
- * callback <Function>
- *     err <Error>
- *     hostname <string> e.g. example.com
- *     service <string> e.g. http
- * Resolves the given address and port into a hostname and service using the operating system's underlying getnameinfo implementation.
- *
- * If address is not a valid IP address, a TypeError will be thrown. The port will be coerced to a number. If it is not a legal port, a TypeError will be thrown.
- * On an error, err is an Error object, where err.code is the error code.
- */
-typedef void (*dns_lookup_service_cb)(dns_resolver_t* res, int err, char *hostname, char *service);
-extern void dns_lookup_service(dns_resolver_t* res, char *address, int port, dns_lookup_service_cb cb);
 
 /**
  * dns.setServers(servers)

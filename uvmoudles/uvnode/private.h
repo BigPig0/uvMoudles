@@ -11,17 +11,30 @@ extern "C" {
 
 #define SOCKET_RECV_BUFF_LEN 1024*1024
 
-/** http环境结构 */
+typedef enum _uv_async_event_ {
+    ASYNC_EVENT_THREAD_ID = 0,  //获取event loop的线程ID
+    ASYNC_EVENT_DNS_LOOKUP,     //查询dns
+    ASYNC_EVENT_TCP_SERVER_INIT,//tcp server初始化
+}uv_async_event_t;
+
+typedef struct _uv_async_event_params_ {
+    uv_async_event_t    event;
+    void                *params;
+}uv_async_event_params_t;
+
+/** 环境结构 */
 typedef struct _uv_node_ {
-    config_t    conf;
-    map_t*      agents;
 	uv_loop_t*  uv;
     uv_timer_t  timeout_timer;
 	bool_t      inner_uv;
 	bool_t      is_run;
+    uv_thread_t loop_tid;   //event loop执行线程id，外部调用接口如果是其他线程，需要使用uv_ansyc控制
+    uv_async_t  uv_async_h;
+    list_t      *async_event;
 	uv_mutex_t  uv_mutex_h;
 }uv_node_t;
 
+typedef struct _dns_lookup_query_ dns_lookup_query_t;
 
 typedef enum _request_step_
 {
@@ -147,6 +160,11 @@ typedef enum _err_code_
     uv_http_err_remote_disconnect,
     uv_http_err_local_disconnect
 }err_code_t;
+
+//async
+extern void send_async_event(uv_node_t* h, uv_async_event_t type, void *p);
+extern void dns_lookup_async(void *p);
+extern void net_create_server_async(void* p);
 
 extern void agents_init(uv_node_t* h);
 extern void agents_destory(uv_node_t* h);

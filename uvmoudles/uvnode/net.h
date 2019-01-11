@@ -110,14 +110,10 @@ typedef struct _net_server_options_ {
 typedef struct _net_server_listen_options_ {
     int       port;
     char*     host;
-    char*     path;        //Will be ignored if port is specified. See Identifying paths for IPC connections.
     int       backlog;     //Common parameter of server.listen() functions.
     bool      exclusive;   //Default: false
-    bool      readableAll; //For IPC servers makes the pipe readable for all users. Default: false
-    bool      writableAll; //For IPC servers makes the pipe writable for all users. Default: false
     bool      ipv6Only;    //For TCP servers, setting ipv6Only to true will disable dual-stack support, i.e., binding to host :: won't make 0.0.0.0 be bound. Default: false.
 }net_server_listen_options_t;
-extern net_server_listen_options_t* net_server_create_listen_options();
 
 typedef struct _net_server_  net_server_t;
 typedef struct _net_socket_  net_socket_t;
@@ -239,16 +235,6 @@ extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlo
 extern void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* options, on_server_event callback /*= NULL*/);
 
 /**
- * server.listen(path[, backlog][, callback])
- * path <string> Path the server should listen to. See Identifying paths for IPC connections.
- * backlog <number> Common parameter of server.listen() functions.
- * callback <Function> Common parameter of server.listen() functions.
- * Returns: <net.Server>
- * Start an IPC server listening for connections on the given path.
- */
-extern void net_server_listen_path(net_server_t* svr, char* path, int backlog /*= 0*/, on_server_event callback /*= NULL*/);
-
-/**
  * server.listen([port[, host[, backlog]]][, callback])
  * port <number>
  * host <string>
@@ -278,8 +264,6 @@ extern void net_server_listen_port(net_server_t* svr, int port, char* host, int 
 typedef struct _net_socket_options_{
     int    fd;            //If specified, wrap around an existing socket with the given file descriptor, otherwise a new socket will be created.
     bool   allowHalfOpen; //Indicates whether half-opened TCP connections are allowed. See net.createServer() and the 'end' event for details. Default: false.
-    bool   readable;      //Allow reads on the socket when an fd is passed, otherwise ignored. Default: false.
-    bool   writable;      //Allow writes on the socket when an fd is passed, otherwise ignored. Default: false.
 }net_socket_options_t;
 
 typedef struct _net_socket_connect_options_ {
@@ -289,12 +273,7 @@ typedef struct _net_socket_connect_options_ {
     char   *localAddress; //Local address the socket should connect from.
     int    localPort;     //Local port the socket should connect from.
     int    family;        //Version of IP stack, can be either 4 or 6. Default: 4.
-    //int    hints;         //Optional dns.lookup() hints.
-    //dns_lookup lookup;    //Custom lookup function. Default: dns.lookup().
-    //For IPC connections, available options are:
-    char   *path;         //Required. Path the client should connect to. See Identifying paths for IPC connections. If provided, the TCP-specific options above are ignored.
 }net_socket_connect_options_t;
-extern net_socket_connect_options_t* net_socket_create_connect_options();
 
 
 typedef void (*on_socket_event)(net_socket_t* skt);
@@ -411,17 +390,6 @@ extern net_address_t net_socket_address(net_socket_t* skt);
 extern void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t *options, on_socket_event connectListener /*= NULL*/);
 
 /**
- * socket.connect(path[, connectListener])
- * path <string> Path the client should connect to. See Identifying paths for IPC connections.
- * connectListener <Function> Common parameter of socket.connect() methods. Will be added as a listener for the 'connect' event once.
- * Returns: <net.Socket> The socket itself.
- * Initiate an IPC connection on the given socket.
- *
- * Alias to socket.connect(options[, connectListener]) called with { path: path } as options.
- */
-extern void net_socket_connect_path(net_socket_t* skt, char* path, on_socket_event connectListener /*= NULL*/);
-
-/**
  * socket.connect(port[, host][, connectListener])
  * port <number> Port the client should connect to.
  * host <string> Host the client should connect to.
@@ -533,15 +501,6 @@ extern bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_e
  * Alias to net.createConnection(options[, connectListener]).
  */
 extern net_socket_t* net_connect_options(uv_node_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
-
-/**
- * net.connect(path[, connectListener])
- * Added in: v0.1.90
- * path <string>
- * connectListener <Function>
- * Alias to net.createConnection(path[, connectListener]).
- */
-extern net_socket_t* net_connect_path(uv_node_t* h, char *path, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(port[, host][, connectListener])

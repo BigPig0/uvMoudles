@@ -1,5 +1,5 @@
-#include "public_def.h"
-#include "private_def.h"
+#include "public.h"
+#include "private.h"
 #include "net.h"
 #include "cstl_easy.h"
 #include "dns.h"
@@ -19,13 +19,20 @@ typedef struct _net_socket_async_event_ {
  * This class is used to create a TCP or IPC server.
  */
 typedef struct _net_server_ {
+    uv_node_t      *handle;
+    //options
     bool            allowHalfOpen;    //Indicates whether half-opened TCP connections are allowed. Default: false.
     bool            pauseOnConnect;   //Indicates whether the socket should be paused on incoming connections. Default: false.
+    //listen_options;
+    int             port;
+    string_t        *host;
+    int             backlog;     //Common parameter of server.listen() functions.
+    bool            exclusive;   //Default: false
+    bool            ipv6Only;
+    //public
     bool            listening;        //<boolean> Indicates whether or not the server is listening for connections.
     int             maxConnections;   //Set this property to reject connections when the server's connection count gets high.
-    net_server_listen_options_t* listen_options;
     //private
-    http_t*         handle;
     uv_tcp_t        uv_tcp_h;
     on_server_event_connection    on_connection;
     on_server_event               on_close;
@@ -38,6 +45,7 @@ typedef struct _net_server_ {
  * Class: net.Socket
  */
 typedef struct _net_socket_ {
+    uv_node_t      *handle;
     /**
      * net.Socket has the property that socket.write() always works. This is to help users get up and running quickly. The computer cannot always keep up with the amount of data that is written to a socket - the network connection simply might be too slow. Node.js will internally queue up the data written to a socket and send it out over the wire when it is possible. (Internally it is polling on the socket's file descriptor for being writable).
      * The consequence of this internal buffering is that memory may grow. This property shows the number of characters currently buffered to be written. (Number of characters is approximately equal to the number of bytes to be written, but the buffer may contain strings, and the strings are lazily encoded, so the exact number of bytes is not known.)
@@ -58,13 +66,10 @@ typedef struct _net_socket_ {
     int         remoteFamily; //The string representation of the remote IP family. 'IPv4' or 'IPv6'.
     int         remotePort;   //The numeric representation of the remote port. For example, 80 or 21.
     //private
-    http_t*                  handle;
     uv_tcp_t                 uv_tcp_h;
     char                     readBuff[1024*1024];
     int                      readLen;
     bool                     allowHalfOpen;
-    bool                     readable;
-    bool                     writable;
     //server
     bool                     isServer;
     net_server_t             *server;
@@ -88,14 +93,13 @@ typedef struct _net_socket_ {
     on_socket_event          on_event_timeout; //超时
 }net_socket_t;
 
-
-
-net_server_listen_options_t* net_server_create_listen_options() {
-    SAFE_MALLOC(net_server_listen_options_t, ret);
-    return ret;
+void net_create_server_async(void* p){
+    net_server_t* net = (net_server_t* p);
+    uv_tcp_init(p->handle->uv, &p->uv_tcp_h);
 }
 
-net_server_t* net_create_server(http_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/) {
+net_server_t* net_create_server(uv_node_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/) {
+    uv_thread_t tid = uv_thread_self();
     SAFE_MALLOC(net_server_t, ret);
     ret->handle = h;
     ret->uv_tcp_h.data = ret;
@@ -106,7 +110,11 @@ net_server_t* net_create_server(http_t* h, net_server_options_t* options /*= NUL
     if (connectionListener)
         ret->on_connection = connectionListener;
 
-    uv_tcp_init(ret->handle->uv, &ret->uv_tcp_h);
+    if(tid == h->loop_tid){
+        uv_tcp_init(ret->handle->uv, &ret->uv_tcp_h);
+    } else {
+        send_async_event(h, ASYNC_EVENT_TCP_SERVER_INIT, ret);
+    }
 
     return ret;
 }
@@ -187,13 +195,7 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     net_socket_t *skt = (net_socket_t*)stream->data;
     if(nread < 0) {
-        if(nread == UV__ECONNRESET) {
-            //对端发送了FIN
-            if(skt->on_event_end) skt->on_event_end(skt);
-            if(!skt->allowHalfOpen){
-                uv_close((uv_handle_t*)&skt->uv_tcp_h, on_uv_close);
-            }
-        } else if(nread == UV_EOF) {
+        if(nread == UV__ECONNRESET || nread == UV_EOF) {
             //对端发送了FIN
             if(skt->on_event_end) skt->on_event_end(skt);
             if(!skt->allowHalfOpen){
@@ -297,10 +299,18 @@ void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* o
     struct sockaddr_in6 addr6;
     int ret;
     if(options->backlog <= 0) options->backlog = 511;
-    svr->listen_options = options;
-    if(callback) {
+    svr->port = options->port;
+    if(options->host)
+        svr->host = options->host;
+    if(options->backlog > 0) 
+        svr->backlog = options->backlog;
+    if(options->exclusive)
+        svr->exclusive = options->exclusive;
+    if(options->ipv6Only)
+        svr->ipv6Only = options->ipv6Only;
+    if(callback)
         svr->on_listening = callback;
-    }
+
     if(options->port != 0) {
         if(options->host) {
             dns_resolver_t* dns = dns_create_resolver(svr->handle);
@@ -327,13 +337,6 @@ void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* o
     }
 }
 
-void net_server_listen_path(net_server_t* svr, char* path, int backlog /*= 0*/, on_server_event callback /*= NULL*/) {
-    net_server_listen_options_t* options = net_server_create_listen_options();
-    options->path = path;
-    options->backlog = backlog;
-    net_server_listen_options(svr, options, callback);
-}
-
 void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/) {
     net_server_listen_options_t* options = net_server_create_listen_options();
     options->port = port;
@@ -341,8 +344,6 @@ void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog
     options->backlog = backlog;
     net_server_listen_options(svr, options, callback);
 }
-
-
 
 net_socket_connect_options_t* net_socket_create_connect_options() {
     SAFE_MALLOC(net_socket_connect_options_t, ret);

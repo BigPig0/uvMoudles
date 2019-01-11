@@ -5,26 +5,22 @@
 extern "C" {
 #endif
 
+typedef enum _HTTP_METHOD_
+{
+    METHOD_OPTIONS = 0,
+    METHOD_HEAD,
+    METHOD_GET,
+    METHOD_POST,
+    METHOD_PUT,
+    METHOD_DELETE,
+    METHOD_TRACE,
+    METHOD_CONNECT
+}HTTP_METHOD;
+
+typedef struct _uv_node_  uv_node_t;
 
 
-    typedef enum _HTTP_METHOD_
-    {
-        METHOD_OPTIONS = 0,
-        METHOD_HEAD,
-        METHOD_GET,
-        METHOD_POST,
-        METHOD_PUT,
-        METHOD_DELETE,
-        METHOD_TRACE,
-        METHOD_CONNECT
-    }HTTP_METHOD;
-
-
-
-    
-
-    typedef struct _uv_node_  uv_node_t;
-    typedef struct _response_ response_t;
+typedef struct _response_ response_t;
 
 #define REQUEST_PUBLIC \
     HTTP_METHOD method;\

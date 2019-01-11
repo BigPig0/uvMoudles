@@ -18,6 +18,7 @@ extern uv_node_t* uv_node_create(void* uv);
 /**
  * 关闭一个环境句柄
  * @param h 输入句柄
+ * @note 关闭前需要确保该环境下的工作全部先关闭
  */
 extern void uv_node_close(uv_node_t* h);
 
