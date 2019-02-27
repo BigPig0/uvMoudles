@@ -32,6 +32,7 @@ typedef struct _uv_node_ {
     uv_async_t  uv_async_h;
     list_t      *async_event;
 	uv_mutex_t  uv_mutex_h;
+    void        *http_global_agent;
 }uv_node_t;
 
 typedef struct _dns_lookup_query_ dns_lookup_query_t;

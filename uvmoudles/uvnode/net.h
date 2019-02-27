@@ -97,26 +97,13 @@ typedef struct _net_address_ {
     int       port;
 }net_address_t;
 
+typedef struct _net_server_  net_server_t;
+typedef struct _net_socket_  net_socket_t;
+
 /**
  * Class: net.Server
  * This class is used to create a TCP or IPC server.
  */
-
-typedef struct _net_server_options_ {
-    bool    allowHalfOpen;  //Indicates whether half-opened TCP connections are allowed. Default: false.
-    bool    pauseOnConnect; //Indicates whether the socket should be paused on incoming connections. Default: false.
-}net_server_options_t;
-
-typedef struct _net_server_listen_options_ {
-    int       port;
-    char*     host;
-    int       backlog;     //Common parameter of server.listen() functions.
-    bool      exclusive;   //Default: false
-    bool      ipv6Only;    //For TCP servers, setting ipv6Only to true will disable dual-stack support, i.e., binding to host :: won't make 0.0.0.0 be bound. Default: false.
-}net_server_listen_options_t;
-
-typedef struct _net_server_  net_server_t;
-typedef struct _net_socket_  net_socket_t;
 
 typedef void (*on_server_event_connection)(net_server_t* svr, int err, net_socket_t* client);
 typedef void (*on_server_event)(net_server_t* svr, int err);
@@ -134,7 +121,7 @@ typedef void (*on_server_event)(net_server_t* svr, int err);
  * If pauseOnConnect is set to true, then the socket associated with each incoming connection will be paused, and no data will be read from its handle. This allows connections to be passed between processes without any data being read by the original process. To begin reading data from a paused socket, call socket.resume().
  * The server can be a TCP server or an IPC server, depending on what it listen() to.
  */
-extern net_server_t* net_create_server(uv_node_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/);
+extern net_server_t* net_create_server(uv_node_t* h, char** options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -218,7 +205,7 @@ extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlo
  * server.listen(options[, callback])
  * History
  * options <Object> Required. Supports the following properties:
- *   port <number>
+ *   port <number> Required.
  *   host <string>
  *   path <string> Will be ignored if port is specified. See Identifying paths for IPC connections.
  *   backlog <number> Common parameter of server.listen() functions.
@@ -232,7 +219,7 @@ extern void net_server_listen_handle(net_server_t* svr, void* handle, int backlo
  * If exclusive is false (default), then cluster workers will use the same underlying handle, allowing connection handling duties to be shared. When exclusive is true, the handle is not shared, and attempted port sharing results in an error. An example which listens on an exclusive port is shown below.
  * Starting an IPC server as root may cause the server path to be inaccessible for unprivileged users. Using readableAll and writableAll will make the server accessible for all users.
  */
-extern void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* options, on_server_event callback /*= NULL*/);
+extern void net_server_listen_options(net_server_t* svr, char** options, on_server_event callback /*= NULL*/);
 
 /**
  * server.listen([port[, host[, backlog]]][, callback])
@@ -248,23 +235,16 @@ extern void net_server_listen_options(net_server_t* svr, net_server_listen_optio
  */
 extern void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/);
 
-/**
- * -------------------------------------------------------------------------------------------------------------------------------------------
- */
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Class: net.Socket
  * This class is an abstraction of a TCP socket or a streaming IPC endpoint (uses named pipes on Windows, and UNIX domain sockets otherwise). A net.Socket is also a duplex stream, so it can be both readable and writable, and it is also an EventEmitter.
-
+ *
  * A net.Socket can be created by the user and used directly to interact with a server. For example, it is returned by net.createConnection(), so the user can use it to talk to the server.
-
+ *
  * It can also be created by Node.js and passed to the user when a connection is received. For example, it is passed to the listeners of a 'connection' event emitted on a net.Server, so the user can use it to interact with the client.
  */
-
-typedef struct _net_socket_options_{
-    int    fd;            //If specified, wrap around an existing socket with the given file descriptor, otherwise a new socket will be created.
-    bool   allowHalfOpen; //Indicates whether half-opened TCP connections are allowed. See net.createServer() and the 'end' event for details. Default: false.
-}net_socket_options_t;
 
 typedef struct _net_socket_connect_options_ {
     //For TCP connections, available options are:
@@ -289,7 +269,7 @@ typedef void (*on_socket_event)(net_socket_t* skt);
  * Creates a new socket object.
  * The newly created socket can be either a TCP socket or a streaming IPC endpoint, depending on what it connect() to.
  */
-extern net_socket_t* net_create_socket(uv_node_t* h, net_socket_options_t *option /*= NULL*/);
+extern net_socket_t* net_create_socket(uv_node_t* h, char **options /*= NULL*/);
 
 /**
  * Event: 'close'
@@ -382,12 +362,22 @@ extern net_address_t net_socket_address(net_socket_t* skt);
  */
 /**
  * socket.connect(options[, connectListener])
- * options <Object>
+ * options ×Ö·û´®Êý×é {"key","value","key","value",NULL}
+ * * For TCP connections, available options are:
+ * * * port <number> Required. Port the socket should connect to.
+ * * * host <string> Host the socket should connect to. Default: 'localhost'.
+ * * * localAddress <string> Local address the socket should connect from.
+ * * * localPort <number> Local port the socket should connect from.
+ * * * family <number>: Version of IP stack, can be either 4 or 6. Default: 4.
+ * * * hints <number> Optional dns.lookup() hints.
+ * * * lookup <Function> Custom lookup function. Default: dns.lookup().
+ * * For IPC connections, available options are:
+ * * * path <string> Required. Path the client should connect to. See Identifying paths for IPC connections. If provided, the TCP-specific options above are ignored.
  * connectListener <Function> Common parameter of socket.connect() methods. Will be added as a listener for the 'connect' event once.
  * Returns: <net.Socket> The socket itself.
  * Initiate a connection on a given socket. Normally this method is not needed, the socket should be created and opened with net.createConnection(). Use this only when implementing a custom Socket.
  */
-extern void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t *options, on_socket_event connectListener /*= NULL*/);
+extern void net_socket_connect_options(net_socket_t* skt, char **options, on_socket_event connectListener /*= NULL*/);
 
 /**
  * socket.connect(port[, host][, connectListener])
@@ -500,7 +490,7 @@ extern bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_e
  * connectListener <Function>
  * Alias to net.createConnection(options[, connectListener]).
  */
-extern net_socket_t* net_connect_options(uv_node_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
+extern net_socket_t* net_connect_options(uv_node_t* h, char **options, on_socket_event cb /*= NULL*/);
 
 /**
  * net.connect(port[, host][, connectListener])

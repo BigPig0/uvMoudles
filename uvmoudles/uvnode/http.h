@@ -124,128 +124,30 @@ extern "C" {
 
 #include "net.h"
 
+typedef struct _http_agent_             http_agent_t;
+typedef struct _http_client_request_    http_client_request_t;
+typedef struct _http_server_            http_server_t;
+typedef struct _http_server_response_   http_server_response_t;
+typedef struct _http_incoming_message_  http_incoming_message_t;
+
 /**
  * Class: http.Agent
  * An Agent is responsible for managing connection persistence and reuse for HTTP clients.
  */
-typedef struct _http_agent_ {
-    list_t         *sockets;       //An object which contains arrays of sockets currently in use by the agent. Do not modify.
-    list_t         *free_sockets;  //An object which contains arrays of sockets currently awaiting use by the agent when keepAlive is enabled. Do not modify.
-    list_t         *requests;      //An object which contains queues of requests that have not yet been assigned to sockets. Do not modify.
-    int            maxFreeSockets; //By default set to 256. For agents with keepAlive enabled, this sets the maximum number of sockets that will be left open in the free state.
-    int            maxSockets;     //By default set to Infinity. Determines how many concurrent sockets the agent can have open per origin. Origin is the returned value of agent.getName().
-    uv_node_t*        h;
-}http_agent_t;
-
-typedef struct _http_agent_options_ {
-    bool keepAlive;      //<boolean> Keep sockets around even when there are no outstanding requests, so they can be used for future requests without having to reestablish a TCP connection. Default: false.
-    int  keepAliveMsecs; //<number> When using the keepAlive option, specifies the initial delay for TCP Keep-Alive packets. Ignored when the keepAlive option is false or undefined. Default: 1000.
-    int  maxSockets;     //<number> Maximum number of sockets to allow per host. Default: Infinity.
-    int  maxFreeSockets; //<number> Maximum number of sockets to leave open in a free state. Only relevant if keepAlive is set to true. Default: 256.
-    int  timeout;        //<number> Socket timeout in milliseconds. This will set the timeout after the socket is connected.
-}http_agent_options_t;
-
-typedef struct _http_client_request_options_ {
-    char    *protocol; //<string> Protocol to use. Default: 'http:'.
-    char    *host; //<string> A domain name or IP address of the server to issue the request to. Default: 'localhost'.
-    char    *hostname; //<string> Alias for host. To support url.parse(), hostname will be used if both host and hostname are specified.
-    int     family; //<number> IP address family to use when resolving host or hostname. Valid values are 4 or 6. When unspecified, both IP v4 and v6 will be used.
-    int     port; //<number> Port of remote server. Default: 80.
-    char    *localAddress; //<string> Local interface to bind for network connections.
-    char    *socketPath; //<string> Unix Domain Socket (cannot be used if one of host or port is specified, those specify a TCP Socket).
-    char    *method; //<string> A string specifying the HTTP request method. Default: 'GET'.
-    char    *path; //<string> Request path. Should include query string if any. E.G. '/index.html?page=12'. An exception is thrown when the request path contains illegal characters. Currently, only spaces are rejected but that may change in the future. Default: '/'.
-    char    **headers; //<Object> An object containing request headers.
-    char    *auth; //<string> Basic authentication i.e. 'user:password' to compute an Authorization header.
-    http_agent_t    *agent; //<http.Agent> | <boolean> Controls Agent behavior. Possible values:
-                            //   undefined (default): use http.globalAgent for this host and port.
-                            //   Agent object: explicitly use the passed in Agent.
-                            //   false: causes a new Agent with default values to be used.
-    //    createConnection <Function> A function that produces a socket/stream to use for the request when the agent option is not used. This can be used to avoid creating a custom Agent class just to override the default createConnection function. See agent.createConnection() for more details. Any Duplex stream is a valid return value.
-    int     timeout; //<number>: A number specifying the socket timeout in milliseconds. This will set the timeout before the socket is connected.
-    bool    setHost; //<boolean>: Specifies whether or not to automatically add the Host header. Defaults to true.
-}http_client_request_options_t;
 
 /**
- * Class: http.ClientRequest
+ * new Agent([options])
+ * options <字符串数组 {"key","value","key","value",NULL}> Set of configurable options to set on the agent. Can have the following fields:
+ * * keepAlive <boolean> Keep sockets around even when there are no outstanding requests, so they can be used for future requests without having to reestablish a TCP connection. Default: false.
+ * * keepAliveMsecs <number> When using the keepAlive option, specifies the initial delay for TCP Keep-Alive packets. Ignored when the keepAlive option is false or undefined. Default: 1000.
+ * * maxSockets <number> Maximum number of sockets to allow per host. Default: Infinity.
+ * * maxFreeSockets <number> Maximum number of sockets to leave open in a free state. Only relevant if keepAlive is set to true. Default: 256.
+ * * timeout <number> Socket timeout in milliseconds. This will set the timeout when the socket is created.
+ * * options in socket.connect() are also supported.
+ * The default http.globalAgent that is used by http.request() has all of these values set to their respective defaults.
+ * To configure any of them, a custom http.Agent instance must be created.
  */
-typedef struct _http_client_request_ {
-    net_socket_t *socket;
-    bool      abort;          //The request.aborted property will be true if the request has been aborted.
-    bool      finished;       //The request.finished property will be true if request.end() has been called. request.end() will automatically be called if the request was initiated via http.get().
-    int       max_headers_count; //Default: 2000 Limits maximum response headers count. If set to 0, no limit will be applied.
-}http_client_request_t;
-
-/**
- * Class: http.Server
- * This class inherits from net.Server
- */
-typedef struct _http_server_ {
-    /**
-     * Default: 40000 
-     * Limit the amount of time the parser will wait to receive the complete HTTP headers.
-     * In case of inactivity, the rules defined in server.timeout apply. 
-     * However, that inactivity based timeout would still allow the connection to be kept open if the headers are being sent very slowly (by default, up to a byte per 2 minutes). 
-     * In order to prevent this, whenever header data arrives an additional check is made that more than server.headersTimeout milliseconds has not passed since the connection was established. 
-     * If the check fails, a 'timeout' event is emitted on the server object, and (by default) the socket is destroyed. See server.timeout for more information on how timeout behavior can be customized.
-     */
-    int      headers_timeout;
-    bool     listening;    //Indicates whether or not the server is listening for connections.
-    int      max_headers_count; //Default: 2000 Limits maximum incoming headers count. If set to 0, no limit will be applied.
-    /**
-     * Timeout in milliseconds. Default: 120000 (2 minutes).
-     * The number of milliseconds of inactivity before a socket is presumed to have timed out.
-     * A value of 0 will disable the timeout behavior on incoming connections.
-     * The socket timeout logic is set up on connection, so changing this value only affects new connections to the server, not any existing connections.
-     */
-    int      timeout;
-    /**
-     * server.keepAliveTimeout
-     * <number> Timeout in milliseconds. Default: 5000 (5 seconds).
-     * The number of milliseconds of inactivity a server needs to wait for additional incoming data, after it has finished writing the last response, before a socket will be destroyed. If the server receives new data before the keep-alive timeout has fired, it will reset the regular inactivity timeout, i.e., server.timeout.
-     * A value of 0 will disable the keep-alive timeout behavior on incoming connections. A value of 0 makes the http server behave similarly to Node.js versions prior to 8.0.0, which did not have a keep-alive timeout.
-     * The socket timeout logic is set up on connection, so changing this value only affects new connections to the server, not any existing connections.
-     */
-    int keep_alive_timeout;
-}http_server_t;
-
-/**
- * 
- */
-typedef struct _http_incoming_message_ {
-    net_socket_t *socket;
-    bool      aborted;    //The message.aborted property will be true if the request has been aborted.
-    // The message.complete property will be true if a complete HTTP message has been received and successfully parsed.
-    //This property is particularly useful as a means of determining if a client or server fully transmitted a message before a connection was terminated:
-    bool      complete;
-    map_t     headers;    //The request/response headers object.Key-value pairs of header names and values. Header names are lower-cased.
-    //In case of server request, the HTTP version sent by the client. In the case of client response, the HTTP version of the connected-to server. Probably either '1.1' or '1.0'.
-    //Also message.httpVersionMajor is the first integer and message.httpVersionMinor is the second.
-    char      *http_version;
-    char      *method;    //Only valid for request obtained from http.Server. The request method as a string. Read only. Examples: 'GET', 'DELETE'.
-    //The raw request/response headers list exactly as they were received.
-    //Note that the keys and values are in the same list. It is not a list of tuples. So, the even-numbered offsets are key values, and the odd-numbered offsets are the associated values.
-    //Header names are not lowercased, and duplicates are not merged.
-    string_t  *raw_headers;
-    string_t  *raw_trailers;    //The raw request/response trailer keys and values exactly as they were received. Only populated at the 'end' event.
-    int       statusCode;  //Only valid for response obtained from http.ClientRequest.
-    char      *status_message; //Only valid for response obtained from http.ClientRequest.
-    list_t    *trailers;    //The request/response trailers object. Only populated at the 'end' event.
-    char      *url;    //Only valid for request obtained from http.Server.
-}http_incoming_message_t;
-
-/**
- * 
- */
-typedef struct _http_server_response_ {
-    net_socket_t *socket;
-    bool      finished;    //Boolean value that indicates whether the response has completed. Starts as false. After response.end() executes, the value will be true.
-    bool      headers_sent;//Boolean (read-only). True if headers were sent, false otherwise.
-    int       statusCode;  //When using implicit headers (not calling response.writeHead() explicitly), this property controls the status code that will be sent to the client when the headers get flushed.
-    char      *status_message; //When using implicit headers (not calling response.writeHead() explicitly), this property controls the status message that will be sent to the client when the headers get flushed. If this is left as undefined then the standard message for the status code will be used.
-}http_server_response_t;
-
-http_agent_t* http_create_agent(uv_node_t* h, http_agent_options_t options);
+http_agent_t* http_create_agent(uv_node_t *h, char **options);
 
 /**
  * agent.createConnection(options[, callback])
@@ -299,6 +201,8 @@ void http_agent_destory(http_agent_t* agent);
  */
 char* http_agent_get_name(char* buff, char* host, int port, char* local_address, int family);
 
+//////////////////////////////////////////////////////////////////////////
+
 /**
  * Class: http.ClientRequest
  * This object is created internally and returned from http.request(). It represents an in-progress request whose header has already been queued. The header is still mutable using the setHeader(name, value), getHeader(name), removeHeader(name) API. The actual header will be sent along with the first data chunk or when calling request.end().
@@ -307,6 +211,7 @@ char* http_agent_get_name(char* buff, char* host, int port, char* local_address,
  * If no 'response' handler is added, then the response will be entirely discarded. However, if a 'response' event handler is added, then the data from the response object must be consumed, either by calling response.read() whenever there is a 'readable' event, or by adding a 'data' handler, or by calling the .resume() method. Until the data is consumed, the 'end' event will not fire. Also, until the data is read it will consume memory that can eventually lead to a 'process out of memory' error.
  * Node.js does not check whether Content-Length and the length of the body which has been transmitted are equal or not.
  */
+
 /**
  * Event: 'abort'
  * Emitted when the request has been aborted by the client. This event is only emitted on the first call to abort().
@@ -429,8 +334,11 @@ void http_client_request_remove_header(http_client_request_t *request, char *nam
  * value <any>
  * Sets a single header value for headers object. If this header already exists in the to-be-sent headers, its value will be replaced. Use an array of strings here to send multiple headers with the same name. Non-string values will be stored without modification. Therefore, request.getHeader() may return non-string values. However, the non-string values will be converted to strings for network transmission.
  */
-char* http_client_request_set_header(http_client_request_t *request, char *name, char *value);
-char* http_client_request_set_header_mul(http_client_request_t *request, char *name, char **value, int num);
+void http_client_request_set_header(http_client_request_t *request, char *name, char *value);
+/**
+ * value字符串数组，以NULL结束，如{"value","value",NULL}
+ */
+void http_client_request_set_header2(http_client_request_t *request, char *name, char **values);
 
 /**
  * request.setNoDelay([noDelay])
@@ -471,9 +379,11 @@ void http_client_request_set_timeout(http_client_request_t *request, int timeout
 typedef void(*http_client_request_write_cb)(http_client_request_t *request);
 bool http_client_request_write(http_client_request_t *request, char *chunk, int len, http_client_request_write_cb cb);
 
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Class: http.Server
+ * This class inherits from net.Server
  */
 
 /**
@@ -585,10 +495,12 @@ void http_server_listen(http_server_t *server);
 typedef void(*http_server_on_timeout_cb)(http_server_t *server);
 void http_server_set_timeout(http_server_t *server, int msecs, http_server_on_timeout_cb cb);
 
+//////////////////////////////////////////////////////////////////////////
 
 /**
  * Class: http.ServerResponse
  * This object is created internally by an HTTP server — not by the user. It is passed as the second parameter to the 'request' event.
+ * The response inherits from Stream, and additionally implements the following:
  */
 
 /**
@@ -723,6 +635,8 @@ void http_server_response_write_continue(http_server_response_t *response);
  */
 void http_server_response_write_head(http_server_response_t *response, int status_code, char* status_message, char** headers); 
 
+//////////////////////////////////////////////////////////////////////////
+
 /**
  * Class: http.IncomingMessage
  * An IncomingMessage object is created by http.Server or http.ClientRequest and passed as the first argument to the 'request' and 'response' event respectively. It may be used to access response status, headers and data.
@@ -770,7 +684,7 @@ void http_incoming_message_set_timeout(http_incoming_message_t *message, int mse
  * Returns a new instance of http.Server.
  * The requestListener is a function which is automatically added to the 'request' event.
  */
-http_server_t* http_create_server(uv_node_t* h,http_server_on_request_cb cb);
+http_server_t* http_create_server(uv_node_t* h, http_server_on_request_cb cb);
 
 /**
  * http.get(options[, callback])
@@ -782,13 +696,13 @@ http_server_t* http_create_server(uv_node_t* h,http_server_on_request_cb cb);
  * Since most requests are GET requests without bodies, Node.js provides this convenience method. The only difference between this method and http.request() is that it sets the method to GET and calls req.end() automatically. Note that the callback must take care to consume the response data for reasons stated in http.ClientRequest section.
  * The callback is invoked with a single argument that is an instance of http.IncomingMessage.
  */
-http_client_request_t* http_get(uv_node_t* h,char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
+http_client_request_t* http_get(uv_node_t* h,char *url, char **options, char **headers, http_agent_t *agent, http_client_request_response_cb cb);
 
 /**
  * http.request(options[, callback])
  * http.request(url[, options][, callback])
- * url <string> | <URL>
- * options <Object>
+ * url 字符串，包含protocol、host、port、path
+ * options 二维数组 {"key","value","key","value",NULL}
  * * protocol <string> Protocol to use. Default: 'http:'.
  * * host <string> A domain name or IP address of the server to issue the request to. Default: 'localhost'.
  * * hostname <string> Alias for host. To support url.parse(), hostname will be used if both host and hostname are specified.
@@ -800,13 +714,13 @@ http_client_request_t* http_get(uv_node_t* h,char *url, http_client_request_opti
  * * path <string> Request path. Should include query string if any. E.G. '/index.html?page=12'. An exception is thrown when the request path contains illegal characters. Currently, only spaces are rejected but that may change in the future. Default: '/'.
  * * headers <Object> An object containing request headers.
  * * auth <string> Basic authentication i.e. 'user:password' to compute an Authorization header.
- * * agent <http.Agent> | <boolean> Controls Agent behavior. Possible values:
- * * * undefined (default): use http.globalAgent for this host and port.
- * * * Agent object: explicitly use the passed in Agent.
- * * * false: causes a new Agent with default values to be used.
  * * createConnection <Function> A function that produces a socket/stream to use for the request when the agent option is not used. This can be used to avoid creating a custom Agent class just to override the default createConnection function. See agent.createConnection() for more details. Any Duplex stream is a valid return value.
  * * timeout <number>: A number specifying the socket timeout in milliseconds. This will set the timeout before the socket is connected.
  * * setHost <boolean>: Specifies whether or not to automatically add the Host header. Defaults to true.
+ * agent <http.Agent> | <boolean> Controls Agent behavior. Possible values:
+ * * 0 (default): use http.globalAgent for this host and port.
+ * * Agent object: explicitly use the passed in Agent.
+ * * -1: causes a new Agent with default values to be used.
  * callback <Function>
  * Returns: <http.ClientRequest>
  * Node.js maintains several connections per server to make HTTP requests. This function allows one to transparently issue requests.
@@ -815,7 +729,7 @@ http_client_request_t* http_get(uv_node_t* h,char *url, http_client_request_opti
  * The optional callback parameter will be added as a one-time listener for the 'response' event.
  * http.request() returns an instance of the http.ClientRequest class. The ClientRequest instance is a writable stream. If one needs to upload a file with a POST request, then write to the ClientRequest object.
  */
-http_client_request_t* http_request(uv_node_t* h, char *url, http_client_request_options_t *options, http_client_request_response_cb cb);
+http_client_request_t* http_request(uv_node_t* h, char *url, char **options, char **headers, http_agent_t *agent ,http_client_request_response_cb cb);
 
 #ifdef __cplusplus
        }

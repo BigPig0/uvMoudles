@@ -80,22 +80,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvnode\agent.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\dns.c" />
-    <ClCompile Include="..\..\uvmoudles\uvnode\error.c" />
-    <ClCompile Include="..\..\uvmoudles\uvnode\request.c" />
-    <ClCompile Include="..\..\uvmoudles\uvnode\response.c" />
-    <ClCompile Include="..\..\uvmoudles\uvnode\socket.c" />
+    <ClCompile Include="..\..\uvmoudles\uvnode\net.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\uvnode.c" />
     <ClCompile Include="..\..\uvmoudles\uvnode\http.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvnode\agent.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\dns.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\net.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\public.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\private.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnode\request.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\uvnode.h" />
     <ClInclude Include="..\..\uvmoudles\uvnode\http.h" />
   </ItemGroup>

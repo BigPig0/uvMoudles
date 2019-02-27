@@ -86,6 +86,17 @@ _THIRD_UTIL_API void not_free_int(int n);
             _value = *(_type*)iterator_get_pointer(it);
 
 #define LIST_FOR_END }}
+
+#define LIST_FOR_BEGIN_SAFE(_listptr, _type, _value, _tmpit) \
+    if (_listptr) {\
+    list_iterator_t it = list_begin(_listptr); \
+    list_iterator_t end = list_end(_listptr); \
+    list_iterator_t _tmpit; \
+    _type _value; \
+    for(; iterator_not_equal(it, end); ) {\
+        _tmpit = it; \
+        it = iterator_next(it); \
+        _value = *(_type*)iterator_get_pointer(_tmpit);
             
 
 #define MAP_DESTORY(_mapptr, _keytype, _valuetype, _keydesfunc, _valuedesfunc) \

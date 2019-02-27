@@ -2,6 +2,7 @@
 #include "private.h"
 #include "uv.h"
 #include "cstl_easy.h"
+#include "http.h"
 
 char* url_encode(char* src) {
     size_t len;
@@ -83,6 +84,11 @@ static void on_uv_async(uv_async_t* handle) {
 uv_node_t* uv_node_create( void* uv) {
     uv_node_t* h = (uv_node_t*)malloc(sizeof(uv_node_t));
     int ret;
+
+    http_agent_options_t agent_opts = {
+        false, 1000, 0, 256, 0
+    };
+    h->http_global_agent = (void*)http_create_agent(h, &agent_opts);
 
     /** event loop */
 	if (uv != NULL) {

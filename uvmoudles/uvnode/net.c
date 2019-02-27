@@ -28,7 +28,7 @@ typedef struct _net_server_ {
     string_t        *host;
     int             backlog;     //Common parameter of server.listen() functions.
     bool            exclusive;   //Default: false
-    bool            ipv6Only;
+    bool            ipv6Only;    //For TCP servers, setting ipv6Only to true will disable dual-stack support, i.e., binding to host :: won't make 0.0.0.0 be bound. Default: false.
     //public
     bool            listening;        //<boolean> Indicates whether or not the server is listening for connections.
     int             maxConnections;   //Set this property to reject connections when the server's connection count gets high.
@@ -60,16 +60,22 @@ typedef struct _net_socket_ {
     bool        noDelay;
     int         timeout;
 
-    char        localAddress[46];//The string representation of the local IP address the remote client is connecting on. For example, in a server listening on '0.0.0.0', if a client connects on '192.168.1.1', the value of socket.localAddress would be '192.168.1.1'.
-    int         localPort;    //The numeric representation of the local port. For example, 80 or 21.
-    char        remoteAddress[46];//The string representation of the remote IP address. For example, '74.125.127.100' or '2001:4860:a005::68'. Value may be undefined if the socket is destroyed (for example, if the client disconnected).
-    int         remoteFamily; //The string representation of the remote IP family. 'IPv4' or 'IPv6'.
-    int         remotePort;   //The numeric representation of the remote port. For example, 80 or 21.
+    string_t                *localAddress;//The string representation of the local IP address the remote client is connecting on. For example, in a server listening on '0.0.0.0', if a client connects on '192.168.1.1', the value of socket.localAddress would be '192.168.1.1'.
+    int                     localPort;    //The numeric representation of the local port. For example, 80 or 21.
+    string_t                *remoteHost;
+    string_t                *remoteAddress;//The string representation of the remote IP address. For example, '74.125.127.100' or '2001:4860:a005::68'. Value may be undefined if the socket is destroyed (for example, if the client disconnected).
+    int                     remoteFamily; //The string representation of the remote IP family. 'IPv4' or 'IPv6'.
+    int                     remotePort;   //The numeric representation of the remote port. For example, 80 or 21.
     //private
     uv_tcp_t                 uv_tcp_h;
     char                     readBuff[1024*1024];
     int                      readLen;
+    //socket options
     bool                     allowHalfOpen;
+    int                      fd;  //If specified, wrap around an existing socket with the given file descriptor, otherwise a new socket will be created.
+    bool                     readable; // Allow reads on the socket when an fd is passed, otherwise ignored. Default: false.
+    bool                     writable; // Allow writes on the socket when an fd is passed, otherwise ignored. Default: false.
+
     //server
     bool                     isServer;
     net_server_t             *server;
@@ -93,19 +99,32 @@ typedef struct _net_socket_ {
     on_socket_event          on_event_timeout; //³¬Ê±
 }net_socket_t;
 
+//////////////////////////////////////////////////////////////////////////
+
 void net_create_server_async(void* p){
-    net_server_t* net = (net_server_t* p);
-    uv_tcp_init(p->handle->uv, &p->uv_tcp_h);
+    net_server_t* net = (net_server_t*)p;
+    uv_tcp_init(net->handle->uv, &net->uv_tcp_h);
 }
 
-net_server_t* net_create_server(uv_node_t* h, net_server_options_t* options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/) {
+net_server_t* net_create_server(uv_node_t* h, char** options /*= NULL*/, on_server_event_connection connectionListener /*= NULL*/) {
     uv_thread_t tid = uv_thread_self();
     SAFE_MALLOC(net_server_t, ret);
     ret->handle = h;
     ret->uv_tcp_h.data = ret;
+    ret->backlog = 511;
     if (options) {
-        ret->allowHalfOpen = options->allowHalfOpen;
-        ret->pauseOnConnect = options->pauseOnConnect;
+        int i = 0;
+        char *key = options[0], *value = options[1];
+        for(;key&&value;key = options[i], value = options[i+1]){
+            if(!strcasecmp(key,"allowHalfOpen")){
+                if(!strcasecmp(value,"true"))
+                    ret->allowHalfOpen = true;
+            } else if(!strcasecmp(key,"pauseOnConnect")){
+                if(!strcasecmp(value,"true"))
+                    ret->pauseOnConnect = true;
+            }
+            i += 2;
+        }
     }
     if (connectionListener)
         ret->on_connection = connectionListener;
@@ -268,8 +287,8 @@ static void on_connection(uv_stream_t* server, int status) {
     }
 }
 
-static void on_dns_lookup(dns_resolver_t* res, int err, char *address, int family) {
-    net_server_t* svr = (net_server_t*)dns_get_data(res);
+static void on_dns_lookup(int err, char *address, int family, void *user) {
+    net_server_t* svr = (net_server_t*)user;
     int ret;
     if(!err && svr->on_listening) {
         svr->on_listening(svr, err);
@@ -277,16 +296,16 @@ static void on_dns_lookup(dns_resolver_t* res, int err, char *address, int famil
     }
     if(family == 4) {
         struct sockaddr_in addr;
-        ret = uv_ip4_addr(address, svr->listen_options->port, &addr);
+        ret = uv_ip4_addr(address, svr->port, &addr);
         uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
-        uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->listen_options->backlog, on_connection);
+        uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->backlog, on_connection);
         svr->listening = true;
         svr->on_listening(svr, 0);
     } else if(family == 6) {
         struct sockaddr_in6 addr6;
-        ret = uv_ip6_addr(address, svr->listen_options->port, &addr6);
+        ret = uv_ip6_addr(address, svr->port, &addr6);
         uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr6, 0);
-        uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->listen_options->backlog, on_connection);
+        uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->backlog, on_connection);
         svr->listening = true;
         svr->on_listening(svr, 0);
     } else {
@@ -294,56 +313,77 @@ static void on_dns_lookup(dns_resolver_t* res, int err, char *address, int famil
     }
 }
 
-void net_server_listen_options(net_server_t* svr, net_server_listen_options_t* options, on_server_event callback /*= NULL*/) {
+static void _net_server_listen(net_server_t* svr) {
     struct sockaddr_in addr;
     struct sockaddr_in6 addr6;
     int ret;
-    if(options->backlog <= 0) options->backlog = 511;
-    svr->port = options->port;
-    if(options->host)
-        svr->host = options->host;
-    if(options->backlog > 0) 
-        svr->backlog = options->backlog;
-    if(options->exclusive)
-        svr->exclusive = options->exclusive;
-    if(options->ipv6Only)
-        svr->ipv6Only = options->ipv6Only;
-    if(callback)
-        svr->on_listening = callback;
-
-    if(options->port != 0) {
-        if(options->host) {
-            dns_resolver_t* dns = dns_create_resolver(svr->handle);
-            dns_set_data(dns, svr);
-            dns_lookup(dns, options->host, on_dns_lookup);
-        } else if(options->ipv6Only) {
-            ret = uv_ip6_addr("::", options->port, &addr6);
+    if(svr->port != 0) {
+        if(svr->host) {
+            dns_lookup(svr->handle, (char*)string_c_str(svr->host), on_dns_lookup, svr);
+        } else if(svr->ipv6Only) {
+            ret = uv_ip6_addr("::", svr->port, &addr6);
             ret = uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
-            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->backlog, on_connection);
             svr->listening = true;
             svr->on_listening(svr, 0);
         } else {
-            ret = uv_ip4_addr("0.0.0.0", options->port, &addr);
+            ret = uv_ip4_addr("0.0.0.0", svr->port, &addr);
             ret = uv_tcp_bind(&svr->uv_tcp_h, (struct sockaddr*)&addr, 0);
-            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, options->backlog, on_connection);
+            ret = uv_listen((uv_stream_t*)&svr->uv_tcp_h, svr->backlog, on_connection);
             svr->listening = true;
             svr->on_listening(svr, 0);
         }
-        
-    } else if(options->path) {
 
     } else {
         abort();
     }
 }
 
-void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/) {
-    net_server_listen_options_t* options = net_server_create_listen_options();
-    options->port = port;
-    if(host) options->host = host;
-    options->backlog = backlog;
-    net_server_listen_options(svr, options, callback);
+void net_server_listen_options(net_server_t* svr, char** options, on_server_event callback /*= NULL*/) {
+    if(options){
+        int i = 0;
+        char *key = options[0], *value = options[1];
+        for(;key&&value;key = options[i], value = options[i++]){
+            if(!strcasecmp(key, "port")) {
+                svr->port = atoi(value);
+            } else if(!strcasecmp(key, "host")) {
+                svr->host = create_string();
+                string_init_cstr(svr->host, value);
+            }else if(!strcasecmp(key, "backlog")) {
+                svr->backlog = atoi(value);
+            }else if(!strcasecmp(key, "exclusive")) {
+                if(!strcasecmp(value,"true"))
+                    svr->exclusive = true;
+            }else if(!strcasecmp(key, "ipv6Only")) {
+                if(!strcasecmp(value, "true"))
+                    svr->ipv6Only = true;
+            }
+            i += 2;
+        }
+    }
+   
+    if(callback)
+        svr->on_listening = callback;
+
+   _net_server_listen(svr);
 }
+
+void net_server_listen_port(net_server_t* svr, int port, char* host, int backlog /*= 0*/, on_server_event callback /*= NULL*/) {
+    svr->port = port;
+    if(host){
+        svr->host = create_string();
+        string_init_cstr(svr->host, host);
+    }
+    if(backlog > 0) {
+        svr->backlog = backlog;
+    }
+    if(callback)
+        svr->on_listening = callback;
+
+    _net_server_listen(svr);
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 net_socket_connect_options_t* net_socket_create_connect_options() {
     SAFE_MALLOC(net_socket_connect_options_t, ret);
@@ -399,7 +439,7 @@ static void on_uv_async_event(uv_async_t* handle) {
     }
 }
 
-net_socket_t* net_create_socket(http_t* h, net_socket_options_t *option /*= NULL*/) {
+net_socket_t* net_create_socket(uv_node_t* h, char **options /*= NULL*/) {
     SAFE_MALLOC(net_socket_t, ret);
     ret->handle = h;
     uv_tcp_init(h->uv, &ret->uv_tcp_h);
@@ -407,12 +447,18 @@ net_socket_t* net_create_socket(http_t* h, net_socket_options_t *option /*= NULL
     uv_mutex_init(&ret->wrlist_mutex);
     uv_async_init(h->uv, &ret->async_h, on_uv_async_event);
     ret->async_h.data = ret;
-    if(option){
-        ret->allowHalfOpen = option->allowHalfOpen;
-        ret->readable = option->readable;
-        ret->writable = option->writable;
-        if(option->fd) {
-            uv_tcp_open(&ret->uv_tcp_h, option->fd);
+    if(options){
+        int i = 0;
+        char *key = options[0], *value = options[1];
+        for(;key&&value;key = options[i], value = options[i+1]){
+            if(!strcasecmp(key,"allowHalfOpen")){
+                if(!strcasecmp(value,"true"))
+                    ret->allowHalfOpen = true;
+            } else if(!strcasecmp(key,"fd")){
+                ret->fd = atoi(value);
+                uv_tcp_open(&ret->uv_tcp_h, ret->fd);
+            }
+            i += 2;
         }
     }
     return ret;
@@ -487,8 +533,8 @@ static void on_uv_connect(uv_connect_t* req, int status){
     uv_read_start((uv_stream_t*)&skt->uv_tcp_h, on_uv_alloc, on_uv_read);
 }
 
-static void on_socket_dns_lookup(dns_resolver_t* res, int err, char *address, int family) {
-    net_socket_t* skt = (net_socket_t*)dns_get_data(res);
+static void on_socket_dns_lookup(int err, char *address, int family, void* user) {
+    net_socket_t* skt = (net_socket_t*)user;
     if(err) {
         if(skt->on_event_lookup) skt->on_event_lookup(skt, err, address, family, 0);
         return;
@@ -498,7 +544,7 @@ static void on_socket_dns_lookup(dns_resolver_t* res, int err, char *address, in
         uv_connect_t *req = (uv_connect_t*)malloc(sizeof(uv_connect_t));
         req->data = skt;
 
-        if(skt->on_event_lookup) skt->on_event_lookup(skt, 0, address, family, skt->remoteAddress);
+        if(skt->on_event_lookup) skt->on_event_lookup(skt, 0, address, family, (char*)string_c_str(skt->remoteAddress));
         
         ret = uv_tcp_connect(req, &skt->uv_tcp_h, (struct sockaddr*)&addr6, on_uv_connect);
 
@@ -519,7 +565,7 @@ static void on_socket_dns_lookup(dns_resolver_t* res, int err, char *address, in
     }
 }
 
-void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t *options, on_socket_event connectListener /*= NULL*/) {
+void net_socket_connect_options(net_socket_t* skt, char **options, on_socket_event connectListener /*= NULL*/) {
     int ret;
     dns_resolver_t* dns;
 
@@ -528,35 +574,45 @@ void net_socket_connect_options(net_socket_t* skt, net_socket_connect_options_t 
         skt->on_event_connect = connectListener;
 
     /** TCP */
-    if (options->port) {
-        skt->remotePort = options->port;
-        if(options->localPort) {
-            skt->localPort = options->localPort;
-            if(options->family == 6) {
-                struct sockaddr_in addr;
-                ret = uv_ip4_addr(options->localAddress, options->localPort, &addr);
+    if(options) {
+        int i = 0;
+        char *key = options[0], *value = options[1];
+        for(;key&&value;key = options[i], value = options[i+1]){
+            if(!strcasecmp(key,"port")){
+                skt->remotePort = atoi(value);
+            } else if(!strcasecmp(key,"host")){
+                skt->remoteHost = create_string();
+                string_init_cstr(skt->remoteHost, value);
+            } else if(!strcasecmp(key,"localPort")){
+                skt->localPort = atoi(value);
+            }  else if(!strcasecmp(key,"localAddress")){
+                skt->localAddress = create_string();
+                string_init_cstr(skt->localAddress, value);
+            } else if(!strcasecmp(key,"family")){
+               if(6 == atoi(value))
+                   skt->remoteFamily = 6;
+            } else if(!strcasecmp(key,"hints")){
+            } 
+            i += 2;
+        }
+    }
+    if (skt->remotePort) {
+        if(skt->localPort) {
+            if(skt->remoteFamily == 6) {
+                struct sockaddr_in6 addr;
+                ret = uv_ip6_addr(string_c_str(skt->localAddress), skt->localPort, &addr);
                 ret = uv_tcp_bind(&skt->uv_tcp_h, (struct sockaddr*)&addr, 0);
             } else {
                 struct sockaddr_in addr;
-                ret = uv_ip4_addr(options->localAddress, options->localPort, &addr);
+                ret = uv_ip4_addr(string_c_str(skt->localAddress), skt->localPort, &addr);
                 ret = uv_tcp_bind(&skt->uv_tcp_h, (struct sockaddr*)&addr, 0);
             }
         }
 
         dns = dns_create_resolver(skt->handle);
         dns_set_data(dns, skt);
-        dns_lookup(dns, options->host, on_socket_dns_lookup);
+        dns_lookup(skt->handle, (char*)string_c_str(skt->remoteHost), on_socket_dns_lookup, skt);
     }
-    /** IPC */
-    else if(options->path) {
-
-    }
-}
-
-void net_socket_connect_path(net_socket_t* skt, char* path, on_socket_event connectListener /*= NULL*/) {
-    net_socket_connect_options_t *options = net_socket_create_connect_options();
-    options->path = path;
-    net_socket_connect_options(skt, options, connectListener);
 }
 
 void net_socket_connect_port(net_socket_t* skt, int port, char *host /*= NULL*/, on_socket_event connectListener /*= NULL*/) {
@@ -634,21 +690,14 @@ bool net_socket_write(net_socket_t* skt, char *data, int len, on_socket_event cb
  * ------------------------------------------------------------------------------------------------
  */
 
-net_socket_t* net_connect_options(http_t* h, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/) {
-    net_socket_t* ret = net_create_socket(h, conf);
+net_socket_t* net_connect_options(uv_node_t* h, char **options, on_socket_event cb /*= NULL*/) {
+    net_socket_t* ret = net_create_socket(h, options);
 
     net_socket_connect_options(ret, options, cb);
     return ret;
 }
 
-net_socket_t* net_connect_path(http_t* h, char *path, on_socket_event cb /*= NULL*/) {
-    net_socket_t* ret = net_create_socket(h, NULL);
-
-    net_socket_connect_path(ret, path, cb);
-    return ret;
-}
-
-net_socket_t* net_connect_port(http_t* h, int port, char *host, on_socket_event cb /*= NULL*/) {
+net_socket_t* net_connect_port(uv_node_t* h, int port, char *host, on_socket_event cb /*= NULL*/) {
     net_socket_t* ret = net_create_socket(h, NULL);
 
     net_socket_connect_port(ret, port, host, cb);

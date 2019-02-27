@@ -11,22 +11,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvnode\error.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnode\agent.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnode\socket.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\uvmoudles\uvnode\dns.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnode\request.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnode\response.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\uvmoudles\uvnode\http.c">
@@ -35,18 +20,15 @@
     <ClCompile Include="..\..\uvmoudles\uvnode\uvnode.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnode\net.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvnode\agent.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvnode\dns.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvnode\net.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnode\request.h">
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="..\..\uvmoudles\uvnode\http.h">
