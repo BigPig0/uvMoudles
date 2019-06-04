@@ -122,6 +122,8 @@ typedef struct _http_server_response_ {
 }http_server_response_t;
 
 typedef struct _http_server_ {
+    uv_node_t                         *h;
+    net_server_t                      *svr;
     /**
      * Default: 40000 
      * Limit the amount of time the parser will wait to receive the complete HTTP headers.
@@ -157,6 +159,7 @@ typedef struct _http_server_ {
     http_server_on_connection_cb on_connection;
     http_server_on_request_cb on_request;
     http_server_on_timeout_cb on_timeout;
+    http_server_on_upgrade_cb on_upgrade;
 }http_server_t;
 
 /**
@@ -338,8 +341,8 @@ http_agent_t* http_create_agent(uv_node_t *h, char **options) {
     return ret;
 }
 
-net_socket_t* http_agent_create_connection(http_agent_t* agent, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/) {
-    net_socket_t* skt = net_create_socket(agent->h, conf);
+net_socket_t* http_agent_create_connection(http_agent_t* agent, char **options, on_socket_event cb /*= NULL*/) {
+    net_socket_t* skt = net_create_socket(agent->h, options);
     list_push_back(agent->sockets, skt);
     net_socket_connect_options(skt, options, cb);
     return skt;
@@ -381,6 +384,7 @@ char* http_agent_get_name(char* buff, char* host, int port, char* local_address,
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/** 根据request中已经填写的各参数，生成http头字符串 */
 static void http_client_request_parse_headers(http_client_request_t *request) {
     if(request->parse_headers) {
         string_clear(request->parse_headers);
@@ -508,9 +512,9 @@ void http_client_request_set_header(http_client_request_t *request, char *name, 
 
 void http_client_request_set_header2(http_client_request_t *request, char *name, char **values) {
     int i = 0;
-    char* value = values[i];
+    char* value = values[i++];
     http_client_request_remove_header(request, name);
-    for(;value;){
+    for(;value; value = values[i++]){
         string_t *first = create_string();
         string_t *second = create_string();
         pair_t *p = create_pair(void*, void*);
@@ -545,57 +549,66 @@ bool http_client_request_write(http_client_request_t *request, char *chunk, int 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void http_server_on_check_continue(http_server_t *server, http_server_on_check_cb cb) {
-
+    server->on_check_continue = cb;
 }
 
 void http_server_on_check_expectation(http_server_t *server, http_server_on_check_cb cb) {
-
+    server->on_check_expectation = cb;
 }
 
 void http_server_on_client_error(http_server_t *server, http_server_on_client_error_cb cb) {
-
+    server->on_client_error = cb;
 }
 
 void http_server_on_close(http_server_t *server, http_server_on_close_cb cb) {
-
+    server->on_close = cb;
 }
 
 void http_server_on_connect(http_server_t *server, http_server_on_connect_cb cb) {
-
+    server->on_connect = cb;
 }
 
 void http_server_on_connection(http_server_t *server, http_server_on_connection_cb cb) {
-
+    server->on_connection = cb;
 }
 
 void http_server_on_request(http_server_t *server, http_server_on_request_cb cb) {
-
+    server->on_request = cb;
 }
 
 void http_server_on_upgrade(http_server_t *server, http_server_on_upgrade_cb cb) {
+    server->on_upgrade = cb;
+}
+
+static void on_server_close(net_server_t* svr, int err){
 
 }
 
 void http_server_close(http_server_t *server, http_server_on_close_cb cb) {
+    net_server_close(server->svr, on_server_close);
+}
+
+static void on_server_connection(net_server_t* svr, int err){
 
 }
 
 void http_server_listen(http_server_t *server) {
-
+    net_server_listen_options(server->svr, NULL, on_server_connection);
 }
 
 void http_server_set_timeout(http_server_t *server, int msecs, http_server_on_timeout_cb cb) {
-
+    server->timeout = msecs;
+    server->on_timeout = cb;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 void http_server_response_on_close(http_server_response_t *response, http_server_response_on_close_cb cb) {
-
+    response->on_close = cb;
 }
 
 void http_server_response_on_finish(http_server_response_t *response, http_server_response_on_finish_cb cb) {
-
+    response->on_finish = cb;
 }
 
 void http_server_response_add_trailers(http_server_response_t *response, char* headers) {
@@ -665,7 +678,7 @@ void http_incoming_message_set_timeout(http_incoming_message_t *message, int mse
 }
 
 http_server_t* http_create_server(uv_node_t* h, http_server_on_request_cb cb) {
-
+    http_server_t *svr = 
 }
 
 http_client_request_t* http_get(uv_node_t* h,char *url, char **options, char **headers, http_agent_t *agent, http_client_request_response_cb cb) {
@@ -773,10 +786,7 @@ http_client_request_t* http_request(uv_node_t* h, char *url, char **options, cha
     //agents
     if(!agent) {
         if((int)agent == -1) {
-            http_agent_options_t agent_opts = {
-                false/*keepAlive*/, 1000/*keepAliveMsecs*/, 0/*maxSockets*/, 256/*maxFreeSockets*/, 0/*timeout*/
-            };
-            req->agent = http_create_agent(h, &agent_opts);
+            req->agent = http_create_agent(h, NULL);
         } else {
             req->agent = agent;
         }

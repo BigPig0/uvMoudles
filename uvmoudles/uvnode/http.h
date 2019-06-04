@@ -159,7 +159,7 @@ http_agent_t* http_create_agent(uv_node_t *h, char **options);
  * A socket/stream can be supplied in one of two ways: by returning the socket/stream from this function, or by passing the socket/stream to callback.
  * callback has a signature of (err, stream).
  */
-net_socket_t* http_agent_create_connection(http_agent_t* agent, net_socket_options_t *conf, net_socket_connect_options_t *options, on_socket_event cb /*= NULL*/);
+net_socket_t* http_agent_create_connection(http_agent_t* agent, char **options, on_socket_event cb /*= NULL*/);
 
 /**
  * agent.keepSocketAlive(socket)
