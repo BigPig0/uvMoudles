@@ -4,3 +4,4 @@
 *.vs/
 /vs2012/Debug
 *.user
+/vs2012/Win32_Debug

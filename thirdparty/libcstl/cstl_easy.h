@@ -36,15 +36,17 @@ extern "C"
 {
 #endif
 
-_THIRD_UTIL_API void hash_map_insert_easy(hash_map_t* phmap_map, const void* key, const void* value);
-
-_THIRD_UTIL_API void map_insert_easy(map_t* pmap_map, const void* key, const void* value);
-
+/** common */
 _THIRD_UTIL_API void string_map_compare(const void* cpv_first, const void* cpv_second, void* pv_output);
 
 _THIRD_UTIL_API void string_map_hash(const void* cpv_input, void* pv_output);
 
 _THIRD_UTIL_API void not_free_int(int n);
+
+/** map_t */
+_THIRD_UTIL_API void map_insert_easy(map_t* pmap_map, const void* key, const void* value);
+
+_THIRD_UTIL_API void* map_find_easy_str(map_t* pmap_map, const char* key);
 
 #define MAP_INSERT(_mapptr, _keytype, _key, _valuetype, _value) { \
     pair_t* pt_pair = create_pair(_keytype, _valuetype); \
@@ -67,37 +69,6 @@ _THIRD_UTIL_API void not_free_int(int n);
 
 #define MAP_FOR_END }}
 
-#define HASH_SET_FOR_BEGIN(_setptr, _type, _value) \
-    if (_setptr) {\
-        hash_set_iterator_t it = hash_set_begin(_setptr); \
-        hash_set_iterator_t end = hash_set_end(_setptr); \
-        _type _value;\
-        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
-            _value = *(_type*)iterator_get_pointer(it);
-
-#define HASH_SET_FOR_END }}
-
-#define LIST_FOR_BEGIN(_listptr, _type, _value) \
-    if (_listptr) {\
-        list_iterator_t it = list_begin(_listptr); \
-        list_iterator_t end = list_end(_listptr); \
-        _type _value; \
-        for(; iterator_not_equal(it, end); it = iterator_next(it)) {\
-            _value = *(_type*)iterator_get_pointer(it);
-
-#define LIST_FOR_END }}
-
-#define LIST_FOR_BEGIN_SAFE(_listptr, _type, _value, _tmpit) \
-    if (_listptr) {\
-    list_iterator_t it = list_begin(_listptr); \
-    list_iterator_t end = list_end(_listptr); \
-    list_iterator_t _tmpit; \
-    _type _value; \
-    for(; iterator_not_equal(it, end); ) {\
-        _tmpit = it; \
-        it = iterator_next(it); \
-        _value = *(_type*)iterator_get_pointer(_tmpit);
-            
 
 #define MAP_DESTORY(_mapptr, _keytype, _valuetype, _keydesfunc, _valuedesfunc) \
     if (_mapptr) {\
@@ -116,6 +87,26 @@ _THIRD_UTIL_API void not_free_int(int n);
         map_destroy(_mapptr);\
     }
 
+/** hash_map_t */
+
+_THIRD_UTIL_API void hash_map_insert_easy(hash_map_t* phmap_map, const void* key, const void* value);
+
+_THIRD_UTIL_API void* hash_map_find_easy_str(hash_map_t* phmap_map, const char* key);
+
+#define HASH_MAP_FOR_BEGIN(_mapptr, _keytype, _key, _valuetype, _value) \
+    if (_mapptr) {\
+        hash_map_iterator_t it = hash_map_begin(_mapptr);\
+        hash_map_iterator_t end = hash_map_end(_mapptr);\
+        pair_t* pt_pair;\
+        _keytype _key;\
+        _valuetype _value;\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            pt_pair = (pair_t*)iterator_get_pointer(it);\
+            _key = *(_keytype*)pair_first(pt_pair);\
+            _value = *(_valuetype*)pair_second(pt_pair);\
+
+#define HASH_MAP_FOR_END }}
+
 #define HASH_MAP_DESTORY(_mapptr, _keytype, _valuetype, _keydesfunc, _valuedesfunc) \
     if (_mapptr) {\
         hash_map_iterator_t it = hash_map_begin(_mapptr);\
@@ -133,6 +124,41 @@ _THIRD_UTIL_API void not_free_int(int n);
         hash_map_destroy(_mapptr);\
     }
 
+/** list_t */
+#define LIST_FOR_BEGIN(_listptr, _type, _value) \
+    if (_listptr) {\
+        list_iterator_t it = list_begin(_listptr); \
+        list_iterator_t end = list_end(_listptr); \
+        _type _value; \
+        for(; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            _value = *(_type*)iterator_get_pointer(it);
+
+#define LIST_FOR_END }}
+
+#define LIST_FOR_BEGIN_SAFE(_listptr, _type, _value, _tmpit) \
+    if (_listptr) {\
+        list_iterator_t it = list_begin(_listptr); \
+        list_iterator_t end = list_end(_listptr); \
+        list_iterator_t _tmpit; \
+        _type _value; \
+        for(; iterator_not_equal(it, end); ) {\
+            _tmpit = it; \
+            it = iterator_next(it); \
+            _value = *(_type*)iterator_get_pointer(_tmpit);
+
+#define LIST_DESTORY(_listptr, _type, _desfunc) \
+    if(_listptr) {\
+        list_iterator_t it = list_begin(_listptr);\
+        list_iterator_t end = list_end(_listptr);\
+        _type value;\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            value = *(_type*)iterator_get_pointer(it);\
+            _desfunc(value);\
+        }\
+        list_destroy(_listptr);\
+    }
+
+/** vector_t */
 #define VECTOR_DESTORY(_vecptr, _type, _desfunc) \
     if(_vecptr) {\
         vector_iterator_t it = vector_begin(_vecptr);\
@@ -145,6 +171,7 @@ _THIRD_UTIL_API void not_free_int(int n);
         vector_destroy(_vecptr);\
     }
 
+/** set_t */
 #define SET_DESTORY(_setptr, _type, _desfunc) \
     if(_setptr) {\
         set_iterator_t it = set_begin(_setptr);\
@@ -157,6 +184,17 @@ _THIRD_UTIL_API void not_free_int(int n);
         set_destroy(_setptr);\
     }
 
+/** hash_set_t */
+#define HASH_SET_FOR_BEGIN(_setptr, _type, _value) \
+    if (_setptr) {\
+        hash_set_iterator_t it = hash_set_begin(_setptr); \
+        hash_set_iterator_t end = hash_set_end(_setptr); \
+        _type _value;\
+        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
+            _value = *(_type*)iterator_get_pointer(it);
+
+#define HASH_SET_FOR_END }}
+
 #define HASH_SET_DESTORY(_setptr, _type, _desfunc) \
     if(_setptr) {\
         hash_set_iterator_t it = hash_set_begin(_setptr);\
@@ -167,18 +205,6 @@ _THIRD_UTIL_API void not_free_int(int n);
             _desfunc(value);\
         }\
         hash_set_destroy(_setptr);\
-    }
-
-#define LIST_DESTORY(_listptr, _type, _desfunc) \
-    if(_listptr) {\
-        list_iterator_t it = list_begin(_listptr);\
-        list_iterator_t end = list_end(_listptr);\
-        _type value;\
-        for (; iterator_not_equal(it, end); it = iterator_next(it)) {\
-            value = *(_type*)iterator_get_pointer(it);\
-            _desfunc(value);\
-        }\
-        list_destroy(_listptr);\
     }
 
 #ifdef __cplusplus

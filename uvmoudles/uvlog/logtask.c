@@ -4,14 +4,12 @@
 
 task_log_msg_t* create_task_log_msg() {
     SAFE_MALLOC(task_log_msg_t, ret);
-    ret->name = create_string();
     ret->msg = create_string();
 
     return ret;
 }
 
 void destory_task_log_msg(task_log_msg_t *task) {
-    string_destroy(task->name);
     string_destroy(task->msg);
     free(task);
 }
