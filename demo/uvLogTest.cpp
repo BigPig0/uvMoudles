@@ -33,6 +33,7 @@ private:
 };
 
 const unsigned int CLog::LOG_SIZE = 2048;
+/*
 const char const * CLog::LOG_CONFIG = ""
 "<configuration status=\"WARN\" monitorInterval=\"30\">"
   "<appenders>"
@@ -55,6 +56,20 @@ const char const * CLog::LOG_CONFIG = ""
     "</root>"
   "</loggers>"
 "</configuration>";
+*/
+const char const * CLog::LOG_CONFIG = "{"
+"\"configuration\":{"
+    "\"status\":\"WARN\","
+    "\"monitorInterval\":\"30\","
+    "\"appenders\":{"
+        "\"appender\":["
+            "{\"type\":\"console\",\"name\":\"Console\",\"target\":\"SYSTEM_OUT\"},"
+            "{\"type\":\"RollingFile\",\"name\":\"RollingFileInfo\",\"fileName\":\"./logs/info.log\"}"
+        "]"
+    "},\"loggers\":{"
+        "\"root\":{\"level\":\"DEBUG\",\"appender-ref\":{\"ref\":\"Console\"},\"appender-ref\":{\"ref\":\"RollingFileInfo\"}}"
+    "}"
+"}";
 
 inline CLog::CLog() {
     int ret = uv_log_init_conf_buff(&logger, (char*)LOG_CONFIG);
