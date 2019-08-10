@@ -1,6 +1,6 @@
-*.suo
-*.sdf
-*.opensdf
-*.vs/
-/build/Debug
+/out
 *.user
+*.opensdf
+*.sdf
+*.suo
+*.ipch

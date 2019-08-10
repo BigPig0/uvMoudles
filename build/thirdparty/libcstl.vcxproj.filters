@@ -7,6 +7,9 @@
     <Filter Include="src">
       <UniqueIdentifier>{4de7ab3b-0d72-4535-8d97-8f61ec950591}</UniqueIdentifier>
     </Filter>
+    <Filter Include="easy">
+      <UniqueIdentifier>{b164fc25-9757-4ff7-ad27-2379468e34ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\thirdParty\libcstl\src\cstl_algo_mutating.c">
@@ -299,6 +302,9 @@
     </ClCompile>
     <ClCompile Include="..\..\thirdParty\libcstl\src\cstl_vector_private.c">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\ThirdParty\libcstl\cstl_easy.c">
+      <Filter>easy</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -646,6 +652,9 @@
     </ClInclude>
     <ClInclude Include="..\..\thirdParty\libcstl\cstl\cvector.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ThirdParty\libcstl\cstl_easy.h">
+      <Filter>easy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
