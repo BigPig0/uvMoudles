@@ -2,7 +2,6 @@
 #include "st.h"
 #include "uvLog.h"
 #include "utilc.h"
-#include "cptr/cptr.h"
 #include "faster/fasterparse.h"
 #include "cstl_easy.h"
 
