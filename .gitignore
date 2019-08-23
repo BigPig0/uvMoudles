@@ -2,6 +2,6 @@
 *.sdf
 *.opensdf
 *.vs/
-/vs2012/Debug
+/build/Debug
 *.user
-/vs2012/Win32_Debug
+/build/Win32_Debug
