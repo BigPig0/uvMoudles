@@ -2,6 +2,5 @@
 *.sdf
 *.opensdf
 *.vs/
-/build/Debug
 *.user
-/build/Win32_Debug
+/out
