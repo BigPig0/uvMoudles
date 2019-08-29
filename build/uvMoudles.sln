@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvnode", "uvmoudles\uvnode.vcxproj", "{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvnet", "uvmoudles\uvnet.vcxproj", "{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C00F783B-0E57-400D-A1B7-9FE3985A1B1D} = {C00F783B-0E57-400D-A1B7-9FE3985A1B1D}
 		{49A2A162-E5B1-46E9-BF47-CF66A728661A} = {49A2A162-E5B1-46E9-BF47-CF66A728661A}
