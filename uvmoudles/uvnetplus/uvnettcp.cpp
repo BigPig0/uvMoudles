@@ -4,7 +4,7 @@ static bool net_is_ipv4(const char* input) {
     struct sockaddr_in addr;
 
     if (!input) return false;
-    if (strchr(input, '.')) return false;
+    if (!strchr(input, '.')) return false;
     if (uv_inet_pton(AF_INET, input, &addr.sin_addr) != 0) return false;
 
     return true;
@@ -14,7 +14,7 @@ static bool net_is_ipv6(const char* input) {
     struct sockaddr_in6 addr;
 
     if (!input) return false;
-    if (strchr(input, '.')) return false;
+    if (!strchr(input, '.')) return false;
     if (uv_inet_pton(AF_INET6, input, &addr.sin6_addr) != 0) return false;
 
     return true;
@@ -32,6 +32,7 @@ static int net_is_ip(const char* input) {
 
 #define READY_CALLBACK if(m_funOnReady) m_funOnReady(this);
 #define ERROR_CALLBACK(e) if(m_funOnError) m_funOnError(this,e);
+#define CONNECT_CALLBACK(e) if(m_funOnConnect) m_funOnConnect(this,e);
 
 static void on_uv_close(uv_handle_t* handle) {
     CUNTcpClient *skt = (CUNTcpClient*)handle->data;
@@ -81,23 +82,23 @@ static void on_uv_connect(uv_connect_t* req, int status){
     delete req;
 
     if(status != 0){
-        if(skt->m_funOnError)
-            skt->m_funOnError(skt, uv_strerror(status));
+        if(skt->m_funOnConnect)
+            skt->m_funOnConnect(skt, uv_strerror(status));
         return;
     }
-    if(skt->m_funOnConnect) // 连接完成回调
-        skt->m_funOnConnect(skt);
     int ret = uv_read_start((uv_stream_t*)&skt->uvTcp, on_uv_alloc, on_uv_read);
     if(ret != 0){
         if(skt->m_funOnError)
             skt->m_funOnError(skt, uv_strerror(ret));
     }
+    if(skt->m_funOnConnect) // 连接完成回调
+        skt->m_funOnConnect(skt, "");
 }
 
 /** 数据发送完成 */
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpClient* skt = (CUNTcpClient*)req->data;
-    printf("write finish %d\n", status);
+    //printf("write finish %d\n", status);
     if(status != 0) {
         if(skt->m_funOnError)
             skt->m_funOnError(skt, uv_strerror(status));
@@ -121,11 +122,12 @@ static void on_uv_write(uv_write_t* req, int status) {
     }
 }
 
-CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady)
+CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr)
     : m_pNet(net)
     , m_pSvr(nullptr)
     , m_bSetLocal(false)
     , m_bInit(false)
+    , m_pData(usr)
     , m_funOnReady(onReady)
     , m_funOnConnect(nullptr)
     , m_funOnRecv(nullptr)
@@ -170,7 +172,7 @@ void CUNTcpClient::syncConnect()
 {
     syncInit();
     int ret = 0;
-    int t = net_is_ip(m_strLocalIP.c_str());
+    int t = net_is_ip(m_strRemoteIP.c_str());
     uv_connect_t *req = new uv_connect_t;
     req->data = this;
     if(t == 4){
@@ -178,7 +180,7 @@ void CUNTcpClient::syncConnect()
         ret = uv_ip4_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            ERROR_CALLBACK(uv_strerror(ret));
+            CONNECT_CALLBACK(uv_strerror(ret));
             delete req;
         }
     } else if(t == 6){
@@ -186,12 +188,12 @@ void CUNTcpClient::syncConnect()
         ret = uv_ip6_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            ERROR_CALLBACK(uv_strerror(ret));
+            CONNECT_CALLBACK(uv_strerror(ret));
             delete req;
         }
     } else {
         if(ret != 0) {
-            ERROR_CALLBACK("ip 不合法");
+            CONNECT_CALLBACK("ip 不合法");
             delete req;
         }
     }
@@ -231,7 +233,7 @@ void CUNTcpClient::syncClose()
     }
 }
 
-void CUNTcpClient::Connect(std::string strIP, uint32_t nPort, fnOnTcpEvent onConnect)
+void CUNTcpClient::Connect(std::string strIP, uint32_t nPort, fnOnTcpError onConnect)
 {
     m_strRemoteIP = strIP;
     m_nRemotePort = nPort;
@@ -306,10 +308,11 @@ static void on_connection(uv_stream_t* server, int status) {
     svr->syncConnection(server, status);
 }
 
-CUNTcpServer::CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection)
+CUNTcpServer::CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection, void *usr)
     : m_pNet(net)
     , m_nBacklog(512)
     , m_bInit(false)
+    , m_pData(usr)
     , m_funOnListen(nullptr)
     , m_funOnConnection(onConnection)
     , m_funOnClose(nullptr)
@@ -362,7 +365,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
     }
     CUNTcpServer *svr = (CUNTcpServer*)server->data;
 
-    CUNTcpClient *client = new CUNTcpClient(m_pNet, NULL);
+    CUNTcpClient *client = new CUNTcpClient(m_pNet, NULL, NULL);
     client->m_pSvr = this;
     client->syncInit();
     int ret = uv_accept(server, (uv_stream_t*)(&client->uvTcp));
@@ -456,11 +459,11 @@ void CUNTcpServer::removeClient(CUNTcpClient* c)
 //////////////////////////////////////////////////////////////////////////
 
 namespace uvNetPlus {
-    CTcpClient* CTcpClient::Create(CNet* net, fnOnTcpEvent onReady){
-        return new CUNTcpClient((CUVNetPlus*)net, onReady);
+    CTcpClient* CTcpClient::Create(CNet* net, fnOnTcpEvent onReady, void *usr){
+        return new CUNTcpClient((CUVNetPlus*)net, onReady, usr);
     }
 
-    CTcpServer* CTcpServer::Create(CNet* net, fnOnTcpConnection onConnection){
-        return new CUNTcpServer((CUVNetPlus*)net, onConnection);
+    CTcpServer* CTcpServer::Create(CNet* net, fnOnTcpConnection onConnection, void *usr){
+        return new CUNTcpServer((CUVNetPlus*)net, onConnection, usr);
     }
 }

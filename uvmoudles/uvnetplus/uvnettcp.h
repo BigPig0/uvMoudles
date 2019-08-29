@@ -8,14 +8,14 @@ class CUNTcpServer;
 class CUNTcpClient : public uvNetPlus::CTcpClient
 {
 public:
-    CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady);
+    CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr);
     ~CUNTcpClient();
     virtual void Delete();
     void syncInit();
     void syncConnect();
     void syncSend();
     void syncClose();
-    virtual void Connect(std::string strIP, uint32_t nPort, fnOnTcpEvent onConnect);
+    virtual void Connect(std::string strIP, uint32_t nPort, fnOnTcpError onConnect);
     virtual void SetLocal(std::string strIP, uint32_t nPort);
     virtual void HandleRecv(fnOnTcpRecv onRecv);
     virtual void HandleDrain(fnOnTcpEvent onDrain);
@@ -24,11 +24,14 @@ public:
     virtual void HandleTimeOut(fnOnTcpEvent onTimeOut);
     virtual void HandleError(fnOnTcpError onError);
     virtual void Send(char *pData, uint32_t nLen);
+    virtual void SetUserData(void* usr){m_pData = usr;};
+    virtual void* UserData(){return m_pData;};
 
 public:
-    CUVNetPlus        *m_pNet;      //事件线程句柄
-    CUNTcpServer      *m_pSvr;      //客户端实例为null，服务端实例指向监听服务句柄
+    CUVNetPlus       *m_pNet;      //事件线程句柄
+    CUNTcpServer     *m_pSvr;      //客户端实例为null，服务端实例指向监听服务句柄
     uv_tcp_t          uvTcp;
+    void             *m_pData;
 
     string            m_strRemoteIP; //远端ip
     uint32_t          m_nRemotePort; //远端端口
@@ -39,7 +42,7 @@ public:
 
 
     fnOnTcpEvent      m_funOnReady;     //socket创建完成
-    fnOnTcpEvent      m_funOnConnect;   //连接完成
+    fnOnTcpError      m_funOnConnect;   //连接完成
     fnOnTcpRecv       m_funOnRecv;      //收到数据
     fnOnTcpEvent      m_funOnDrain;     //发送队列全部完成
     fnOnTcpEvent      m_funOnCLose;     //socket关闭
@@ -59,7 +62,7 @@ public:
 class CUNTcpServer : public uvNetPlus::CTcpServer
 {
 public:
-    CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection);
+    CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection, void *usr);
     ~CUNTcpServer();
     virtual void Delete();
     void syncListen();
@@ -68,11 +71,13 @@ public:
     virtual void Listen(std::string strIP, uint32_t nPort, fnOnTcpSvr onListion);
     virtual void HandleClose(fnOnTcpSvr onClose);
     virtual void HandleError(fnOnTcpSvr onError);
+    virtual void* UserData(){return m_pData;};
     void removeClient(CUNTcpClient* c);
 
 public:
     CUVNetPlus       *m_pNet;
     uv_tcp_t          uvTcp;
+    void             *m_pData;
 
     string            m_strLocalIP;
     uint32_t          m_nLocalPort;

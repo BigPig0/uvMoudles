@@ -12,7 +12,7 @@ static void on_uv_async(uv_async_t* handle) {
         } else if(e.event == ASYNC_EVENT_TCP_SEND) {
             CUNTcpClient *tcp = (CUNTcpClient*)e.param;
             tcp->syncSend();
-        } else if(e.event = ASYNC_EVENT_TCP_LISTEN) {
+        } else if(e.event == ASYNC_EVENT_TCP_LISTEN) {
             CUNTcpServer *tcp = (CUNTcpServer*)e.param;
             tcp->syncListen();
         } else if(e.event == ASYNC_EVENT_TCP_CLTCLOSE) {
@@ -23,6 +23,7 @@ static void on_uv_async(uv_async_t* handle) {
             tcp->syncClose();
         }
     }
+    h->m_listAsyncEvents.clear();
     uv_mutex_unlock(&h->m_uvMtxAsEvts);
 }
 
