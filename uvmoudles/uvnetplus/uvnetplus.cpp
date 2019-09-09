@@ -1,6 +1,9 @@
 #include "uvnetplus.h"
 #include "uvnetprivate.h"
 #include "uvnettcp.h"
+#include "uvnettcpconnect.h"
+
+namespace uvNetPlus {
 
 static void on_uv_async(uv_async_t* handle) {
     UV_NODE* h = (UV_NODE*)handle->data;
@@ -21,6 +24,15 @@ static void on_uv_async(uv_async_t* handle) {
         } else if(e.event == ASYNC_EVENT_TCP_SVRCLOSE) {
             CUNTcpServer *tcp = (CUNTcpServer*)e.param;
             tcp->syncClose();
+        } else if(e.event == ASYNC_EVENT_TCPCONN_INIT) {
+            CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
+            pool->syncInit();
+        } else if(e.event == ASYNC_EVENT_TCPCONN_RQEUEST) {
+            CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
+            pool->syncRequest();
+        } else if(e.event == ASYNC_EVENT_TCPCONN_CLOSE) {
+            CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
+            pool->syncClose();
         }
     }
     h->m_listAsyncEvents.clear();
@@ -64,7 +76,6 @@ void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
     uv_async_send(&pNode->m_uvAsync);
 }
 
-namespace uvNetPlus {
     CNet* CNet::Create() {
         return new CUVNetPlus();
     }

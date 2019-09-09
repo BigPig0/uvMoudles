@@ -23,12 +23,18 @@
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

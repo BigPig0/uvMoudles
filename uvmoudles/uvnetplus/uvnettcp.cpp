@@ -1,5 +1,7 @@
 #include "uvnettcp.h"
 
+namespace uvNetPlus {
+
 static bool net_is_ipv4(const char* input) {
     struct sockaddr_in addr;
 
@@ -104,8 +106,10 @@ static void on_uv_write(uv_write_t* req, int status) {
             skt->m_funOnError(skt, uv_strerror(status));
     }
 
-    for (auto it : skt->sendingList) {
-        free(it.base);
+    if(skt->m_bCopy){
+        for (auto it : skt->sendingList) {
+            free(it.base);
+        }
     }
     skt->sendingList.clear();
 
@@ -122,12 +126,12 @@ static void on_uv_write(uv_write_t* req, int status) {
     }
 }
 
-CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr)
+CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr, bool copy=true)
     : m_pNet(net)
     , m_pSvr(nullptr)
     , m_bSetLocal(false)
     , m_bInit(false)
-    , m_pData(usr)
+    , m_pUsr(usr)
     , m_funOnReady(onReady)
     , m_funOnConnect(nullptr)
     , m_funOnRecv(nullptr)
@@ -137,6 +141,7 @@ CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr)
     , m_funOnTimeout(nullptr)
     , m_funOnError(nullptr)
     , bytesRead(0)
+    , m_bCopy(copy)
 {
     readBuff = (char *)calloc(1, 1024*1024);
     uv_mutex_init(&sendMtx);
@@ -153,6 +158,14 @@ CUNTcpClient::~CUNTcpClient()
 
 void CUNTcpClient::Delete()
 {
+    m_funOnReady = nullptr;
+    m_funOnConnect = nullptr;
+    m_funOnRecv = nullptr;
+    m_funOnDrain = nullptr;
+    m_funOnCLose = nullptr;
+    m_funOnEnd = nullptr;
+    m_funOnTimeout = nullptr;
+    m_funOnError = nullptr;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CLTCLOSE, this);
 }
 
@@ -281,8 +294,13 @@ void CUNTcpClient::HandleError(fnOnTcpError onError)
 
 void CUNTcpClient::Send(char *pData, uint32_t nLen)
 {
-    char* tmp = (char*)malloc(nLen);
-    memcpy(tmp, pData, nLen);
+    char* tmp = NULL;
+    if(m_bCopy) {
+        tmp = (char*)malloc(nLen);
+        memcpy(tmp, pData, nLen);
+    } else {
+        tmp = pData;
+    }
     uv_mutex_lock(&sendMtx);
     sendList.push_back(uv_buf_init(tmp, nLen));
     uv_mutex_unlock(&sendMtx);
@@ -326,6 +344,10 @@ CUNTcpServer::~CUNTcpServer()
 
 void CUNTcpServer::Delete()
 {
+    m_funOnListen = nullptr;
+    m_funOnConnection = nullptr;
+    m_funOnClose = nullptr;
+    m_funOnError = nullptr;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_SVRCLOSE, this);
 }
 
@@ -458,12 +480,12 @@ void CUNTcpServer::removeClient(CUNTcpClient* c)
 
 //////////////////////////////////////////////////////////////////////////
 
-namespace uvNetPlus {
-    CTcpClient* CTcpClient::Create(CNet* net, fnOnTcpEvent onReady, void *usr){
-        return new CUNTcpClient((CUVNetPlus*)net, onReady, usr);
-    }
+CTcpClient* CTcpClient::Create(CNet* net, fnOnTcpEvent onReady, void *usr, bool copy){
+    return new CUNTcpClient((CUVNetPlus*)net, onReady, usr, copy);
+}
 
-    CTcpServer* CTcpServer::Create(CNet* net, fnOnTcpConnection onConnection, void *usr){
-        return new CUNTcpServer((CUVNetPlus*)net, onConnection, usr);
-    }
+CTcpServer* CTcpServer::Create(CNet* net, fnOnTcpConnection onConnection, void *usr){
+    return new CUNTcpServer((CUVNetPlus*)net, onConnection, usr);
+}
+
 }

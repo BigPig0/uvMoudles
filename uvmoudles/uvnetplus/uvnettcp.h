@@ -2,13 +2,15 @@
 #include "uvnetplus.h"
 #include "uvnetprivate.h"
 
+namespace uvNetPlus {
+
 class CUNTcpServer;
 //////////////////////////////////////////////////////////////////////////
 
 class CUNTcpClient : public uvNetPlus::CTcpClient
 {
 public:
-    CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr);
+    CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr, bool copy);
     ~CUNTcpClient();
     virtual void Delete();
     void syncInit();
@@ -24,14 +26,14 @@ public:
     virtual void HandleTimeOut(fnOnTcpEvent onTimeOut);
     virtual void HandleError(fnOnTcpError onError);
     virtual void Send(char *pData, uint32_t nLen);
-    virtual void SetUserData(void* usr){m_pData = usr;};
-    virtual void* UserData(){return m_pData;};
+    virtual void SetUserData(void* usr){m_pUsr = usr;};
+    virtual void* UserData(){return m_pUsr;};
 
 public:
     CUVNetPlus       *m_pNet;      //事件线程句柄
     CUNTcpServer     *m_pSvr;      //客户端实例为null，服务端实例指向监听服务句柄
     uv_tcp_t          uvTcp;
-    void             *m_pData;
+    void             *m_pUsr;      //用户绑定自定义数据
 
     string            m_strRemoteIP; //远端ip
     uint32_t          m_nRemotePort; //远端端口
@@ -39,6 +41,7 @@ public:
     uint32_t          m_nLocalPort;  //本地端口
     bool              m_bSetLocal;   //作为客户端时，是否设置本地绑定信息
     bool              m_bInit;
+    bool              m_bCopy;          //发送的数据拷贝到临时区域
 
 
     fnOnTcpEvent      m_funOnReady;     //socket创建完成
@@ -92,3 +95,4 @@ public:
     list<CUNTcpClient*> m_listClients;
 };
 
+}
