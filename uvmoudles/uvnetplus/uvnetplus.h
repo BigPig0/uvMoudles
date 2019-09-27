@@ -129,6 +129,8 @@ public:
      */
     virtual TcpRequest* Request(std::string ip, uint32_t port, const char* data, int len, void *usr=nullptr, bool copy=true, bool recv=true) = 0;
 
+    virtual void MaxConns(uint32_t num) = 0;
+    virtual void MaxIdle(uint32_t num) = 0;
 protected:
     CTcpConnPool(){};
     virtual ~CTcpConnPool(){};

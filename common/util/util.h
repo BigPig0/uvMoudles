@@ -22,3 +22,5 @@
 #include "StringHandle.h"
 #include "EncodeConvert.h"
 #include "TimeFormat.h"
+
+#include "Log.h"

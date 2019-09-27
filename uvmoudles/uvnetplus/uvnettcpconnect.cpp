@@ -1,26 +1,36 @@
 #include "uvnetplus.h"
 #include "uvnettcpconnect.h"
 #include "utilc.h"
+#include "util.h"
 #include <time.h>
 
 namespace uvNetPlus {
 
 static void OnTcpConnect(CTcpClient* skt, std::string error) {
-    if(error.empty())
-        return;
-
-    //联接失败
     CUNTcpClient   *clt  = (CUNTcpClient*)skt;
     TcpConnect     *conn = (TcpConnect*)clt->m_pUsr;
     CUNTcpRequest  *req  = conn->req;
     CUNTcpConnPool *pool = conn->pool;
+
+    if(error.empty()){
+        //连接服务器成功，发送请求数据
+        //Log::debug("add new connect");
+        conn->state = ConnState_snd;
+        conn->lastTime = time(NULL);
+        conn->client->Send(req->data, req->len);
+        return;
+    }
+
+    //连接服务器失败
+    //Log::error("tcp connect failed");
+    //从busy队列移除
+    pool->m_listBusyConns.remove(conn);
     if(pool->m_funOnRequest) {
         pool->m_funOnRequest(req, error);
     }
 
+    //删除该连接实例
     delete conn;
-    pool->m_pBusyConns.remove(conn);
-    delete req;
 
     pool->m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_RQEUEST, pool);
 }
@@ -60,14 +70,14 @@ static void OnTcpClose(CTcpClient* skt) {
     if (conn->state == ConnState_Idle) {
         // 空闲连接断开，从空闲队列移除
         delete conn;
-        pool->m_pIdleConns.remove(conn);
+        pool->m_listIdleConns.remove(conn);
     } else if(conn->state == ConnState_snd){
         // 发送没有成功
         if(pool->m_funOnRequest) {
             pool->m_funOnRequest(req, "远端断开");
         }
         delete conn;
-        pool->m_pBusyConns.remove(conn);
+        pool->m_listBusyConns.remove(conn);
         delete req;
     } else if(conn->state == ConnState_sndok) {
         // 已经发送成功，没有应答
@@ -83,7 +93,7 @@ static void OnTcpClose(CTcpClient* skt) {
             }
         }
         delete conn;
-        pool->m_pBusyConns.remove(conn);
+        pool->m_listBusyConns.remove(conn);
         delete req;
     } else if(conn->state == ConnState_rcv) {
         // 收到应答，但用户没有确认接收完毕
@@ -91,7 +101,7 @@ static void OnTcpClose(CTcpClient* skt) {
             pool->m_funOnResponse(req, "没有全部接收完成就关闭", nullptr, 0);
         }
         delete conn;
-        pool->m_pBusyConns.remove(conn);
+        pool->m_listBusyConns.remove(conn);
         delete req;
     }
 }
@@ -104,10 +114,12 @@ static void OnTcpError(CTcpClient* skt, std::string error) {
 
 }
 
-TcpConnect::TcpConnect(CUNTcpRequest *request)
+TcpConnect::TcpConnect(CUNTcpConnPool *p, CUNTcpRequest *request)
     : req(request)
+    , pool(p)
     , ip(request->ip)
     , port(request->port)
+    , state(ConnState_Idle)
 {
     lastTime = time(NULL);
     client = new CUNTcpClient(request->pool->m_pNet, NULL, this, false);
@@ -115,6 +127,14 @@ TcpConnect::TcpConnect(CUNTcpRequest *request)
     client->m_funOnRecv    = OnTcpRecv;
     client->m_funOnDrain   = OnTcpDrain;
     client->m_funOnCLose   = OnTcpClose;
+
+    client->m_strRemoteIP = request->ip;
+    client->m_nRemotePort = request->port;
+
+    request->conn = this;
+    pool->m_listBusyConns.push_back(this);
+
+    client->syncConnect();
 }
 
 TcpConnect::~TcpConnect()
@@ -155,12 +175,13 @@ void CUNTcpRequest::Finish()
     CUNTcpConnPool *pool = conn->pool;
     conn->state = ConnState_Idle;
     conn->req = nullptr;
-    pool->m_pBusyConns.remove(conn);
-    if(pool->m_pIdleConns.size() < pool->m_nIdleCount){
-        pool->m_pIdleConns.push_front(conn);
+    pool->m_listBusyConns.remove(conn);
+    if(pool->m_listIdleConns.size() < pool->m_nMaxIdle){
+        pool->m_listIdleConns.push_front(conn);
     } else {
         delete conn;
     }
+    pool->m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_RQEUEST, pool);
     delete this;
 }
 
@@ -169,14 +190,13 @@ void CUNTcpRequest::Finish()
 static void on_timer_cb(uv_timer_t* handle) {
     CUNTcpConnPool *pool = (CUNTcpConnPool*)handle->data;
     time_t now = time(NULL);
-    TcpConnect *conn = pool->m_pIdleConns.back();
-    while(conn){
+    while(!pool->m_listIdleConns.empty()){
+        TcpConnect *conn = pool->m_listIdleConns.back();
         if(difftime(now, conn->lastTime) < pool->m_nTimeOut)
             break;
 
         delete conn;
-        pool->m_pIdleConns.pop_back();
-        conn = pool->m_pIdleConns.back();
+        pool->m_listIdleConns.pop_back();
     }
 }
 
@@ -217,9 +237,9 @@ void CUNTcpConnPool::syncRequest()
     //取出第一个请求
     CUNTcpRequest* req=nullptr;
     uv_mutex_lock(&m_ReqMtx);
-    if(!m_pReqList.empty()) {
-        req = m_pReqList.front();
-        m_pReqList.pop_front();
+    if(!m_listReqs.empty()) {
+        req = m_listReqs.front();
+        m_listReqs.pop_front();
     }
     uv_mutex_unlock(&m_ReqMtx);
     if(!req){
@@ -227,49 +247,58 @@ void CUNTcpConnPool::syncRequest()
         return;
     }
 
+    //Log::debug("busyConn %d idleConn %d", m_listBusyConns.size(), m_listIdleConns.size());
     //查找空闲连接
     TcpConnect* conn = nullptr;
-    for(auto it=m_pIdleConns.begin(); it!=m_pIdleConns.end(); it++) {
+    for(auto it=m_listIdleConns.begin(); it!=m_listIdleConns.end(); it++) {
         if((*it)->ip == req->ip && (*it)->port == req->port) {
+            //Log::debug("get a idle connect");
             conn = (*it);
-            m_pIdleConns.erase(it);
+            m_listIdleConns.erase(it);
             break;
         }
     }
     if(!conn){
         //没有空闲连接
-        if(m_pBusyConns.size() >= m_nMaxConns){
-            ;//连接总数达到上限
+        //Log::debug("busy %d idle %d max %d", m_listBusyConns.size(), m_listIdleConns.size(), m_nMaxConns);
+        if(m_listBusyConns.size() >= m_nMaxConns){
+            //连接总数达到上限
+            //Log::debug("busy conn is max");
+            //暂时不能建立连接，将请求返还给请求列表
+            uv_mutex_lock(&m_ReqMtx);
+            m_listReqs.push_front(req);
+            uv_mutex_unlock(&m_ReqMtx);
         } else {
             //连接总数未达上限，可以新增l个连接
-            if(m_pBusyConns.size() + m_pIdleConns.size() >= m_nMaxConns
-                || m_pIdleConns.size() >= m_nMaxIdle) {
+            if(m_listBusyConns.size() + m_listIdleConns.size() >= m_nMaxConns
+                || m_listIdleConns.size() >= m_nMaxIdle) {
                     //总连接数达到上限 空闲连接数达到上限，主动断开最早连接
-                    TcpConnect* tmp = m_pIdleConns.back();
+                    //Log::debug("need discont a idle connect");
+                    TcpConnect* tmp = m_listIdleConns.back();
                     delete tmp;
-                    m_pIdleConns.pop_back();
+                    m_listIdleConns.pop_back();
             } 
 
-            conn = new TcpConnect(req);
-        }
-    }
+            //Log::debug("create a new connect and send");
+            // 创建连接，并在连接成功后发送请求
+            conn = new TcpConnect(this, req);
 
-    if(conn) {
+            //准备发送下一个请求
+            m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_RQEUEST, this);
+        }
+    } else {
+        // 使用现有的连接进行发送请求
+        //Log::debug("use a idle connect send");
         conn->state = ConnState_snd;
-        conn->client->m_pUsr = req;
         conn->lastTime = time(NULL);
-        m_pBusyConns.push_back(conn);
+        m_listBusyConns.push_back(conn);
+        conn->req = req;
         req->conn = conn;
         conn->client->Send(req->data, req->len);
 
+        //准备发送下一个请求
         m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_RQEUEST, this);
-    } else {
-        //暂时不能建立连接，将请求返还给请求列表
-        uv_mutex_lock(&m_ReqMtx);
-        m_pReqList.push_front(req);
-        uv_mutex_unlock(&m_ReqMtx);
     }
-
 }
 
 void CUNTcpConnPool::syncClose()
@@ -303,7 +332,7 @@ TcpRequest* CUNTcpConnPool::Request(std::string ip, uint32_t port, const char* d
     req->conn = nullptr;
 
     uv_mutex_lock(&m_ReqMtx);
-    m_pReqList.push_back(req);
+    m_listReqs.push_back(req);
     uv_mutex_unlock(&m_ReqMtx);
     m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_RQEUEST, this);
 
@@ -312,10 +341,10 @@ TcpRequest* CUNTcpConnPool::Request(std::string ip, uint32_t port, const char* d
 
 CTcpConnPool* CTcpConnPool::Create(CNet* net, fnOnConnectRequest onReq, fnOnConnectResponse onRes)
 {
-    CUNTcpConnPool *ret = new CUNTcpConnPool((CUVNetPlus*)net);
-    ret->m_funOnRequest = onReq;
-    ret->m_funOnResponse = onRes;
-    return ret;
+    CUNTcpConnPool *pool = new CUNTcpConnPool((CUVNetPlus*)net);
+    pool->m_funOnRequest = onReq;
+    pool->m_funOnResponse = onRes;
+    return pool;
 }
 
 }

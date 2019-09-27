@@ -77,6 +77,15 @@
     <ClInclude Include="..\..\common\util\winfile.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\common\util\AbstractFile.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\util\File.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\util\Log.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\util\EncodeConvert.cpp">
@@ -113,6 +122,15 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\util\winfile.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\util\AbstractFile.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\util\File.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\util\Log.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

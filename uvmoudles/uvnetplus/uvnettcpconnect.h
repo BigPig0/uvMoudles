@@ -35,7 +35,7 @@ enum ConnState {
 
 class TcpConnect {
 public:
-    TcpConnect(CUNTcpRequest *request);
+    TcpConnect(CUNTcpConnPool *p, CUNTcpRequest *request);
     ~TcpConnect();
 
     CUNTcpConnPool *pool;     //连接所在的连接池
@@ -73,6 +73,10 @@ public:
 
     virtual TcpRequest* Request(string ip, uint32_t port,  const char* data, int len, void *usr=nullptr, bool copy=true, bool recv=true);
 
+    virtual void MaxConns(uint32_t num){m_nMaxConns = num;}
+
+    virtual void MaxIdle(uint32_t num){m_nMaxIdle = num;}
+
     fnOnConnectRequest      m_funOnRequest;
     fnOnConnectResponse     m_funOnResponse;
 
@@ -84,9 +88,9 @@ public:
     uint32_t            m_nIdleCount;   //当前空闲的连接数
     uint32_t            m_nTimeOut;     //空闲连接超时时间 秒
 
-    list<TcpConnect*>   m_pBusyConns;    //正在使用中的连接
-    list<TcpConnect*>   m_pIdleConns;    //空闲连接 front时间较近 back时间较久
-    list<CUNTcpRequest*> m_pReqList;      //请求列表
+    list<TcpConnect*>   m_listBusyConns;    //正在使用中的连接
+    list<TcpConnect*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
+    list<CUNTcpRequest*> m_listReqs;      //请求列表
     uv_mutex_t          m_ReqMtx;        //请求列表锁
 
     uv_timer_t         *m_uvTimer;     //定时器用来判断空闲连接是否超时

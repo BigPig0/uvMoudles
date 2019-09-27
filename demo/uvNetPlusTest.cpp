@@ -7,12 +7,14 @@
 #include "uvnetplus.h"
 #include "Log.h"
 #include <string>
+#include <thread>
 using namespace std;
 using namespace uvNetPlus;
 
 const int svrport = 8080;
 
 //////////////////////////////////////////////////////////////////////////
+////////////       TCP客户端         /////////////////////////////////////
 
 struct clientData {
     int tid;
@@ -89,6 +91,41 @@ void testClient()
 }
 
 //////////////////////////////////////////////////////////////////////////
+/////////////     tcp客户端连接池      ///////////////////////////////////
+
+static void OnConnectRequest(TcpRequest* req, std::string error){
+    clientData* data = (clientData*)req->usr;
+    if(!error.empty())
+        Log::error("OnConnectRequest client%d error: %s ", data->tid, error.c_str());
+}
+
+static void OnConnectResponse(TcpRequest* req, std::string error, const char *data, int len){
+    clientData* cli = (clientData*)req->usr;
+    if(!error.empty())
+        Log::error("OnConnectResponse fialed client%d error: %s ", cli->tid, error.c_str());
+    else
+        Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
+    req->Finish();
+}
+
+static void testTcpPool(){
+    std::thread t([&](){
+        CNet* net = CNet::Create();
+        CTcpConnPool* client = CTcpConnPool::Create(net, OnConnectRequest, OnConnectResponse);
+        client->MaxConns(10);
+        client->MaxIdle(10);
+        for (int i=0; i<500; i++) {
+            Log::debug("new request %d", i);
+            clientData* data = new clientData;
+            data->tid = i+1;
+            data->finishNum = 0;
+            client->Request("127.0.0.1", svrport, "123456789", 9, data, true, true);
+        }
+    });
+    t.detach();
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 struct sclientData {
     int id;
@@ -128,6 +165,7 @@ void OnTcpConnection(CTcpServer* svr, std::string err, CTcpClient* client) {
         Log::error("tcp server error: %s ", err.c_str());
         return;
     }
+    Log::debug("tcp server recv new connection");
     static int sid = 1;
     sclientData *c = new sclientData();
     c->id = sid++;
@@ -154,7 +192,8 @@ void OnTcpError(CTcpServer* svr, std::string err) {
 void OnTcpListen(CTcpServer* svr, std::string err) {
     if(err.empty()) {
         Log::debug("tcp server start success");
-        testClient();
+        //testClient();
+        testTcpPool();
     } else {
         Log::error("tcp server start failed: %s ", err.c_str());
     }

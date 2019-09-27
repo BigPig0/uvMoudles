@@ -76,7 +76,7 @@ void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
     uv_async_send(&pNode->m_uvAsync);
 }
 
-    CNet* CNet::Create() {
-        return new CUVNetPlus();
-    }
+CNet* CNet::Create() {
+    return new CUVNetPlus();
+}
 }
