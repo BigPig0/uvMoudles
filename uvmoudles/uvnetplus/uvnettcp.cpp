@@ -2,7 +2,7 @@
 
 namespace uvNetPlus {
 
-static bool net_is_ipv4(const char* input) {
+bool net_is_ipv4(const char* input) {
     struct sockaddr_in addr;
 
     if (!input) return false;
@@ -12,7 +12,7 @@ static bool net_is_ipv4(const char* input) {
     return true;
 }
 
-static bool net_is_ipv6(const char* input) {
+bool net_is_ipv6(const char* input) {
     struct sockaddr_in6 addr;
 
     if (!input) return false;
@@ -22,7 +22,7 @@ static bool net_is_ipv6(const char* input) {
     return true;
 }
 
-static int net_is_ip(const char* input) {
+int net_is_ip(const char* input) {
     if(net_is_ipv4(input))
         return 4;
     if(net_is_ipv6(input))

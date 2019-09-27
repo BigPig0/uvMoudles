@@ -27,12 +27,15 @@ static void on_uv_async(uv_async_t* handle) {
         } else if(e.event == ASYNC_EVENT_TCPCONN_INIT) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncInit();
-        } else if(e.event == ASYNC_EVENT_TCPCONN_RQEUEST) {
+        } else if(e.event == ASYNC_EVENT_TCPCONN_REQUEST) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncRequest();
         } else if(e.event == ASYNC_EVENT_TCPCONN_CLOSE) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncClose();
+        } else if(e.event == ASYNC_EVENT_TCPAGENT_REQUEST) {
+            TcpAgent *pool = (TcpAgent*)e.param;
+            pool->Request(NULL);
         }
     }
     h->m_listAsyncEvents.clear();

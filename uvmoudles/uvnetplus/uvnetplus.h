@@ -64,7 +64,7 @@ protected:
 /** TCP连接池 请求结构 */
 class TcpRequest {
 public:
-    std::string     ip;
+    std::string     host;
     uint32_t        port;
     char           *data;
     int             len;

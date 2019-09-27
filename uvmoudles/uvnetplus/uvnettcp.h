@@ -4,6 +4,10 @@
 
 namespace uvNetPlus {
 
+extern bool net_is_ipv4(const char* input);
+extern bool net_is_ipv6(const char* input);
+extern int  net_is_ip(const char* input);
+
 class CUNTcpServer;
 //////////////////////////////////////////////////////////////////////////
 
