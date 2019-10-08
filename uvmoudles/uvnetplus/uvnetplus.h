@@ -136,5 +136,107 @@ protected:
     virtual ~CTcpConnPool(){};
 };
 
+//////////////////////////////////////////////////////////////////////////
+
+/** Http接口封装 */
+class Http
+{
+class ClientRequest;
+class IncomingMessage;
+class ServerResponse;
+class Server;
+
+enum PROTOCOL {
+    HTTP = 0,
+    HTTPS,
+    WS,
+    WSS
+};
+
+enum METHOD {
+    OPTIONS = 0,
+    HEAD,
+    GET,
+    POST,
+    PUT,
+    DELETE,
+    TRACE,
+    CONNECT
+};
+
+struct RequestOption {
+    PROTOCOL   protocol;
+    string     host;      // 域名或IP
+    int        port;
+    string     localaddr; // 指定本地IP
+    METHOD     method;
+    string     path;
+    list<string> headers;
+    RequestOption()
+        : protocol(HTTP)
+        , host("localhost")
+        , port(80)
+        , method(GET)
+        , path("/"){}
+};
+
+/** 服务器收到请求回调 */
+typedef void(*server_on_request_cb)(Server *server, IncomingMessage *request, ServerResponse *response);
+/** 客户端请求收到应答回调 */
+typedef void(*client_request_response_cb)(ClientRequest *request, IncomingMessage* response);
+/** HTTP客户端请求 */
+class ClientRequest
+{
+public:
+    virtual ~ClientRequest(){};
+    bool keepAlive; //是否使用长连接
+    bool chunked;   //Transfer-Encoding: chunked
+    bool finished;  //是否完成
+    typedef void(*ReqCb)(ClientRequest *request);
+    typedef void(*ResCB)(ClientRequest *request, IncomingMessage* response);
+    /** 客户端收到connec方法的应答时回调 */
+    ResCB OnConnect;
+    /** 客户端收到1xx应答(101除外)时回调 */
+    ResCB OnInformation;
+    /** 客户端收到101 upgrade 时回调 */
+    ResCB OnUpgrade;
+    /** 客户端收到应答时回调，如果是其他指定回调，则不会再次进入这里 */
+    ResCB OnResponse;
+    /**
+     * 
+     */
+    virtual void End(char* data = NULL, int len = 0, ReqCb cb = NULL) = 0;
+    /**
+     * 用来发送一块数据
+     */
+    virtual bool Write(char* data, int len, ReqCb cb = NULL) = 0;
+protected:
+    ClientRequest(){};
+};
+/** 接收到的数据 */
+class IncomingMessage
+{
+
+};
+/** 应答 */
+class ServerResponse
+{
+
+};
+/** http服务 */
+class Server
+{
+
+    /** 服务端收到connec方法的请求时回调 */
+    typedef void(*connect_cb)(ClientRequest *request, char* head);
+};
+
+static const char* METHODS(int m);
+static const char* STATUS_CODES(int c);
+static Server* createServer(server_on_request_cb cb);
+static ClientRequest* request(RequestOption &option, client_request_response_cb cb);
+
+};
+
 }
 

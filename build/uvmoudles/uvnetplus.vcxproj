@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnethttp.h" />
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetplus.h" />
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h" />
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetpuclic.h" />
@@ -18,6 +19,7 @@
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnethttp.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.cpp" />
