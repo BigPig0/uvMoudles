@@ -16,13 +16,13 @@
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h" />
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetpuclic.h" />
     <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcp.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.h" />
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcppool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnethttp.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcpconnect.cpp" />
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcppool.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F619C109-3255-4794-AB1C-218A94E7F2BC}</ProjectGuid>

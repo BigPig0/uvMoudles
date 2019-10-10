@@ -1,5 +1,5 @@
 /*!
- * \file uvnettcpconnect.h
+ * \file uvnettcppool.h
  * \date 2019/09/05 16:11
  *
  * \author wlla
@@ -126,8 +126,6 @@ public:
     uint32_t            m_nIdleCount;   //当前空闲的连接数
     uint32_t            m_nTimeOut;     //空闲连接超时时间 秒
 
-    //list<TcpConnect*>   m_listBusyConns;    //正在使用中的连接
-    //list<TcpConnect*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
     list<CUNTcpRequest*> m_listReqs;      //请求列表,暂存外部的请求
     uv_mutex_t           m_ReqMtx;        //请求列表锁
 
