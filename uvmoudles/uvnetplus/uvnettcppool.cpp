@@ -12,7 +12,7 @@ namespace uvNetPlus {
 
 static void OnTcpConnect(CTcpClient* skt, std::string error) {
     CUNTcpClient   *clt  = (CUNTcpClient*)skt;
-    TcpConnect     *conn = (TcpConnect*)clt->m_pUsr;
+    TcpConnect     *conn = (TcpConnect*)clt->userData;
     TcpAgent       *agent= conn->m_pAgent;
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
@@ -22,7 +22,12 @@ static void OnTcpConnect(CTcpClient* skt, std::string error) {
         //Log::debug("add new connect");
         conn->m_eState = ConnState_snd;
         conn->m_nLastTime = time(NULL);
-        conn->m_pTcpClient->Send(req->data, req->len);
+        for(auto &buf:req->buffs){
+            conn->m_pTcpClient->Send(buf.base, buf.len);
+            if(req->copy && conn->m_pTcpClient->copy)
+                free(buf.base);
+        }
+        req->buffs.clear();
         return;
     }
 
@@ -30,8 +35,8 @@ static void OnTcpConnect(CTcpClient* skt, std::string error) {
     //Log::error("tcp connect failed");
     //从busy队列移除
     agent->m_listBusyConns.remove(conn);
-    if(pool->m_funOnRequest) {
-        pool->m_funOnRequest(req, error);
+    if(pool->OnRequest) {
+        pool->OnRequest(req, error);
     }
 
     //删除该连接实例
@@ -42,36 +47,33 @@ static void OnTcpConnect(CTcpClient* skt, std::string error) {
 
 static void OnTcpRecv(CTcpClient* skt, char *data, int len) {
     CUNTcpClient   *clt  = (CUNTcpClient*)skt;
-    TcpConnect     *conn = (TcpConnect*)clt->m_pUsr;
+    TcpConnect     *conn = (TcpConnect*)clt->userData;
     TcpAgent       *agent= conn->m_pAgent;
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
     conn->m_eState = ConnState_rcv;
-    if(pool->m_funOnResponse) {
-        pool->m_funOnResponse(req, "", data, len);
+    if(pool->OnResponse) {
+        pool->OnResponse(req, "", data, len);
     }
 }
 
 static void OnTcpDrain(CTcpClient* skt) {
     CUNTcpClient   *clt  = (CUNTcpClient*)skt;
-    TcpConnect     *conn = (TcpConnect*)clt->m_pUsr;
+    TcpConnect     *conn = (TcpConnect*)clt->userData;
     TcpAgent       *agent= conn->m_pAgent;
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
     conn->m_eState = ConnState_sndok;
-    if(pool->m_funOnRequest) {
+    if(pool->OnRequest) {
         // 发送结束回调。这里每次只向tcpclient中添加一个数据
-        pool->m_funOnRequest(req,"");
-    }
-    if(req->copy){
-        SAFE_FREE(req->data);
+        pool->OnRequest(req,"");
     }
 }
 
 // 主动关闭收不到关闭回调，这里都是远端关闭
 static void OnTcpClose(CTcpClient* skt) {
     CUNTcpClient   *clt  = (CUNTcpClient*)skt;
-    TcpConnect     *conn = (TcpConnect*)clt->m_pUsr;
+    TcpConnect     *conn = (TcpConnect*)clt->userData;
     TcpAgent       *agent= conn->m_pAgent;
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
@@ -81,8 +83,8 @@ static void OnTcpClose(CTcpClient* skt) {
         agent->m_listIdleConns.remove(conn);
     } else if(conn->m_eState == ConnState_snd){
         // 发送没有成功
-        if(pool->m_funOnRequest) {
-            pool->m_funOnRequest(req, "远端断开");
+        if(pool->OnRequest) {
+            pool->OnRequest(req, "远端断开");
         }
         delete conn;
         agent->m_listBusyConns.remove(conn);
@@ -91,13 +93,13 @@ static void OnTcpClose(CTcpClient* skt) {
         // 已经发送成功，没有应答
         if(req->recv){
             //需要应答，没有成功
-            if(pool->m_funOnResponse) {
-                pool->m_funOnResponse(req, "未收到应答就关闭", nullptr, 0);
+            if(pool->OnResponse) {
+                pool->OnResponse(req, "未收到应答就关闭", nullptr, 0);
             }
         } else {
             //不需要应答，没有全部发送，需要用户确认全部发送完成
-            if(pool->m_funOnResponse) {
-                pool->m_funOnResponse(req, "没有全部发送完成就关闭", nullptr, 0);
+            if(pool->OnResponse) {
+                pool->OnResponse(req, "没有全部发送完成就关闭", nullptr, 0);
             }
         }
         delete conn;
@@ -105,8 +107,8 @@ static void OnTcpClose(CTcpClient* skt) {
         delete req;
     } else if(conn->m_eState == ConnState_rcv) {
         // 收到应答，但用户没有确认接收完毕
-        if(pool->m_funOnResponse) {
-            pool->m_funOnResponse(req, "没有全部接收完成就关闭", nullptr, 0);
+        if(pool->OnResponse) {
+            pool->OnResponse(req, "没有全部接收完成就关闭", nullptr, 0);
         }
         delete conn;
         agent->m_listBusyConns.remove(conn);
@@ -130,11 +132,12 @@ TcpConnect::TcpConnect(TcpAgent *agt, CUNTcpRequest *request, string hostip)
     , m_eState(ConnState_Idle)
 {
     m_nLastTime = time(NULL);
-    m_pTcpClient = new CUNTcpClient(request->pool->m_pNet, NULL, this, false);
-    m_pTcpClient->m_funOnConnect = OnTcpConnect;
-    m_pTcpClient->m_funOnRecv    = OnTcpRecv;
-    m_pTcpClient->m_funOnDrain   = OnTcpDrain;
-    m_pTcpClient->m_funOnCLose   = OnTcpClose;
+    m_pTcpClient = new CUNTcpClient(request->pool->m_pNet, false);
+    m_pTcpClient->userData  = this;
+    m_pTcpClient->OnConnect = OnTcpConnect;
+    m_pTcpClient->OnRecv    = OnTcpRecv;
+    m_pTcpClient->OnDrain   = OnTcpDrain;
+    m_pTcpClient->OnCLose   = OnTcpClose;
 
     m_pTcpClient->m_strRemoteIP = hostip;
     m_pTcpClient->m_nRemotePort = request->port;
@@ -199,7 +202,12 @@ void TcpAgent::Request(CUNTcpRequest *req) {
         m_listBusyConns.push_back(conn);
         conn->m_pReq = req;
         req->conn = conn;
-        conn->m_pTcpClient->Send(req->data, req->len);
+        for(auto &buf:req->buffs){
+            conn->m_pTcpClient->Send(buf.base, buf.len);
+            if(req->copy && conn->m_pTcpClient->copy)
+                free(buf.base);
+        }
+        req->buffs.clear();
 
         //处理下一个请求
         m_pNet->AddEvent(ASYNC_EVENT_TCPAGENT_REQUEST, this);
@@ -245,23 +253,23 @@ CUNTcpRequest::CUNTcpRequest()
 
 CUNTcpRequest::~CUNTcpRequest()
 {
-    if(copy){
-        SAFE_FREE(data);
-    }
 }
 
 void CUNTcpRequest::Request(const char* buff, int length)
 {
+    char *data;
     if(copy) {
-        SAFE_FREE(data);
         data = (char*)malloc(length);
         memcpy(data, buff, length);
     } else {
         data = (char*)buff;
     }
-    len = length;
 
-    conn->m_pTcpClient->Send(data, len);
+    if(conn && conn->m_pTcpClient)
+        conn->m_pTcpClient->Send(data, length);
+    else {
+        buffs.push_back(uv_buf_init(data, length));  //TcpClient尚未建立，发送的数据缓存下来
+    }
 }
 
 void CUNTcpRequest::Finish()
@@ -271,7 +279,7 @@ void CUNTcpRequest::Finish()
     conn->m_eState = ConnState_Idle;
     conn->m_pReq = nullptr;
     agent->m_listBusyConns.remove(conn);
-    if(agent->m_listIdleConns.size() < pool->m_nMaxIdle){
+    if(agent->m_listIdleConns.size() < pool->maxIdle){
         agent->m_listIdleConns.push_front(conn);
     } else {
         delete conn;
@@ -315,15 +323,28 @@ static void on_timer_close(uv_handle_t* handle) {
     delete t;
 }
 
+CTcpConnPool::CTcpConnPool()
+    : maxConns(512)
+    , maxIdle(100)
+    , timeOut(20)
+    , OnRequest(NULL)
+    , OnResponse(NULL)
+{}
+
+CTcpConnPool::~CTcpConnPool(){}
+
+CTcpConnPool* CTcpConnPool::Create(CNet* net, ReqCB onReq, ResCB onRes)
+{
+    CUNTcpConnPool *pool = new CUNTcpConnPool((CUVNetPlus*)net);
+    pool->OnRequest = onReq;
+    pool->OnResponse = onRes;
+    return pool;
+}
+
 CUNTcpConnPool::CUNTcpConnPool(CUVNetPlus* net)
     : m_pNet(net)
-    , m_nMaxConns(512)
-    , m_nMaxIdle(100)
     , m_nBusyCount(0)
     , m_nIdleCount(0)
-    , m_nTimeOut(20)
-    , m_funOnRequest(NULL)
-    , m_funOnResponse(NULL)
 {
     uv_mutex_init(&m_ReqMtx);
     m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_INIT, this);
@@ -361,9 +382,9 @@ void CUNTcpConnPool::syncRequest()
             agent = new TcpAgent(this);
             agent->m_strHost = req->host;
             agent->m_nPort = req->port;
-            agent->m_nMaxConns = m_nMaxConns;
-            agent->m_nMaxIdle = m_nMaxIdle;
-            agent->m_nTimeOut = m_nTimeOut;
+            agent->m_nMaxConns = maxConns;
+            agent->m_nMaxIdle = maxIdle;
+            agent->m_nTimeOut = timeOut;
             agent->HostInfo(req->host);
             m_mapAgents.insert(make_pair(ss.str(), agent));
         } else {
@@ -387,18 +408,11 @@ void CUNTcpConnPool::Delete()
     m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_CLOSE, this);
 }
 
-TcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port, const char* data, int len, void *usr, bool copy, bool recv)
+CTcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port, string localaddr, void *usr, bool copy, bool recv)
 {
     CUNTcpRequest *req = new CUNTcpRequest();
     req->host = host;
     req->port = port;
-    if(copy) {
-        req->data = (char*)malloc(len);
-        memcpy(req->data, data, len);
-    } else {
-        req->data = (char*)data;
-    }
-    req->len = len;
     req->usr = usr;
     req->copy = copy;
     req->recv = recv;
@@ -413,12 +427,5 @@ TcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port, const char*
     return req;
 }
 
-CTcpConnPool* CTcpConnPool::Create(CNet* net, fnOnConnectRequest onReq, fnOnConnectResponse onRes)
-{
-    CUNTcpConnPool *pool = new CUNTcpConnPool((CUVNetPlus*)net);
-    pool->m_funOnRequest = onReq;
-    pool->m_funOnResponse = onRes;
-    return pool;
-}
 
 }

@@ -14,48 +14,30 @@ class CUNTcpServer;
 class CUNTcpClient : public uvNetPlus::CTcpClient
 {
 public:
-    CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr, bool copy);
+    CUNTcpClient(CUVNetPlus* net, bool copy = true);
     ~CUNTcpClient();
     virtual void Delete();
+    virtual void Connect(std::string strIP, uint32_t nPort);
+    virtual void SetLocal(std::string strIP, uint32_t nPort);
+    virtual void Send(const char *pData, uint32_t nLen);
+
     void syncInit();
     void syncConnect();
     void syncSend();
     void syncClose();
-    virtual void Connect(std::string strIP, uint32_t nPort, fnOnTcpError onConnect);
-    virtual void SetLocal(std::string strIP, uint32_t nPort);
-    virtual void HandleRecv(fnOnTcpRecv onRecv);
-    virtual void HandleDrain(fnOnTcpEvent onDrain);
-    virtual void HandleClose(fnOnTcpEvent onClose);
-    virtual void HandleEnd(fnOnTcpEvent onEnd);
-    virtual void HandleTimeOut(fnOnTcpEvent onTimeOut);
-    virtual void HandleError(fnOnTcpError onError);
-    virtual void Send(char *pData, uint32_t nLen);
-    virtual void SetUserData(void* usr){m_pUsr = usr;};
-    virtual void* UserData(){return m_pUsr;};
 
 public:
     CUVNetPlus       *m_pNet;      //事件线程句柄
     CUNTcpServer     *m_pSvr;      //客户端实例为null，服务端实例指向监听服务句柄
     uv_tcp_t          uvTcp;
-    void             *m_pUsr;      //用户绑定自定义数据
 
     string            m_strRemoteIP; //远端ip
     uint32_t          m_nRemotePort; //远端端口
     string            m_strLocalIP;  //本地ip
     uint32_t          m_nLocalPort;  //本地端口
     bool              m_bSetLocal;   //作为客户端时，是否设置本地绑定信息
-    bool              m_bInit;
-    bool              m_bCopy;          //发送的数据拷贝到临时区域
-
-
-    fnOnTcpEvent      m_funOnReady;     //socket创建完成
-    fnOnTcpError      m_funOnConnect;   //连接完成
-    fnOnTcpRecv       m_funOnRecv;      //收到数据
-    fnOnTcpEvent      m_funOnDrain;     //发送队列全部完成
-    fnOnTcpEvent      m_funOnCLose;     //socket关闭
-    fnOnTcpEvent      m_funOnEnd;       //收到对方fin,读到eof
-    fnOnTcpEvent      m_funOnTimeout;   //超时回调
-    fnOnTcpError      m_funOnError;     //错误回调
+    bool              m_bInit;       //是否初始化uv_tcp_t对象
+    bool              m_bConnect;    //是否已经成功连接服务器
 
     char             *readBuff;         // 接收缓存
     uint32_t          bytesRead;        // 统计累计接收大小
@@ -69,32 +51,26 @@ public:
 class CUNTcpServer : public uvNetPlus::CTcpServer
 {
 public:
-    CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection, void *usr);
+    CUNTcpServer(CUVNetPlus* net);
     ~CUNTcpServer();
     virtual void Delete();
+    virtual bool Listen(std::string strIP, uint32_t nPort);
+    virtual bool Listening();
     void syncListen();
     void syncConnection(uv_stream_t* server, int status);
     void syncClose();
-    virtual void Listen(std::string strIP, uint32_t nPort, fnOnTcpSvr onListion);
-    virtual void HandleClose(fnOnTcpSvr onClose);
-    virtual void HandleError(fnOnTcpSvr onError);
-    virtual void* UserData(){return m_pData;};
     void removeClient(CUNTcpClient* c);
 
 public:
     CUVNetPlus       *m_pNet;
     uv_tcp_t          uvTcp;
-    void             *m_pData;
 
     string            m_strLocalIP;
     uint32_t          m_nLocalPort;
     int               m_nBacklog;       //syns queue的大小，默认为512
-    bool              m_bInit;          //开始监听时true，不在监听时为false
+    bool              m_bListening;     //开始监听时true，不在监听时为false
+    int               m_nFamily;        //绑定本地IP的族 4 或 6
 
-    fnOnTcpSvr          m_funOnListen;
-    fnOnTcpConnection   m_funOnConnection;
-    fnOnTcpSvr          m_funOnClose;
-    fnOnTcpSvr          m_funOnError;
 
     list<CUNTcpClient*> m_listClients;
 };

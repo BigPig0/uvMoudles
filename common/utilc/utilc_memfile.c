@@ -1,4 +1,4 @@
-#include "memfile.h"
+#include "utilc_memfile.h"
 #include <malloc.h>
 
 #define SEEK_CUR    1

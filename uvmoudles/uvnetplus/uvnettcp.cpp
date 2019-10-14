@@ -1,4 +1,5 @@
 #include "uvnettcp.h"
+#include "Log.h"
 
 namespace uvNetPlus {
 
@@ -32,15 +33,15 @@ int net_is_ip(const char* input) {
 
 //////////////////////////////////////////////////////////////////////////
 
-#define READY_CALLBACK if(m_funOnReady) m_funOnReady(this);
-#define ERROR_CALLBACK(e) if(m_funOnError) m_funOnError(this,e);
-#define CONNECT_CALLBACK(e) if(m_funOnConnect) m_funOnConnect(this,e);
+#define READY_CALLBACK      if(OnReady) OnReady(this);
+#define ERROR_CALLBACK(e)   if(OnError) OnError(this,e);
+#define CONNECT_CALLBACK(e) if(OnConnect) OnConnect(this,e);
 
 static void on_uv_close(uv_handle_t* handle) {
     CUNTcpClient *skt = (CUNTcpClient*)handle->data;
     // printf("close client %s  %d\n", skt->client->m_strRemoteIP.c_str(), skt->remotePort);
-    if(skt->m_funOnCLose) 
-        skt->m_funOnCLose(skt);
+    if(skt->OnCLose) 
+        skt->OnCLose(skt);
     skt->m_bInit = false;
     delete skt;
 }
@@ -61,22 +62,22 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
     if(nread < 0) {
         if(nread == UV__ECONNRESET || nread == UV_EOF) {
             //对端发送了FIN
-            if(skt->m_funOnEnd) 
-                skt->m_funOnEnd(skt);
+            if(skt->OnEnd) 
+                skt->OnEnd(skt);
             uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
         } else {
             uv_shutdown_t* req = new uv_shutdown_t;
             req->data = skt;
-            printf("Read error %s\n", uv_strerror(nread));
-            if(skt->m_funOnError) 
-                skt->m_funOnError(skt, uv_strerror(nread));
+            printf("Read error %s\n", uv_strerror((int)nread));
+            if(skt->OnError) 
+                skt->OnError(skt, uv_strerror((int)nread));
             uv_shutdown(req, stream, on_uv_shutdown);
         }
         return;
     }
-    skt->bytesRead += nread;
-    if (skt->m_funOnRecv)   //数据接收回调
-        skt->m_funOnRecv(skt, buf->base, nread);
+    skt->bytesRead += (uint32_t)nread;
+    if (skt->OnRecv)   //数据接收回调
+        skt->OnRecv(skt, buf->base, (int)nread);
 }
 
 static void on_uv_connect(uv_connect_t* req, int status){
@@ -84,17 +85,28 @@ static void on_uv_connect(uv_connect_t* req, int status){
     delete req;
 
     if(status != 0){
-        if(skt->m_funOnConnect)
-            skt->m_funOnConnect(skt, uv_strerror(status));
+        if(skt->OnConnect)
+            skt->OnConnect(skt, uv_strerror(status));
         return;
     }
-    int ret = uv_read_start((uv_stream_t*)&skt->uvTcp, on_uv_alloc, on_uv_read);
-    if(ret != 0){
-        if(skt->m_funOnError)
-            skt->m_funOnError(skt, uv_strerror(ret));
+
+    skt->m_bConnect = true;
+
+    // 自动开始接收数据
+    if(skt->autoRecv){
+        int ret = uv_read_start((uv_stream_t*)&skt->uvTcp, on_uv_alloc, on_uv_read);
+        if(ret != 0){
+            if(skt->OnError)
+                skt->OnError(skt, uv_strerror(ret));
+        }
     }
-    if(skt->m_funOnConnect) // 连接完成回调
-        skt->m_funOnConnect(skt, "");
+
+    // 连接完成回调
+    if(skt->OnConnect)
+        skt->OnConnect(skt, "");
+
+    // 连接成功前缓存的需要发送的数据，将其发送
+    skt->syncSend();
 }
 
 /** 数据发送完成 */
@@ -102,11 +114,11 @@ static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpClient* skt = (CUNTcpClient*)req->data;
     //printf("write finish %d\n", status);
     if(status != 0) {
-        if(skt->m_funOnError)
-            skt->m_funOnError(skt, uv_strerror(status));
+        if(skt->OnError)
+            skt->OnError(skt, uv_strerror(status));
     }
 
-    if(skt->m_bCopy){
+    if(skt->copy){
         for (auto it : skt->sendingList) {
             free(it.base);
         }
@@ -119,29 +131,43 @@ static void on_uv_write(uv_write_t* req, int status) {
     uv_mutex_unlock(&skt->sendMtx);
 
     if(empty){
-        if(skt->m_funOnDrain)
-            skt->m_funOnDrain(skt);
+        if(skt->OnDrain)
+            skt->OnDrain(skt);
     } else {
         skt->syncSend();
     }
 }
 
-CUNTcpClient::CUNTcpClient(CUVNetPlus* net, fnOnTcpEvent onReady, void *usr, bool copy=true)
+CTcpClient::CTcpClient()
+    : OnReady(nullptr)
+    , OnConnect(nullptr)
+    , OnRecv(nullptr)
+    , OnDrain(nullptr)
+    , OnCLose(nullptr)
+    , OnEnd(nullptr)
+    , OnTimeout(nullptr)
+    , OnError(nullptr)
+    , autoRecv(true)
+    , copy(true)
+    , userData(NULL)
+{}
+
+CTcpClient::~CTcpClient(){}
+
+CTcpClient* CTcpClient::Create(CNet* net, void *usr, bool copy){
+    CUNTcpClient* ret = new CUNTcpClient((CUVNetPlus*)net, copy);
+    ret->userData = usr;
+    ret->copy = copy;
+    return ret;
+}
+
+CUNTcpClient::CUNTcpClient(CUVNetPlus* net, bool copy)
     : m_pNet(net)
     , m_pSvr(nullptr)
     , m_bSetLocal(false)
     , m_bInit(false)
-    , m_pUsr(usr)
-    , m_funOnReady(onReady)
-    , m_funOnConnect(nullptr)
-    , m_funOnRecv(nullptr)
-    , m_funOnDrain(nullptr)
-    , m_funOnCLose(nullptr)
-    , m_funOnEnd(nullptr)
-    , m_funOnTimeout(nullptr)
-    , m_funOnError(nullptr)
+    , m_bConnect(false)
     , bytesRead(0)
-    , m_bCopy(copy)
 {
     readBuff = (char *)calloc(1, 1024*1024);
     uv_mutex_init(&sendMtx);
@@ -158,14 +184,14 @@ CUNTcpClient::~CUNTcpClient()
 
 void CUNTcpClient::Delete()
 {
-    m_funOnReady = nullptr;
-    m_funOnConnect = nullptr;
-    m_funOnRecv = nullptr;
-    m_funOnDrain = nullptr;
-    m_funOnCLose = nullptr;
-    m_funOnEnd = nullptr;
-    m_funOnTimeout = nullptr;
-    m_funOnError = nullptr;
+    OnReady = nullptr;
+    OnConnect = nullptr;
+    OnRecv = nullptr;
+    OnDrain = nullptr;
+    OnCLose = nullptr;
+    OnEnd = nullptr;
+    OnTimeout = nullptr;
+    OnError = nullptr;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CLTCLOSE, this);
 }
 
@@ -216,19 +242,24 @@ void CUNTcpClient::syncSend()
 {
     uv_mutex_lock(&sendMtx);
     size_t num = sendList.size();
-    uv_buf_t *bufs = new uv_buf_t[num];
-    int i =0;
-    for (auto it:sendList)
-    {
-        bufs[i++] = it;
-        sendingList.push_back(it);
+    uv_buf_t *bufs = NULL;
+    if(num > 0) {
+        bufs = new uv_buf_t[num];
+        int i =0;
+        for (auto &it:sendList)
+        {
+            bufs[i++] = it;
+            sendingList.push_back(it);
+        }
+        sendList.clear();
     }
-    sendList.clear();
     uv_mutex_unlock(&sendMtx);
+    if(num == 0)    //没有需要发送的数据
+        return;
 
     uv_write_t* req = new uv_write_t;
     req->data = this;
-    int ret = uv_write(req, (uv_stream_t*)&uvTcp, bufs, num, on_uv_write);
+    int ret = uv_write(req, (uv_stream_t*)&uvTcp, bufs, (unsigned int)num, on_uv_write);
     if(ret != 0){
         ERROR_CALLBACK(uv_strerror(ret));
     }
@@ -246,13 +277,11 @@ void CUNTcpClient::syncClose()
     }
 }
 
-void CUNTcpClient::Connect(std::string strIP, uint32_t nPort, fnOnTcpError onConnect)
+void CUNTcpClient::Connect(std::string strIP, uint32_t nPort)
 {
     m_strRemoteIP = strIP;
     m_nRemotePort = nPort;
-    m_funOnConnect = onConnect;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CONNECT, this);
-    
 }
 
 void CUNTcpClient::SetLocal(std::string strIP, uint32_t nPort)
@@ -262,62 +291,34 @@ void CUNTcpClient::SetLocal(std::string strIP, uint32_t nPort)
     m_bSetLocal = true;
 }
 
-void CUNTcpClient::HandleRecv(fnOnTcpRecv onRecv)
-{
-    m_funOnRecv = onRecv;
-}
-
-void CUNTcpClient::HandleDrain(fnOnTcpEvent onDrain)
-{
-    m_funOnDrain = onDrain;
-}
-
-void CUNTcpClient::HandleClose(fnOnTcpEvent onClose)
-{
-    m_funOnCLose = onClose;
-}
-
-void CUNTcpClient::HandleEnd(fnOnTcpEvent onEnd)
-{
-    m_funOnEnd = onEnd;
-}
-
-void CUNTcpClient::HandleTimeOut(fnOnTcpEvent onTimeOut)
-{
-    m_funOnTimeout = onTimeOut;
-}
-
-void CUNTcpClient::HandleError(fnOnTcpError onError)
-{
-    m_funOnError = onError;
-}
-
-void CUNTcpClient::Send(char *pData, uint32_t nLen)
+void CUNTcpClient::Send(const char *pData, uint32_t nLen)
 {
     char* tmp = NULL;
-    if(m_bCopy) {
+    if(copy) {
         tmp = (char*)malloc(nLen);
         memcpy(tmp, pData, nLen);
     } else {
-        tmp = pData;
+        tmp = (char*)pData;
     }
     uv_mutex_lock(&sendMtx);
     sendList.push_back(uv_buf_init(tmp, nLen));
     uv_mutex_unlock(&sendMtx);
-    m_pNet->AddEvent(ASYNC_EVENT_TCP_SEND, this);
+
+    if(m_bConnect || m_pSvr) //客户端需要建立连接完成才能发送，服务端直接就能发送
+        m_pNet->AddEvent(ASYNC_EVENT_TCP_SEND, this);
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-#define LISTEN_CALLBACK(e) if(m_funOnListen) m_funOnListen(this, e);
-#define CONNECTION_CALLBACK(e,c) if(m_funOnConnection) m_funOnConnection(this, e, c);
+#define LISTEN_CALLBACK(e) if(OnListen) OnListen(this, e);
+#define CONNECTION_CALLBACK(e,c) if(OnConnection) OnConnection(this, e, c);
 
 static void on_server_close(uv_handle_t* handle) {
     CUNTcpServer *skt = (CUNTcpServer*)handle->data;
     // printf("close client %s  %d\n", skt->client->m_strRemoteIP.c_str(), skt->remotePort);
-    if(skt->m_funOnClose) 
-        skt->m_funOnClose(skt, "");
-    skt->m_bInit = false;
+    if(skt->OnClose) 
+        skt->OnClose(skt, "");
+    skt->m_bListening = false;
     delete skt;
 }
 
@@ -326,17 +327,28 @@ static void on_connection(uv_stream_t* server, int status) {
     svr->syncConnection(server, status);
 }
 
-CUNTcpServer::CUNTcpServer(CUVNetPlus* net, fnOnTcpConnection onConnection, void *usr)
+CTcpServer::CTcpServer()
+    : userData(nullptr)
+    , OnListen(nullptr)
+    , OnConnection(nullptr)
+    , OnClose(nullptr)
+    , OnError(nullptr)
+{}
+
+CTcpServer::~CTcpServer(){}
+
+CTcpServer* CTcpServer::Create(CNet* net, ConnCB onConnection, void *usr){
+    CUNTcpServer *ret = new CUNTcpServer((CUVNetPlus*)net);
+    ret->OnConnection = onConnection;
+    ret->userData = usr;
+    return ret;
+}
+
+CUNTcpServer::CUNTcpServer(CUVNetPlus* net)
     : m_pNet(net)
     , m_nBacklog(512)
-    , m_bInit(false)
-    , m_pData(usr)
-    , m_funOnListen(nullptr)
-    , m_funOnConnection(onConnection)
-    , m_funOnClose(nullptr)
-    , m_funOnError(nullptr)
-{
-}
+    , m_bListening(false)
+{}
 
 CUNTcpServer::~CUNTcpServer()
 {
@@ -344,11 +356,35 @@ CUNTcpServer::~CUNTcpServer()
 
 void CUNTcpServer::Delete()
 {
-    m_funOnListen = nullptr;
-    m_funOnConnection = nullptr;
-    m_funOnClose = nullptr;
-    m_funOnError = nullptr;
+    OnListen = nullptr;
+    OnConnection = nullptr;
+    OnClose = nullptr;
+    OnError = nullptr;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_SVRCLOSE, this);
+}
+
+bool CUNTcpServer::Listen(std::string strIP, uint32_t nPort)
+{
+    if(m_bListening){
+        Log::error("this server is already on listening");
+        return false;
+    }
+
+    m_nFamily = net_is_ip(strIP.c_str());
+    if(m_nFamily != 4 && m_nFamily != 6) {
+        Log::error("listen an invalid ip");
+        return false;
+    }
+
+    m_strLocalIP = strIP;
+    m_nLocalPort = nPort;
+    m_bListening = true;
+    m_pNet->AddEvent(ASYNC_EVENT_TCP_LISTEN, this);
+    return true;
+}
+
+bool CUNTcpServer::Listening() {
+    return m_bListening;
 }
 
 void CUNTcpServer::syncListen()
@@ -357,25 +393,27 @@ void CUNTcpServer::syncListen()
     uv_tcp_init(&m_pNet->pNode->m_uvLoop, &uvTcp);
 
     int ret = 0;
-    int t = net_is_ip(m_strLocalIP.c_str());
-    if(t == 4) {
+    if(m_nFamily == 4) {
         struct sockaddr_in addr;
         ret = uv_ip4_addr(m_strLocalIP.c_str(), m_nLocalPort, &addr);
         ret = uv_tcp_bind(&uvTcp, (struct sockaddr*)&addr, 0);
-    } else if(t == 6) {
+    } else if(m_nFamily == 6) {
         struct sockaddr_in6 addr;
         ret = uv_ip6_addr(m_strLocalIP.c_str(), m_nLocalPort, &addr);
         ret = uv_tcp_bind(&uvTcp, (struct sockaddr*)&addr, 0);
     } else {
-        LISTEN_CALLBACK("ip不合法");
+        m_bListening = false;
+        if(OnListen) OnListen(this, "listen an invalid ip");
         return;
     }
 
     ret = uv_listen((uv_stream_t*)&uvTcp, m_nBacklog, on_connection);
     if(ret != 0) {
-        LISTEN_CALLBACK(uv_strerror(ret));
+        m_bListening = false;
+        if(OnListen) OnListen(this, uv_strerror(ret));
     } else {
-        LISTEN_CALLBACK("");
+        m_bListening = true;
+        if(OnListen) OnListen(this, "");
     }
 }
 
@@ -387,7 +425,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
     }
     CUNTcpServer *svr = (CUNTcpServer*)server->data;
 
-    CUNTcpClient *client = new CUNTcpClient(m_pNet, NULL, NULL);
+    CUNTcpClient *client = new CUNTcpClient(m_pNet);
     client->m_pSvr = this;
     client->syncInit();
     int ret = uv_accept(server, (uv_stream_t*)(&client->uvTcp));
@@ -444,48 +482,17 @@ void CUNTcpServer::syncClose()
     for(auto c:m_listClients){
         c->Delete();
     }
-    m_bInit = false;
-}
-
-void CUNTcpServer::Listen(std::string strIP, uint32_t nPort, fnOnTcpSvr onListion)
-{
-    if(!m_bInit){
-        m_strLocalIP = strIP;
-        m_nLocalPort = nPort;
-        m_funOnListen = onListion;
-        m_bInit = true;
-        m_pNet->AddEvent(ASYNC_EVENT_TCP_LISTEN, this);
-    } else {
-        onListion(this, "已经开始监听");
-    }
-}
-
-void CUNTcpServer::HandleClose(fnOnTcpSvr onClose)
-{
-    m_funOnClose = onClose;
-}
-
-void CUNTcpServer::HandleError(fnOnTcpSvr onError)
-{
-    m_funOnError = onError;
+    m_bListening = false;
 }
 
 void CUNTcpServer::removeClient(CUNTcpClient* c)
 {
     m_listClients.remove(c);
-    if(!m_bInit && m_listClients.empty()){
+    if(!m_bListening && m_listClients.empty()){
         uv_close((uv_handle_t*)&uvTcp, on_server_close);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
-
-CTcpClient* CTcpClient::Create(CNet* net, fnOnTcpEvent onReady, void *usr, bool copy){
-    return new CUNTcpClient((CUVNetPlus*)net, onReady, usr, copy);
-}
-
-CTcpServer* CTcpServer::Create(CNet* net, fnOnTcpConnection onConnection, void *usr){
-    return new CUNTcpServer((CUVNetPlus*)net, onConnection, usr);
-}
 
 }

@@ -18,93 +18,135 @@ public:
 /** TCP客户端 */
 class CTcpClient
 {
+    typedef void (*EventCB)(CTcpClient* skt);
+    typedef void (*RecvCB)(CTcpClient* skt, char *data, int len);
+    typedef void (*ErrorCB)(CTcpClient* skt, std::string error);
 public:
-    typedef void (*fnOnTcpEvent)(CTcpClient* skt);
-    typedef void (*fnOnTcpRecv)(CTcpClient* skt, char *data, int len);
-    typedef void (*fnOnTcpError)(CTcpClient* skt, std::string error);
+    EventCB      OnReady;     //socket创建完成
+    ErrorCB      OnConnect;   //连接完成
+    RecvCB       OnRecv;      //收到数据
+    EventCB      OnDrain;     //发送队列全部完成
+    EventCB      OnCLose;     //socket关闭
+    EventCB      OnEnd;       //收到对方fin,读到eof
+    EventCB      OnTimeout;   //超时回调
+    ErrorCB      OnError;     //错误回调
 
-    static CTcpClient* Create(CNet* net, fnOnTcpEvent onReady, void *usr=nullptr, bool copy=true);
+    bool         autoRecv;    //连接建立后是否立即自动接收数据。默认true
+    bool         copy;        //发送的数据拷贝到临时区域
+    void        *userData;    //用户绑定自定义数据
+
+    /**
+     * 创建一个tcp连接客户端实例
+     * @param net 环境句柄
+     * @param usr 设定用户自定义数据
+     * @param copy 调用发送接口时，是否将数据拷贝到缓存由内部进行管理
+     */
+    static CTcpClient* Create(CNet* net, void *usr=nullptr, bool copy=true);
+
+    /**
+     * 异步删除这个实例
+     */
     virtual void Delete() = 0;
-    virtual void Connect(std::string strIP, uint32_t nPort, fnOnTcpError onConnect) = 0;
+
+    /**
+     * 连接服务器，连接完成后调用OnConnect回调
+     */
+    virtual void Connect(std::string strIP, uint32_t nPort) = 0;
+
+    /**
+     * 设置socket的本地端口，如果不指定，将有系统自动分配
+     * @param strIP 本地IP，用来指定本定使用哪一个网卡。空表示不指定。
+     * @param nPort 本定端口，0表示不指定
+     */
     virtual void SetLocal(std::string strIP, uint32_t nPort) = 0; 
-    virtual void HandleRecv(fnOnTcpRecv onRecv) = 0;
-    virtual void HandleDrain(fnOnTcpEvent onDrain) = 0;
-    virtual void HandleClose(fnOnTcpEvent onClose) = 0;
-    virtual void HandleEnd(fnOnTcpEvent onEnd) = 0;
-    virtual void HandleTimeOut(fnOnTcpEvent onTimeOut) = 0;
-    virtual void HandleError(fnOnTcpError onError) = 0;
-    virtual void Send(char *pData, uint32_t nLen) = 0;
-    virtual void SetUserData(void* usr) = 0;
-    virtual void* UserData() = 0;
+
+    /**
+     * 发送数据。将数据放到本地缓存起来
+     */
+    virtual void Send(const char *pData, uint32_t nLen) = 0;
 protected:
-    CTcpClient(){};
-    virtual ~CTcpClient(){};
+    CTcpClient();
+    virtual ~CTcpClient() = 0;
 };
 
 /** TCP服务端 */
 class CTcpServer
 {
+    typedef void (*EventCB)(CTcpServer* svr, std::string err);
+    typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpClient* client);
 public:
-    typedef void (*fnOnTcpSvr)(CTcpServer* svr, std::string err);
-    typedef void (*fnOnTcpConnection)(CTcpServer* svr, std::string err, CTcpClient* client);
 
-    static CTcpServer* Create(CNet* net, fnOnTcpConnection onConnection, void *usr=nullptr);
+    EventCB          OnListen;       // 开启监听完成回调，错误时上抛错误消息
+    ConnCB           OnConnection;   // 新连接回调
+    EventCB          OnClose;        // 监听socket关闭完成回调
+    EventCB          OnError;        // 发生错误回调
+
+    void            *userData;
+
+    /**
+     * 创建一个tcp服务端实例
+     * @param net 环境句柄
+     * @param onConnection 指定收到新连接时的回调
+     * @param usr 设定用户自定义数据
+     */
+    static CTcpServer* Create(CNet* net, ConnCB onConnection, void *usr=nullptr);
+
+    /**
+     * 异步删除当前实例
+     */
     virtual void Delete() = 0;
-    virtual void Listen(std::string strIP, uint32_t nPort, fnOnTcpSvr onListion) = 0;
-    virtual void HandleClose(fnOnTcpSvr onClose) = 0;
-    virtual void HandleError(fnOnTcpSvr onError) = 0;
-    virtual void* UserData() = 0;
+
+    /**
+     * 启动监听
+     * @param strIP 本地IP，用来指定本定使用哪一个网卡
+     * @param nPort 本地监听端口
+     */
+    virtual bool Listen(std::string strIP, uint32_t nPort) = 0;
+
+    /** 服务器是否在监听连接 */
+    virtual bool Listening() = 0;
 protected:
-    CTcpServer(){};
-    virtual ~CTcpServer(){};
+    CTcpServer();
+    virtual ~CTcpServer() = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
 
 /** TCP连接池 请求结构 */
-class TcpRequest {
+class CTcpRequest {
 public:
-    std::string     host;
-    uint32_t        port;
-    char           *data;
-    int             len;
-    void           *usr;
-    bool            copy;
-    bool            recv;
+    std::string     host;   //请求目标域名或ip
+    uint32_t        port;   //请求端口
+    std::string     localaddr; //本地ip，表明使用哪一块网卡。默认空，不限制
+    void           *usr;    //用户自定义数据
+    bool            copy;   //需要发送的数据是否拷贝到内部维护
+    bool            recv;   //tcp请求是否需要接收数据
 
     /* 向请求追加发送数据,在发送回调中使用,不能另开线程 */
     virtual void Request(const char* buff, int length) = 0;
 
     /**
-     * recv为true时，接收完成，只能在接收回调中使用，必须调用
-     * recv为false时，发送完成，只能在发送回调中使用，必须调用
+     * 一个请求完成，将socket放到空闲池里面去
      */
     virtual void Finish() = 0;
 
 protected:
-    TcpRequest(){};
-    virtual ~TcpRequest(){};
+    CTcpRequest(){};
+    virtual ~CTcpRequest(){};
 };
 
 /** TCP连接池，进行请求应答 */
 class CTcpConnPool
 {
+    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
+    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
 public:
-    /**
-     * 定义发送请求回调
-     * @param usr 用户绑定的数据
-     * @param error 错误信息，为空时成功
-     */
-    typedef void (*fnOnConnectRequest)(TcpRequest* req, std::string error);
+    uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
+    uint32_t   maxIdle;     //最大空闲连接数 默认100
+    uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
 
-    /**
-     * 定义收到应答的回调
-     * @param usr 用户绑定的数据
-     * @param error 错误信息，为空时成功
-     * @param data 收到的数据,用户需要拷贝走，否则内容会改变
-     * @param len 收到的数据的长度
-     */
-    typedef void (*fnOnConnectResponse)(TcpRequest* req, std::string error, const char *data, int len);
+    ReqCB      OnRequest;
+    ResCB      OnResponse;
 
     /**
      * 创建连接池
@@ -112,28 +154,28 @@ public:
      * @param onReq 发送请求结果回调
      * @param onRes 应答回调
      */
-    static CTcpConnPool* Create(CNet* net, fnOnConnectRequest onReq, fnOnConnectResponse onRes);
+    static CTcpConnPool* Create(CNet* net, ReqCB onReq, ResCB onRes);
 
+    /**
+     * 异步删除连接池
+     */
     virtual void Delete() = 0;
 
     /**
      * 发送一个请求
-     * @param ip 请求目标ip
+     * @param host 请求目标域名或端口
      * @param port 请求目标端口
-     * @param data 需要发送的数据
-     * @param len 需要发送的数据长度
+     * @param localaddr 本地ip，指定网卡，为空表示不指定
      * @param usr 绑定一个用户数据，回调时作为参数输出
      * @param copy 发送的数据是否拷贝到内部
      * @param recv 是否需要接收应答
      * @return 返回新的请求实例
      */
-    virtual TcpRequest* Request(std::string ip, uint32_t port, const char* data, int len, void *usr=nullptr, bool copy=true, bool recv=true) = 0;
+    virtual CTcpRequest* Request(std::string host, uint32_t port, std::string localaddr, void *usr=nullptr, bool copy=true, bool recv=true) = 0;
 
-    virtual void MaxConns(uint32_t num) = 0;
-    virtual void MaxIdle(uint32_t num) = 0;
 protected:
-    CTcpConnPool(){};
-    virtual ~CTcpConnPool(){};
+    CTcpConnPool();
+    virtual ~CTcpConnPool() = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -45,27 +45,27 @@ public:
      * 显示填写http头，调用后隐式http头的接口就无效了
      * @param headers http头域完整字符串，包含每一行结尾的"\r\n"
      */
-    void writeHead(std::string headers);
+    void WriteHead(std::string headers);
 
     /**
      * 获取已经设定的隐式头
      */
-    std::vector<std::string> getHeader(std::string name);
+    std::vector<std::string> GetHeader(std::string name);
 
     /**
      * 获取所有设定的隐式头的key
      */
-    std::vector<std::string> getHeaderNames();
+    std::vector<std::string> GetHeaderNames();
 
     /**
      * 隐式头是否已经包含一个名称
      */
-    bool hasHeader(std::string name);
+    bool HasHeader(std::string name);
 
     /**
      * 移除一个隐式头
      */
-    void removeHeader(std::string name);
+    void RemoveHeader(std::string name);
 
     /**
      * 重新设置一个头的值，或者新增一个隐式头
@@ -73,17 +73,17 @@ public:
      * param value 单个field value
      * param values 以NULL结尾的字符串数组，多个field value
      */
-    void setHeader(std::string name, std::string value);
-    void setHeader(std::string name, char **values);
+    void SetHeader(std::string name, std::string value);
+    void SetHeader(std::string name, char **values);
 
     /**
      * 查看是否完成
      */
-    bool finished();
+    bool Finished();
 
 protected:
     /** 由隐式头组成字符串 */
-    std::string getHeaderString();
+    std::string getImHeaderString();
 
 protected:
     std::string         m_strHeaders;  // 显式的头
@@ -110,7 +110,7 @@ public:
     std::string         host;      // 域名或IP
     int                 port;      // 端口
     std::string         localaddr; // 指定本地IP，默认为空
-    int                 localport; // 指定本地端口， 默认为0
+    int                 localport; // 指定本地端口， 默认为0。只有很特殊的情形需要设置，正常都不需要
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     bool                chunked;   // Transfer-Encoding: chunked
 
@@ -127,11 +127,11 @@ public:
     /**
      * 用来发送一块数据，如果chunked=true，发送一个chunk的数据
      * 如果chunked=false，使用这个方法多次发送数据，必须自己在设置头里设置length
-     * @param data 需要发送的数据
+     * @param chunk 需要发送的数据
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    bool Write(char* data, int len, ReqCb cb = NULL);
+    bool Write(char* chunk, int len, ReqCb cb = NULL);
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -146,9 +146,77 @@ public:
 
 
 private:
-    string GetAgentName();
+    std::string GetAgentName();
+    std::string GetHeadersString();
 
     CTcpConnPool        *m_pTcpPool;
+    CTcpRequest          *m_pTcpReq;
+};
+
+/** 服务端生成应答数据并发送 */
+class ServerResponse : public SendingMessage
+{
+    typedef void(*ResCb)(ServerResponse *response);
+public:
+    ServerResponse();
+    ~ServerResponse();
+
+    bool                sendDate;      // 默认true，在发送头时自动添加Date头(已存在则不会添加)
+    int                 statusCode;    // 状态码
+    std::string         statusMessage; //自定义的状态消息，如果为空，发送时会取标准消息
+    VERSION             version;       // http版本号 1.0或1.1
+    bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
+    bool                chunked;   // Transfer-Encoding: chunked
+
+    /** 发送完成前,socket中断了会回调该方法 */
+    ResCb OnClose;
+    /** 应答发送完成时回调，所有数据都已经发送 */
+    ResCb OnFinish;
+
+    /**
+     * 添加一个尾部数据
+     * @param key 尾部数据的field name，这个值已经在header中的Trailer里定义了
+     * @param value 尾部数据的field value
+     */
+    void AddTrailers(std::string key, std::string value);
+
+    /**
+     * Sends a HTTP/1.1 100 Continue message。包括write和end的功能
+     */
+    void WriteContinue();
+
+    /**
+     * Sends a HTTP/1.1 102 Processing message to the client
+     */
+    void WriteProcessing();
+
+    /**
+     * 显示填写http头，调用后隐式http头的接口就无效了
+     * @param statusCode 响应状态码
+     * @param statusMessage 自定义状态消息，可以为空，则使用标准消息
+     * @param headers http头域完整字符串，每行都要包含"\r\n"
+     */
+    void WriteHead(int statusCode, std::string statusMessage, std::string headers);
+
+    /**
+     * 如果调用了此方法，但没有调用writeHead()，则使用隐式头并立即发送头
+     */
+    void Write(char* chunk, int len, ResCb cb = NULL);
+
+    /**
+     * 表明应答的所有数据都已经发送。每个实例都需要调用一次end。执行后会触发OnFinish
+     */
+    void End();
+
+    /**
+     * 相当于调用write(data, len, cb) ; end()
+     */
+    void End(char* data, int len, ResCb cb = NULL);
+
+private:
+    std::string GetHeadersString();
+
+    hash_list   m_Trailers;
 };
 
 /** 接收到的数据，服务端接收到的请求或客户端接收到的应答 */
@@ -167,69 +235,11 @@ public:
     int         statusCode;     //应答状态码
     std::string statusMessage;  //应答状态消息
 
-    std::string httpVersion;    //http版本号 1.1或1.0
+    VERSION     httpVersion;    //http版本号 1.1或1.0
     std::string rawHeaders;     //完整的头部字符串
     std::string rawTrailers;    //完整的尾部字符串
     hash_list   headers;        //解析好的http头部键值对
     hash_list   trailers;       //解析好的http尾部键值对
-};
-
-/** 服务端生成应答数据并发送 */
-class ServerResponse
-{
-    typedef void(*ResCb)(ServerResponse *response);
-public:
-    ServerResponse();
-    ~ServerResponse();
-
-    /** 发送完成前,socket中断了会回调该方法 */
-    ResCb OnClose;
-    /** 应答发送完成时回调，所有数据都已经发送 */
-    ResCb OnFinish;
-
-    /**
-     * 添加一个尾部数据
-     * @param key 尾部数据的field name，这个值已经在header中的Trailer里定义了
-     * @param value 尾部数据的field value
-     */
-    void addTrailers(std::string key, std::string value);
-
-    /**
-     * 如果调用了此方法，但没有调用writeHead()，则使用隐式头并立即发送头
-     */
-    void write(char* chunk, int len);
-
-    /**
-     * Sends a HTTP/1.1 100 Continue message。包括write和end的功能
-     */
-    void writeContinue();
-
-    /**
-     * Sends a HTTP/1.1 102 Processing message to the client
-     */
-    void writeProcessing();
-
-    /**
-     * 显示填写http头，调用后隐式http头的接口就无效了
-     * @param statusCode 响应状态码
-     * @param statusMessage 自定义状态消息，可以为空，则使用标准消息
-     * @param headers http头域完整字符串，每行都要包含"\r\n"
-     */
-    void writeHead(int statusCode, std::string statusMessage, std::string headers);
-
-    /**
-     * 表明应答的所有数据都已经发送。每个实例都需要调用一次end。执行后会触发OnFinish
-     */
-    void end();
-
-    /**
-     * 相当于调用write(data, len) ; end()
-     */
-    void end(char* data, int len);
-
-    bool sendDate;    // 默认true，在发送头时自动添加Date头(已存在则不会添加)
-    int  statusCode;  // 状态码
-    std::string statusMessage; //自定义的状态消息，如果为空，发送时会取标准消息
 };
 
 /** http服务 */
@@ -241,12 +251,11 @@ public:
     ~Server();
 
     /** 服务器启动监听 */
-    void listen(int port);
+    bool Listen(std::string strIP, uint32_t nPort);
     /** 服务器关闭 */
-    void close();
-
-    bool listening; //服务器是否在监听连接
-
+    void Close();
+    /** 服务器是否在监听连接 */
+    bool Listening();
 
     /** 接受到一个包含'Expect: 100-continue'的请求时调用，如果没有指定，自动发送'100 Continue' */
     ReqCb OnCheckContinue;
@@ -256,6 +265,14 @@ public:
     ReqCb OnUpgrade;
     /** 接收到一个请求，如果是其他指定的回调，就不会进入这里 */
     ReqCb OnRequest;
+
+private:
+    static void OnListen(CTcpServer* svr, std::string err);
+    static void OnTcpConnection(CTcpServer* svr, std::string err, CTcpClient* client);
+
+private:
+    int           m_nPort;      //服务监听端口
+    CTcpServer   *m_pTcpSvr;    //tcp监听服务
 };
 
 };

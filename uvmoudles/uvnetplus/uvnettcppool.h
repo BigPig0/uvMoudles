@@ -84,7 +84,7 @@ public:
 /**
  * TCP请求类，继承自导出接口
  */
-class CUNTcpRequest : public TcpRequest {
+class CUNTcpRequest : public CTcpRequest {
 public:
     CUNTcpRequest();
     ~CUNTcpRequest();
@@ -92,9 +92,13 @@ public:
     virtual void Request(const char* buff, int length);
     virtual void Finish();
 
+    string getAgentName();
+
     TcpAgent       *agent;   //请求所在的agent
     CUNTcpConnPool *pool;    //连接所在的连接池
     TcpConnect     *conn;    //请求所使用的连接
+
+    list<uv_buf_t>  buffs;   //TcpClient创建之前要求发送的数据进行缓存
 };
 
 class CUNTcpConnPool : public CTcpConnPool
@@ -109,22 +113,12 @@ public:
 
     virtual void Delete();
 
-    virtual TcpRequest* Request(string host, uint32_t port,  const char* data, int len, void *usr=nullptr, bool copy=true, bool recv=true);
-
-    virtual void MaxConns(uint32_t num){m_nMaxConns = num;}
-
-    virtual void MaxIdle(uint32_t num){m_nMaxIdle = num;}
-
-    fnOnConnectRequest      m_funOnRequest;
-    fnOnConnectResponse     m_funOnResponse;
+    virtual CTcpRequest* Request(string host, uint32_t port, string localaddr, void *usr=nullptr, bool copy=true, bool recv=true);
 
 public:
     CUVNetPlus         *m_pNet;         //事件线程句柄
-    uint32_t            m_nMaxConns;    //最大连接数 默认512(busy+idle)
-    uint32_t            m_nMaxIdle;     //最大空闲连接数 默认100
     uint32_t            m_nBusyCount;   //当前使用中的连接数
     uint32_t            m_nIdleCount;   //当前空闲的连接数
-    uint32_t            m_nTimeOut;     //空闲连接超时时间 秒
 
     list<CUNTcpRequest*> m_listReqs;      //请求列表,暂存外部的请求
     uv_mutex_t           m_ReqMtx;        //请求列表锁

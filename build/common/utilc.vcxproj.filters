@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\common\utilc\memfile.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\common\utilc\netstream.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -44,11 +41,14 @@
     <ClInclude Include="..\..\common\utilc\linked_list.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\common\utilc\utilc_string.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\utilc\utilc_memfile.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\common\utilc\memfile.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\common\utilc\netstream.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -65,6 +65,12 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\utilc\doubly_linked_list.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\utilc\utilc_string.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\utilc\utilc_memfile.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
