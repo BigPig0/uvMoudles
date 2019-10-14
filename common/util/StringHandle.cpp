@@ -53,8 +53,6 @@ std::string StringHandle::replace(std::string &s)
 	return s;
 }
 
-
-
 std::string StringHandle::StringUper(std::string str )
 {
 	char chBuffer[255] = {0};
@@ -77,61 +75,120 @@ std::string StringHandle::StringUper(std::string str )
     return std::string(chBuffer);
 }
 
-
-std::vector<std::string> StringHandle::StringCompart(std::string strSrc, char* pChar, int nLen )
+std::vector<std::string> StringHandle::StringSplit(const std::string &s, const char tag)
 {
-	std::vector<std::string> pathVec;
-
-	if (NULL == pChar)
+	std::string res;
+	std::vector<std::string> vecNum;
+	for (size_t i=0; i<s.size(); i++)
 	{
-		return pathVec;
-	}
-
-	int nIndexFirst = 0, nIndexSecond = 0, nMaxIndex = strSrc.length()-1;
-
-	// 	const char chSeparator1 = '\\';
-	// 	const char chSeparator2 = '/';
-
-	char chTemp = 0;
-	bool bStartFlag = false;
-	for (; nIndexFirst <= nMaxIndex; ++nIndexFirst )
-	{
-		chTemp = strSrc.at(nIndexFirst);
-		bool bMachFlag = false;
-		for (int nIndex = 0; nIndex < nLen; ++nIndex)
+		char c = s[i];
+		if (c != tag)
 		{
-			if (*(pChar+nIndex) == chTemp)
-			{
-				bMachFlag = true;
-				break;
-			}
+			res.push_back(c);
 		}
-
-		if ( bMachFlag )
+		else if(!res.empty())
 		{
-			if (bStartFlag)
-			{
-				//此为结尾分隔
-				pathVec.push_back(strSrc.substr(nIndexSecond, nIndexFirst - nIndexSecond));
-				//nIndexSecond = nIndexFirst;
-				bStartFlag = false;
-			}
-			else
-			{
-				pathVec.push_back("");
-				//此为起始分隔符，不做操作
-			}
-		}    
-		else if (!bStartFlag)
-		{
-			//记录起始位置
-			nIndexSecond = nIndexFirst;
-			bStartFlag = true;
+			vecNum.push_back(res);
+			res = "";
 		}
 	}
+	if(!res.empty())
+	{
+		vecNum.push_back(res);
+		res = "";
+	}
 
-	pathVec.push_back(strSrc.substr(nIndexSecond, nIndexFirst - nIndexSecond + 1));
-	return pathVec;
+	return vecNum;
+}
+
+std::vector<std::string> StringHandle::StringSplit(const std::string &s, char* tag, int nLen )
+{
+    std::vector<std::string> pathVec;
+
+    if (NULL == tag)
+    {
+        return pathVec;
+    }
+
+    int nIndexFirst = 0, nIndexSecond = 0, nMaxIndex = s.length()-1;
+
+    // 	const char chSeparator1 = '\\';
+    // 	const char chSeparator2 = '/';
+
+    char chTemp = 0;
+    bool bStartFlag = false;
+    for (; nIndexFirst <= nMaxIndex; ++nIndexFirst )
+    {
+        chTemp = s.at(nIndexFirst);
+        bool bMachFlag = false;
+        for (int nIndex = 0; nIndex < nLen; ++nIndex)
+        {
+            if (*(tag+nIndex) == chTemp)
+            {
+                bMachFlag = true;
+                break;
+            }
+        }
+
+        if ( bMachFlag )
+        {
+            if (bStartFlag)
+            {
+                //此为结尾分隔
+                pathVec.push_back(s.substr(nIndexSecond, nIndexFirst - nIndexSecond));
+                //nIndexSecond = nIndexFirst;
+                bStartFlag = false;
+            }
+            else
+            {
+                pathVec.push_back("");
+                //此为起始分隔符，不做操作
+            }
+        }    
+        else if (!bStartFlag)
+        {
+            //记录起始位置
+            nIndexSecond = nIndexFirst;
+            bStartFlag = true;
+        }
+    }
+
+    pathVec.push_back(s.substr(nIndexSecond, nIndexFirst - nIndexSecond + 1));
+    return pathVec;
+}
+
+std::vector<std::string> StringHandle::StringSplit(const std::string &s, std::string tag)
+{
+    std::vector<std::string> vecFieldData;
+    std::string o_str;
+    o_str = s;
+    std::vector<std::string> str_list; // 存放分割后的字符串
+    int comma_n = 0;
+    do
+    {
+        std::string tmp_s = "";
+        //comma_n = o_str.find( "\t" );
+        comma_n = o_str.find( tag.c_str() );
+        if( -1 == comma_n )
+        {
+            tmp_s = o_str.substr( 0, o_str.length() );
+            str_list.push_back( tmp_s );
+            break;
+        }
+        tmp_s = o_str.substr( 0, comma_n );
+        o_str.erase( 0, comma_n+tag.size() );
+        str_list.push_back( tmp_s );
+    }
+    while(true);
+
+    vecFieldData = str_list;
+
+    if(vecFieldData.size()==1 && vecFieldData[0] == s)
+    {
+        vecFieldData.clear();
+    }
+
+    return vecFieldData;
 }
 
 std::string StringHandle::StringWipe( const std::string strSrc, const std::string strDest )
@@ -156,32 +213,6 @@ std::string StringHandle::StringWipe( const std::string strSrc, const std::strin
 	}
 
 	return strTmp;
-}
-
-std::vector<std::string> StringHandle::StringSplit(const std::string s, const char tag)
-{
-	std::string res;
-	std::vector<std::string> vecNum;
-	for (size_t i=0; i<s.size(); i++)
-	{
-		char c = s[i];
-		if (c != tag)
-		{
-			res.push_back(c);
-		}
-		else if(!res.empty())
-		{
-			vecNum.push_back(res);
-			res = "";
-		}
-	}
-	if(!res.empty())
-	{
-		vecNum.push_back(res);
-		res = "";
-	}
-
-	return vecNum;
 }
 
 std::string StringHandle::RemoveUnDig(std::string str)
@@ -700,41 +731,6 @@ void StringHandle::Trim(std::string &str)
 {
 	str.erase(str.find_last_not_of(' ') + 1, std::string::npos);
 	str.erase(0, str.find_first_not_of(' '));
-}
-
-
-std::vector<std::string> StringHandle::SplitData(std::string &strRecData,std::string strSep)
-{
-	std::vector<std::string> vecFieldData;
-	std::string o_str;
-	o_str = strRecData;
-	std::vector<std::string> str_list; // 存放分割后的字符串
-	int comma_n = 0;
-	do
-	{
-		std::string tmp_s = "";
-		//comma_n = o_str.find( "\t" );
-		comma_n = o_str.find( strSep.c_str() );
-		if( -1 == comma_n )
-		{
-			tmp_s = o_str.substr( 0, o_str.length() );
-			str_list.push_back( tmp_s );
-			break;
-		}
-		tmp_s = o_str.substr( 0, comma_n );
-		o_str.erase( 0, comma_n+1 );
-		str_list.push_back( tmp_s );
-	}
-	while(true);
-
-	vecFieldData = str_list;
-
-	if(vecFieldData.size()==1 && vecFieldData[0] == strRecData)
-	{
-		vecFieldData.clear();
-	}
-
-	return vecFieldData;
 }
 
 std::string StringHandle::WinPath2UnixPath(const std::string strSrc)

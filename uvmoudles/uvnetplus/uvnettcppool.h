@@ -16,7 +16,6 @@
 
 #pragma once
 #include "uvnetplus.h"
-#include "uvnetprivate.h"
 #include "uvnettcp.h"
 #include <list>
 #include <unordered_map>

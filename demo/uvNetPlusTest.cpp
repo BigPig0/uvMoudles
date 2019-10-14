@@ -5,7 +5,6 @@
 #include <tchar.h>
 #include <windows.h>
 #include "uvnetplus.h"
-#include "uvnethttp.h"
 #include "Log.h"
 #include <string>
 #include <thread>
@@ -218,14 +217,26 @@ void testServer()
 
 //////////////////////////////////////////////////////////////////////////
 
-static void OnHttpRequest(Http::Server *server, Http::IncomingMessage *request, Http::ServerResponse *response) {
+static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMessage *request, Http::CHttpResponse *response) {
+    Log::debug("%d %s %d", request->method, request->url.c_str(), request->version);
+    for(auto &h:request->headers) {
+        Log::debug("%s: %s", h.first.c_str(), h.second.c_str());
+    }
+    Log::debug("Content len: %d", request->contentLen);
+    Log::debug("Chunked: %d", request->chunked);
+    Log::debug("Keep alive: %d", request->keepAlive);
+    Log::debug("Complete: %d", request->complete);
+    Log::debug(request->rawHeaders.c_str());
 
+    response->statusCode = 200;
+    response->SetHeader("myheader", "1111111111111");
+    response->End("123456789",9);
 }
 
 void testHttpServer()
 {
     CNet* net = CNet::Create();
-    Http::Server *svr = new Http::Server(net);
+    Http::CHttpServer *svr = Http::CHttpServer::Create(net);
     svr->OnRequest = OnHttpRequest;
     svr->Listen("0.0.0.0", svrport);
 }
@@ -236,7 +247,8 @@ int _tmain(int argc, _TCHAR* argv[])
 {
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
-    testServer();
+    //testServer();
+    testHttpServer();
 
 	Sleep(INFINITE);
 	return 0;

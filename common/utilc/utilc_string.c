@@ -1,7 +1,7 @@
 #include <string.h>
 #include <ctype.h>
 
-int htoi(char *s) {
+int htoi(const char *s) {
     int i;
     int ret = 0;
     int len = strlen(s);

@@ -22,16 +22,24 @@ public:
 	*@param:tag:分割符号
 	*@return:std::vector<std::string>:分割后的字符串数组
 	*/
-	static std::vector<std::string>  StringSplit(const std::string s, const char tag);
+	static std::vector<std::string>  StringSplit(const std::string &s, const char tag);
 
 	/**
 	*@brief:字符串分割
 	*@param:strSrc:原始字符串
-	*@param:pChar:分割符号（字符串）
+	*@param:tag:分割符号（字符串）
 	*@param:nLen:分割符号的长度
 	*@return:std::vector<std::string>:分割后的字符串数组
 	*/
-	static std::vector<std::string>  StringCompart(std::string strSrc, char* pChar, int nLen);
+	static std::vector<std::string>  StringSplit(const std::string &s, char* tag, int nLen);
+
+	/**
+    *@brief:字符串分割
+    *@param:strSrc:原始字符串
+    *@param:tag:分割符号（字符串）
+    *@return:std::vector<std::string>:分割后的字符串数组
+	*/
+	static std::vector<std::string> StringSplit(const std::string &s, std::string tag);
 
 	/**
 	*@brief:删除字符串中的字符串
@@ -103,28 +111,6 @@ public:
 	*/
 	static std::string               RemoveUnDig(std::string str); 
 
-    /**
-     * 整数转成字符串
-     */
-    template<typename T>
-    static std::string               toStr(T num)
-    {
-        std::stringstream ss;
-        ss<<num;
-        return ss.str();
-    }
-
-    /**
-     * 整数转成字符串
-     */
-    template<typename T>
-    static std::wstring              toWStr(T num)
-    {
-        std::wstringstream ss;
-        ss<<num;
-        return ss.str();
-    }
-
 	/**
 	*@brief:判断字符串是否全是数字
 	*@param:strValue:要判断的字符串
@@ -162,7 +148,7 @@ public:
 	*@param:asciiStr:输出ascii字符串
 	*@return:bool:true:全为数字，false:不全为数字
 	*/
-	static bool                 HexStr2Ascii(std::string hexStr, std::string &asciiStr);
+	static bool HexStr2Ascii(std::string hexStr, std::string &asciiStr);
 
 	/**
 	*@brief:小写字符转大写字符
@@ -221,11 +207,6 @@ public:
 	*@brief:去除前后空白，lianghuikang
 	*/
 	static void Trim(std::string &str);
-
-	/**
-	*@brief:实现切割
-	*/
-	static std::vector<std::string> SplitData(std::string &strRecData,std::string strSep);
 
 
 	static void utf8_cut(std::string &strContent, unsigned unLength);
