@@ -217,6 +217,24 @@ void testServer()
 
 //////////////////////////////////////////////////////////////////////////
 
+void testHttpRequest()
+{
+    CNet* net = CNet::Create();
+    CTcpConnPool* client = CTcpConnPool::Create(net, OnConnectRequest, OnConnectResponse);
+    client->maxConns = 10;
+    client->maxIdle = 10;
+    for (int i=0; i<10; i++) {
+         Http::CHttpRequest* req = Http::CHttpRequest::Create(client);
+         req->host = "www.baidu.com";
+         req->protocol = PROTOCOL::HTTP;
+         req->method = Http::METHOD::GET;
+         req->path = "/s?wd=http+content+len";
+         req->version = Http::VERSION::HTTP1_1;
+         req->SetHeader("myheader","????????");
+         req->End();
+    }
+}
+
 static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMessage *request, Http::CHttpResponse *response) {
     Log::debug("%d %s %d", request->method, request->url.c_str(), request->version);
     for(auto &h:request->headers) {

@@ -55,6 +55,11 @@ public:
     void SetHeader(std::string name, char **values);
 
     /**
+     * 设置内容长度。内容分多次发送，且不使用chunked时使用。
+     */
+    void SetContentLen(uint32_t len);
+
+    /**
      * 查看是否完成
      */
     bool Finished();
@@ -65,10 +70,11 @@ protected:
     std::string getImHeaderString();
 
 protected:
-    std::string         m_strHeaders;  // 显式的头
-    hash_list           m_Headers;     // 隐式头的内容
+    std::string         m_strHeaders;   // 显式的头
+    hash_list           m_Headers;      // 隐式头的内容
     bool                m_bHeadersSent; // header是否已经发送
-    bool                m_bFinished;   // 接收应答是否完成
+    bool                m_bFinished;    // 接收应答是否完成
+    uint32_t            m_nContentLen;  // 设置内容的长度
 };
 
 
@@ -106,6 +112,7 @@ public:
     virtual void RemoveHeader(std::string name);
     virtual void SetHeader(std::string name, std::string value);
     virtual void SetHeader(std::string name, char **values);
+    virtual void SetContentLen(uint32_t len);
     virtual bool Finished();
 
 private:
@@ -170,6 +177,7 @@ public:
     virtual void RemoveHeader(std::string name);
     virtual void SetHeader(std::string name, std::string value);
     virtual void SetHeader(std::string name, char **values);
+    virtual void SetContentLen(uint32_t len);
     virtual bool Finished();
 private:
     std::string GetHeadersString();

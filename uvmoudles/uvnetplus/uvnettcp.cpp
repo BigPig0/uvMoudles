@@ -39,7 +39,7 @@ int net_is_ip(const char* input) {
 
 static void on_uv_close(uv_handle_t* handle) {
     CUNTcpClient *skt = (CUNTcpClient*)handle->data;
-    // printf("close client %s  %d\n", skt->client->m_strRemoteIP.c_str(), skt->remotePort);
+    Log::warning("close client %s  %d\n", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     if(skt->OnCLose) 
         skt->OnCLose(skt);
     skt->m_bInit = false;
@@ -48,6 +48,7 @@ static void on_uv_close(uv_handle_t* handle) {
 
 static void on_uv_shutdown(uv_shutdown_t* req, int status) {
     CUNTcpClient *skt = (CUNTcpClient*)req->data;
+     Log::warning("shutdown client %s  %d\n", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     delete req;
     uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
 }

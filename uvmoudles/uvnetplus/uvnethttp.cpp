@@ -105,6 +105,7 @@ namespace Http {
     SendingMessage::SendingMessage()
         : m_bHeadersSent(false)
         , m_bFinished(false)
+        , m_nContentLen(0)
         , m_pSocket(NULL){}
 
     SendingMessage::~SendingMessage(){}
@@ -146,6 +147,10 @@ namespace Http {
     }
 
     void SendingMessage::SetHeader(std::string name, std::string value) {
+        if(!strcasecmp(name.c_str(), "Content-Length")) {
+            m_nContentLen = stoi(value);
+            return;
+        }
         RemoveHeader(name);
         m_Headers.insert(make_pair(name, value));
     }
@@ -156,6 +161,10 @@ namespace Http {
         for(int i = 0; values[i]; i++) {
             m_Headers.insert(make_pair(name, values[i]));
         }
+    }
+
+    void SendingMessage::SetContentLen(uint32_t len) {
+        m_nContentLen = len;
     }
 
     bool SendingMessage::Finished() {
@@ -277,6 +286,10 @@ namespace Http {
         SendingMessage::SetHeader(name, values);
     }
 
+    void ClientRequest::SetContentLen(uint32_t len){
+        SendingMessage::SetContentLen(len);
+    }
+
     bool ClientRequest::Finished() {
         return SendingMessage::Finished();
     }
@@ -376,6 +389,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
+            Log::debug(buff.c_str());
             m_pSocket->Send(buff.c_str(), (uint32_t)buff.size());
             m_bHeadersSent = true;
         } else {
@@ -397,6 +411,9 @@ namespace Http {
     }
 
     void ServerResponse::End(char* data, int len, ResCb cb) {
+        if(!chunked && !m_nContentLen) {
+            m_nContentLen = len;
+        }
         Write(data, len, cb);
         End();
     }
@@ -429,6 +446,10 @@ namespace Http {
         SendingMessage::SetHeader(name, values);
     }
 
+    void ServerResponse::SetContentLen(uint32_t len){
+        SendingMessage::SetContentLen(len);
+    }
+
     bool ServerResponse::Finished() {
         return SendingMessage::Finished();
     }
@@ -443,9 +464,10 @@ namespace Http {
             ss << statusMessage;
         else
             ss << STATUS_CODES(statusCode);
-        ss << "\r\n";
+        ss << "\r\nContent-Length: "
+            << m_nContentLen << "\r\n";
         for(auto &it:m_Headers) {
-            ss << it.first << ": " << it.second << "\r\\n";
+            ss << it.first << ": " << it.second << "\r\n";
         }
         return ss.str();
     }
@@ -688,6 +710,7 @@ namespace Http {
     Server::~Server(){}
 
     bool Server::Listen(std::string strIP, uint32_t nPort){
+        m_nPort = nPort;
         return m_pTcpSvr->Listen(strIP, nPort);
     }
 

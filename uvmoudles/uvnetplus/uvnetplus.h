@@ -265,6 +265,11 @@ public:
     virtual void SetHeader(std::string name, char **values) = 0;
 
     /**
+     * 设置内容长度。内容分多次发送，且不使用chunked时使用。
+     */
+    virtual void SetContentLen(uint32_t len) = 0;
+
+    /**
      * 查看是否完成
      */
     virtual bool Finished() = 0;
