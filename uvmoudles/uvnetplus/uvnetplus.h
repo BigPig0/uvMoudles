@@ -116,6 +116,8 @@ protected:
 
 /** TCP连接池 请求结构 */
 class CTcpRequest {
+    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
+    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
 public:
     std::string     host;   //请求目标域名或ip
     uint32_t        port;   //请求端口
@@ -123,6 +125,9 @@ public:
     void           *usr;    //用户自定义数据
     bool            copy;   //需要发送的数据是否拷贝到内部维护
     bool            recv;   //tcp请求是否需要接收数据
+
+    ReqCB      OnRequest;
+    ResCB      OnResponse;
 
     /* 向请求追加发送数据,在发送回调中使用,不能另开线程 */
     virtual void Request(const char* buff, int length) = 0;
@@ -133,16 +138,17 @@ public:
     virtual void Finish() = 0;
 
 protected:
-    CTcpRequest(){};
-    virtual ~CTcpRequest(){};
+    CTcpRequest();
+    virtual ~CTcpRequest() = 0;
 };
 
 /** TCP连接池，进行请求应答 */
 class CTcpConnPool
 {
+public:
     typedef void (*ReqCB)(CTcpRequest* req, std::string error);
     typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
-public:
+
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
@@ -173,7 +179,10 @@ public:
      * @param recv 是否需要接收应答
      * @return 返回新的请求实例
      */
-    virtual CTcpRequest* Request(std::string host, uint32_t port, std::string localaddr, void *usr=nullptr, bool copy=true, bool recv=true) = 0;
+    virtual CTcpRequest* Request(std::string host, uint32_t port
+        , std::string localaddr, void *usr=nullptr
+        , bool copy=true, bool recv=true
+        , ReqCB onReq=NULL, ResCB onRes=NULL) = 0;
 
 protected:
     CTcpConnPool();

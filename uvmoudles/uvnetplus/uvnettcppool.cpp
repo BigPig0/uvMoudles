@@ -35,7 +35,9 @@ static void OnTcpConnect(CTcpClient* skt, std::string error) {
     //Log::error("tcp connect failed");
     //从busy队列移除
     agent->m_listBusyConns.remove(conn);
-    if(pool->OnRequest) {
+    if(req->OnRequest) {
+        req->OnRequest(req, error);
+    } else if(pool->OnRequest) {
         pool->OnRequest(req, error);
     }
 
@@ -52,7 +54,9 @@ static void OnTcpRecv(CTcpClient* skt, char *data, int len) {
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
     conn->m_eState = ConnState_rcv;
-    if(pool->OnResponse) {
+    if(req->OnResponse) {
+        req->OnResponse(req, "", data, len);
+    } else if(pool->OnResponse) {
         pool->OnResponse(req, "", data, len);
     }
 }
@@ -64,7 +68,9 @@ static void OnTcpDrain(CTcpClient* skt) {
     CUNTcpRequest  *req  = conn->m_pReq;
     CUNTcpConnPool *pool = agent->m_pTcpConnPool;
     conn->m_eState = ConnState_sndok;
-    if(pool->OnRequest) {
+    if(req->OnRequest) {
+        req->OnRequest(req, "");
+    } else if(pool->OnRequest) {
         // 发送结束回调。这里每次只向tcpclient中添加一个数据
         pool->OnRequest(req,"");
     }
@@ -83,8 +89,10 @@ static void OnTcpClose(CTcpClient* skt) {
         agent->m_listIdleConns.remove(conn);
     } else if(conn->m_eState == ConnState_snd){
         // 发送没有成功
-        if(pool->OnRequest) {
-            pool->OnRequest(req, "远端断开");
+        if(req->OnRequest) {
+            req->OnRequest(req, "remote close");
+        } else if(pool->OnRequest) {
+            pool->OnRequest(req, "remote close");
         }
         delete conn;
         agent->m_listBusyConns.remove(conn);
@@ -93,12 +101,16 @@ static void OnTcpClose(CTcpClient* skt) {
         // 已经发送成功，没有应答
         if(req->recv){
             //需要应答，没有成功
-            if(pool->OnResponse) {
+            if(req->OnResponse) {
+                req->OnResponse(req, "未收到应答就关闭", nullptr, 0);
+            } else if(pool->OnResponse) {
                 pool->OnResponse(req, "未收到应答就关闭", nullptr, 0);
             }
         } else {
             //不需要应答，没有全部发送，需要用户确认全部发送完成
-            if(pool->OnResponse) {
+            if(req->OnResponse) {
+                req->OnResponse(req, "没有全部发送完成就关闭", nullptr, 0);
+            } else if(pool->OnResponse) {
                 pool->OnResponse(req, "没有全部发送完成就关闭", nullptr, 0);
             }
         }
@@ -107,7 +119,9 @@ static void OnTcpClose(CTcpClient* skt) {
         delete req;
     } else if(conn->m_eState == ConnState_rcv) {
         // 收到应答，但用户没有确认接收完毕
-        if(pool->OnResponse) {
+        if(req->OnResponse) {
+            req->OnResponse(req, "没有全部发送完成就关闭", nullptr, 0);
+        } else if(pool->OnResponse) {
             pool->OnResponse(req, "没有全部接收完成就关闭", nullptr, 0);
         }
         delete conn;
@@ -156,6 +170,14 @@ TcpConnect::~TcpConnect()
 
 //////////////////////////////////////////////////////////////////////////
 /**  */
+
+static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo* res) {
+    TcpAgent *agent = (TcpAgent*)req->data;
+    free(req);
+    agent->HostDns(status, res);
+    uv_freeaddrinfo(res);
+}
+
 TcpAgent::TcpAgent(CUNTcpConnPool *p)
     : m_pNet(p->m_pNet)
     , m_pTcpConnPool(p)
@@ -172,7 +194,36 @@ void TcpAgent::HostInfo(string host){
         m_listIP.push_back(host);
     } else {
         //dns解析host
+        uv_getaddrinfo_t *req = new uv_getaddrinfo_t;
+        struct addrinfo *hints = new struct addrinfo;
+        req->data = this;
+        hints->ai_family = PF_UNSPEC;
+        hints->ai_socktype = SOCK_STREAM;
+        hints->ai_protocol = IPPROTO_TCP;
+        hints->ai_flags = 0;
+        uv_getaddrinfo(&m_pNet->pNode->m_uvLoop, req, on_uv_getaddrinfo, host.c_str(), NULL, hints);
     }
+}
+
+void TcpAgent::HostDns(int status, struct addrinfo* res) {
+    if(status < 0) {
+        return;
+    }
+
+    while(res) {
+        if(res->ai_family == PF_INET) {
+            char addr[17] = {0};
+            uv_ip4_name((struct sockaddr_in*)res->ai_addr, addr, 17);
+            m_listIP.push_back(addr);
+        } else if(res->ai_family == PF_INET6) {
+            char addr[46] = {0};
+            uv_ip6_name((struct sockaddr_in6*)res->ai_addr, addr, 46);
+            m_listIP.push_back(addr);
+        }
+        res = res->ai_next;
+    }
+
+    Request(NULL);
 }
 
 void TcpAgent::Request(CUNTcpRequest *req) {
@@ -245,6 +296,12 @@ void TcpAgent::Request(CUNTcpRequest *req) {
 
 //////////////////////////////////////////////////////////////////////////
 /////////////               TCP请求             //////////////////////////
+
+CTcpRequest::CTcpRequest()
+    : OnRequest(NULL)
+    , OnResponse(NULL){}
+
+CTcpRequest::~CTcpRequest(){}
 
 CUNTcpRequest::CUNTcpRequest()
 {
@@ -408,7 +465,10 @@ void CUNTcpConnPool::Delete()
     m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_CLOSE, this);
 }
 
-CTcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port, string localaddr, void *usr, bool copy, bool recv)
+CTcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port
+                                     , string localaddr, void *usr
+                                     , bool copy, bool recv
+                                     , ReqCB onReq, ResCB onRes)
 {
     CUNTcpRequest *req = new CUNTcpRequest();
     req->host = host;
@@ -418,6 +478,8 @@ CTcpRequest* CUNTcpConnPool::Request(std::string host, uint32_t port, string loc
     req->recv = recv;
     req->pool = this;
     req->conn = nullptr;
+    req->OnRequest = onReq;
+    req->OnResponse = onRes;
 
     uv_mutex_lock(&m_ReqMtx);
     m_listReqs.push_back(req);

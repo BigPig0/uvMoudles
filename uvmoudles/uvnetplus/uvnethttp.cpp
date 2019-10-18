@@ -181,6 +181,23 @@ namespace Http {
 
     //////////////////////////////////////////////////////////////////////////
     /** 客户端发送请求 */
+
+    static void OnConnectRequest(CTcpRequest* req, std::string error){
+        ClientRequest* data = (ClientRequest*)req->usr;
+        if(!error.empty())
+            Log::error("OnConnectRequest client error: %s ", error.c_str());
+    }
+
+    static void OnConnectResponse(CTcpRequest* req, std::string error, const char *data, int len){
+        ClientRequest* cli = (ClientRequest*)req->usr;
+        if(!error.empty())
+            Log::error("OnConnectResponse fialed client error: %s ", error.c_str());
+        else
+            //Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
+            req->Finish();
+    }
+
+
     CHttpRequest::CHttpRequest()
         : protocol(HTTP)
         , method(GET)
@@ -230,7 +247,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            m_pTcpReq = m_pTcpPool->Request(host, port, "");
+            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true, OnConnectRequest, OnConnectResponse);
             m_pTcpReq->Request(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
@@ -249,11 +266,20 @@ namespace Http {
     }
 
     bool ClientRequest::End() {
+        if(!m_bHeadersSent) {
+            string buff = GetHeadersString() + "\r\n";
+            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true, OnConnectRequest, OnConnectResponse);
+            m_pTcpReq->Request(buff.c_str(), (int)buff.size());
+            m_bHeadersSent = true;
+        }
         m_bFinished = true;
         return true;
     }
 
     void ClientRequest::End(char* data, int len, ReqCb cb){
+        if(!chunked && !m_nContentLen) {
+            m_nContentLen = len;
+        }
         Write(data, len, cb);
         End();
     }
@@ -310,7 +336,8 @@ namespace Http {
 
         stringstream ss;
         ss << METHODS(method) << " " << path << " " << VERSIONS(version) << "\r\n"
-            << "Host: " << host << "\r\n";
+            << "Host: " << host << "\r\nContent-Length: "
+            << m_nContentLen << "\r\n";
         if(keepAlive && method == HTTP1_1)
             ss << "Connection: keep-alive\r\n";
         else
@@ -318,7 +345,7 @@ namespace Http {
         if(chunked)
             ss << "Transfer-Encoding: chunked\r\n";
         for(auto &it:m_Headers) {
-            ss << it.first << ": " << it.second << "\r\\n";
+            ss << it.first << ": " << it.second << "\r\n";
         }
         return ss.str();
     }

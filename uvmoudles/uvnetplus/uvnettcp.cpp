@@ -249,6 +249,7 @@ void CUNTcpClient::syncSend()
         int i =0;
         for (auto &it:sendList)
         {
+            Log::debug(it.base);
             bufs[i++] = it;
             sendingList.push_back(it);
         }

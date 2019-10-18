@@ -62,6 +62,7 @@ public:
     ~TcpAgent();
 
     void HostInfo(string host);
+    void HostDns(int status, struct addrinfo* res);
     void Request(CUNTcpRequest *req);
 
 public:
@@ -112,7 +113,10 @@ public:
 
     virtual void Delete();
 
-    virtual CTcpRequest* Request(string host, uint32_t port, string localaddr, void *usr=nullptr, bool copy=true, bool recv=true);
+    virtual CTcpRequest* Request(string host, uint32_t port
+        , string localaddr, void *usr=nullptr
+        , bool copy=true, bool recv=true
+        , ReqCB onReq=NULL, ResCB onRes=NULL);
 
 public:
     CUVNetPlus         *m_pNet;         //事件线程句柄

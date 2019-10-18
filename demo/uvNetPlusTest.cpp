@@ -107,7 +107,7 @@ static void OnConnectResponse(CTcpRequest* req, std::string error, const char *d
     if(!error.empty())
         Log::error("OnConnectResponse fialed client%d error: %s ", cli->tid, error.c_str());
     else
-        Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
+        //Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
     req->Finish();
 }
 
@@ -217,20 +217,25 @@ void testServer()
 
 //////////////////////////////////////////////////////////////////////////
 
+static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
+
+}
+
 void testHttpRequest()
 {
     CNet* net = CNet::Create();
-    CTcpConnPool* client = CTcpConnPool::Create(net, OnConnectRequest, OnConnectResponse);
+    CTcpConnPool* client = CTcpConnPool::Create(net, NULL, NULL);
     client->maxConns = 10;
     client->maxIdle = 10;
     for (int i=0; i<10; i++) {
          Http::CHttpRequest* req = Http::CHttpRequest::Create(client);
+         req->OnResponse = OnHttpResponse;
          req->host = "www.baidu.com";
          req->protocol = PROTOCOL::HTTP;
          req->method = Http::METHOD::GET;
          req->path = "/s?wd=http+content+len";
          req->version = Http::VERSION::HTTP1_1;
-         req->SetHeader("myheader","????????");
+         req->SetHeader("myheader","????????\0");
          req->End();
     }
 }
@@ -266,7 +271,8 @@ int _tmain(int argc, _TCHAR* argv[])
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
     //testServer();
-    testHttpServer();
+    //testHttpServer();
+    testHttpRequest();
 
 	Sleep(INFINITE);
 	return 0;
