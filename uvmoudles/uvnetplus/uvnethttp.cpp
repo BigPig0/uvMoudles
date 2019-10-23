@@ -192,9 +192,11 @@ namespace Http {
         ClientRequest* cli = (ClientRequest*)req->usr;
         if(!error.empty())
             Log::error("OnConnectResponse fialed client error: %s ", error.c_str());
-        else
-            //Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
+        else {
+            //Log::debug("OnConnectResponse ok recv%s", data);
+            cli->Receive(data, len);
             req->Finish();
+        }
     }
 
 
@@ -230,6 +232,9 @@ namespace Http {
 
     ClientRequest::ClientRequest(CTcpConnPool *pool)
         : m_pTcpPool(pool)
+        , m_pTcpReq(NULL)
+        , m_pResponse(NULL)
+        , parseHeader(false)
     {}
 
     ClientRequest::~ClientRequest(){}
@@ -320,6 +325,20 @@ namespace Http {
         return SendingMessage::Finished();
     }
 
+    void ClientRequest::Receive(const char *data, int len){
+        if(m_pResponse == NULL)
+            m_pResponse = new IncomingMessage();
+        buff.append(data, len);
+        // http头解析
+        if(!parseHeader && buff.find("\r\n\r\n") != std::string::npos) {
+            if(!ParseHeader()) {
+                Log::error("error response");
+                return;
+            }
+        }
+        //http内容解析
+    }
+
     std::string ClientRequest::GetAgentName() {
         stringstream ss;
         ss << host << ":" << port;
@@ -338,7 +357,7 @@ namespace Http {
         ss << METHODS(method) << " " << path << " " << VERSIONS(version) << "\r\n"
             << "Host: " << host << "\r\nContent-Length: "
             << m_nContentLen << "\r\n";
-        if(keepAlive && method == HTTP1_1)
+        if(keepAlive && version == HTTP1_1)
             ss << "Connection: keep-alive\r\n";
         else
             ss << "Connection: close\r\n";
@@ -350,6 +369,13 @@ namespace Http {
         return ss.str();
     }
 
+    bool ClientRequest::ParseHeader() {
+
+    }
+
+    bool ClientRequest::ParseContent() {
+
+    }
 
     //////////////////////////////////////////////////////////////////////////
     /** 服务端生成应答数据并发送 */

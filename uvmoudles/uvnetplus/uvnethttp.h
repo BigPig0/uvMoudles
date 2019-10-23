@@ -115,12 +115,23 @@ public:
     virtual void SetContentLen(uint32_t len);
     virtual bool Finished();
 
+    /* 收到的数据处理 */
+    void Receive(const char *data, int len);
+
 private:
     std::string GetAgentName();
     std::string GetHeadersString();
 
+    /** 解析http头，成功返回true，不是http头返回false */
+    bool ParseHeader();
+    /** 解析内容，已经接收完整内容或块返回true，否则false */
+    bool ParseContent();
+
     CTcpConnPool        *m_pTcpPool;
-    CTcpRequest          *m_pTcpReq;
+    CTcpRequest         *m_pTcpReq;
+    IncomingMessage     *m_pResponse;
+    bool                 parseHeader;   //请求报文中解析出http头。默认false
+    std::string          buff;   //接收数据缓存
 };
 
 /** 服务端生成应答数据并发送 */
