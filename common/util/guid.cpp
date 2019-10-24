@@ -1,8 +1,7 @@
 #include "guid.h"
+#include <sstream>
 #include <sys/timeb.h>
 #include <time.h>
-#include <sstream>
-using namespace std;
 
 namespace UTIL_GUID
 {
@@ -93,7 +92,7 @@ uint64_t getIntId(){
     return intId++;
 }
 
-string uuid(uint8_t svrid)
+std::string uuid(uint8_t svrid)
 {
     union
     {
@@ -119,25 +118,6 @@ string uuid(uint8_t svrid)
     return buf;
 }
 
-string guid(){
-    static bool seed = true;
-    if(seed){
-        srand(time(NULL));
-        seed = false;
-    }
-    static char buf[64] = {0};
-    sprintf(buf , "%08X%04X%04X%04X%04X%04X%04X", 
-        rand()&0xffffffff,
-        rand()&0xffff, 
-        rand()&0xffff, 
-        rand()&0xffff, 
-        rand()&0xffff, 
-        rand()&0xffff,
-        rand()&0xffff
-        );
-    return buf;
-}
-
 static std::string getIdInfo(uint64_t id) {
     uint64_t timestamp = ((0x1FFFFFFFFFF000L & id) >> timestampShift) + baseTimestamp;
     int srv = (0xE00 & id) >> serverIdShift;
@@ -158,4 +138,66 @@ static std::string getIdInfo(uint64_t id) {
         << ", sequence=" <<seq;
     return ss.str();
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64) || defined(WINDOWS) || defined(_WINDOWS)
+
+#include <windows.h>
+#pragma comment(lib, "Ole32.lib")
+
+/**
+ * 通过系统api获取guid，保证全局唯一
+ */
+std::string guid() {
+    char buf[33] = {0};
+    GUID _guid;
+    if (CoCreateGuid(&_guid) != S_OK)
+        return guid();
+
+    sprintf_s(buf, 33, "%08x%04x%04x%02x%02x%02x%02x%02x%02x%02x%02x"
+        /*"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x"*/
+        , _guid.Data1, _guid.Data2, _guid.Data3
+        , _guid.Data4[0], _guid.Data4[1], _guid.Data4[2], _guid.Data4[3]
+    , _guid.Data4[4], _guid.Data4[5], _guid.Data4[6], _guid.Data4[7]);
+    return buf;
+}
+#elif defined(linux) || defined(_UNIX)
+#include <uuid/uuid.h>
+string guid() {
+    char buf[33] = {0};
+    uuid_t uu;
+    uuid_generate(uu);
+    sprintf(buf, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+        uu[0],uu[1],uu[2],uu[3],uu[4],uu[5],uu[6],uu[7],uu[8],
+        uu[9],uu[10],uu[11],uu[12],uu[13],uu[14],uu[15]);
+    return buf;
+}
+#else
+/**
+ * 通过随机数生成guid字符串
+ * 同一个程序中保证唯一，多个进程启动时间不一样保证唯一。
+ * 多个进程启动时间一样，可能相同
+ */
+string guid(){
+    static bool seed = true;
+    if(seed){
+        srand(time(NULL));
+        seed = false;
+    }
+    static char buf[64] = {0};
+    sprintf(buf , "%08X%04X%04X%04X%04X%04X%04X", 
+        rand()&0xffffffff,
+        rand()&0xffff, 
+        rand()&0xffff, 
+        rand()&0xffff, 
+        rand()&0xffff, 
+        rand()&0xffff,
+        rand()&0xffff
+        );
+    return buf;
+}
+
+#endif
 }

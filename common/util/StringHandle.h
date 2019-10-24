@@ -39,7 +39,7 @@ public:
     *@param:tag:·Ö¸î·ûºÅ£¨×Ö·û´®£©
     *@return:std::vector<std::string>:·Ö¸îºóµÄ×Ö·û´®Êý×é
 	*/
-	static std::vector<std::string> StringSplit(const std::string &s, std::string tag);
+	static std::vector<std::string> StringSplit(const std::string &s, const std::string &tag);
 
 	/**
 	*@brief:É¾³ý×Ö·û´®ÖÐµÄ×Ö·û´®

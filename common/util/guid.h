@@ -27,7 +27,8 @@ uint64_t getIntId();
 std::string uuid(uint8_t svrid = 0);
 
 /**
- * 通过随机数生成guid字符串
+ * 生成guid字符串
  */
 std::string guid();
+
 };

@@ -313,6 +313,9 @@ public:
     /** 创建实例 */
     static CHttpRequest* Create(CTcpConnPool *pool);
 
+    /** 删除实例 */
+    virtual void Delete() = 0;
+
     /**
      * 用来发送一块数据，如果chunked=true，发送一个chunk的数据
      * 如果chunked=false，使用这个方法多次发送数据，必须自己在设置头里设置length
@@ -320,7 +323,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(char* chunk, int len, ReqCb cb = NULL) = 0;
+    virtual bool Write(const char* chunk, int len, ReqCb cb = NULL) = 0;
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -331,7 +334,7 @@ public:
     /**
      * 相当于Write(data, len, cb);end();
      */
-    virtual void End(char* data, int len, ReqCb cb = NULL) = 0;
+    virtual void End(const char* data, int len, ReqCb cb = NULL) = 0;
 protected:
     CHttpRequest();
     virtual ~CHttpRequest() = 0;
@@ -381,7 +384,7 @@ public:
     /**
      * 如果调用了此方法，但没有调用writeHead()，则使用隐式头并立即发送头
      */
-    virtual void Write(char* chunk, int len, ResCb cb = NULL) = 0;
+    virtual void Write(const char* chunk, int len, ResCb cb = NULL) = 0;
 
     /**
      * 表明应答的所有数据都已经发送。每个实例都需要调用一次end。执行后会触发OnFinish
@@ -391,7 +394,7 @@ public:
     /**
      * 相当于调用write(data, len, cb) ; end()
      */
-    virtual void End(char* data, int len, ResCb cb = NULL) = 0;
+    virtual void End(const char* data, int len, ResCb cb = NULL) = 0;
 
 protected:
     CHttpResponse();

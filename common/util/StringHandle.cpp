@@ -157,20 +157,16 @@ std::vector<std::string> StringHandle::StringSplit(const std::string &s, char* t
     return pathVec;
 }
 
-std::vector<std::string> StringHandle::StringSplit(const std::string &s, std::string tag)
+#if 0
+std::vector<std::string> StringHandle::StringSplit(const std::string &s, const std::string &tag)
 {
-    std::vector<std::string> vecFieldData;
-    std::string o_str;
-    o_str = s;
+    std::string o_str = s;
     std::vector<std::string> str_list; // 存放分割后的字符串
     int comma_n = 0;
-    do
-    {
+    while(true) {
         std::string tmp_s = "";
-        //comma_n = o_str.find( "\t" );
         comma_n = o_str.find( tag.c_str() );
-        if( -1 == comma_n )
-        {
+        if( -1 == comma_n ) {
             tmp_s = o_str.substr( 0, o_str.length() );
             str_list.push_back( tmp_s );
             break;
@@ -179,17 +175,46 @@ std::vector<std::string> StringHandle::StringSplit(const std::string &s, std::st
         o_str.erase( 0, comma_n+tag.size() );
         str_list.push_back( tmp_s );
     }
-    while(true);
 
-    vecFieldData = str_list;
-
-    if(vecFieldData.size()==1 && vecFieldData[0] == s)
-    {
-        vecFieldData.clear();
+    return str_list;
+}
+#else
+std::vector<std::string> StringHandle::StringSplit(const std::string &s, const std::string &tag)
+{
+    std::string res;
+    std::vector<std::string> vecNum;
+    size_t nSrcSize = s.size();
+    size_t nSplSize = tag.size();
+    if (nSplSize > nSrcSize) {
+        vecNum.push_back(s);
+        return vecNum;
     }
 
-    return vecFieldData;
+    size_t nEndPos = nSrcSize - nSplSize;
+    for (size_t i=0; i<nSrcSize; i++) {
+        char c = s[i];
+        if (i <= nEndPos) {
+            std::string str = s.substr(i,nSplSize);
+            if (str != tag) {
+                res.push_back(c);
+            } else {
+                i += (nSplSize - 1);
+                if(!res.empty()) {
+                    vecNum.push_back(res);
+                    res = "";
+                }
+            }
+        } else {
+            res.push_back(c);
+        }
+    }
+    if(!res.empty()) {
+        vecNum.push_back(res);
+        res = "";
+    }
+    return vecNum;
 }
+#endif
 
 std::string StringHandle::StringWipe( const std::string strSrc, const std::string strDest )
 {

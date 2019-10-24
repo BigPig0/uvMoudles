@@ -195,7 +195,6 @@ namespace Http {
         else {
             //Log::debug("OnConnectResponse ok recv%s", data);
             cli->Receive(data, len);
-            req->Finish();
         }
     }
 
@@ -233,14 +232,21 @@ namespace Http {
     ClientRequest::ClientRequest(CTcpConnPool *pool)
         : m_pTcpPool(pool)
         , m_pTcpReq(NULL)
-        , m_pResponse(NULL)
+        , inc(NULL)
         , parseHeader(false)
     {}
 
-    ClientRequest::~ClientRequest(){}
+    ClientRequest::~ClientRequest(){
+        m_pTcpReq->Finish();
+        SAFE_DELETE(inc);
+    }
 
-    bool ClientRequest::Write(char* chunk, int len, ReqCb cb){
-        requestData reqData = {chunk, len, cb};
+    void ClientRequest::Delete(){
+        delete this;
+    }
+
+    bool ClientRequest::Write(const char* chunk, int len, ReqCb cb){
+        requestData reqData = {(char*)chunk, len, cb};
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -281,7 +287,7 @@ namespace Http {
         return true;
     }
 
-    void ClientRequest::End(char* data, int len, ReqCb cb){
+    void ClientRequest::End(const char* data, int len, ReqCb cb){
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
         }
@@ -326,8 +332,9 @@ namespace Http {
     }
 
     void ClientRequest::Receive(const char *data, int len){
-        if(m_pResponse == NULL)
-            m_pResponse = new IncomingMessage();
+        if(data == NULL || len == 0)
+            return;
+
         buff.append(data, len);
         // http头解析
         if(!parseHeader && buff.find("\r\n\r\n") != std::string::npos) {
@@ -336,7 +343,13 @@ namespace Http {
                 return;
             }
         }
+
         //http内容解析
+        ParseContent();
+
+        // 接收到的数据可以上抛回调
+        if(OnResponse)
+            OnResponse(this, inc);
     }
 
     std::string ClientRequest::GetAgentName() {
@@ -370,11 +383,93 @@ namespace Http {
     }
 
     bool ClientRequest::ParseHeader() {
+        size_t pos1 = buff.find("\r\n");        //第一行的结尾
+        size_t pos2 = buff.find("\r\n\r\n");    //头的结尾位置
+        string statusline = buff.substr(0, pos1);  //第一行的内容
 
+        vector<string> reqlines = StringHandle::StringSplit(statusline, ' ');
+        if(reqlines.size() != 3)
+            return false;
+
+        inc = new IncomingMessage();
+        inc->version = VERSIONS(reqlines[0].c_str());
+        inc->statusCode = stoi(reqlines[1]);
+        inc->statusMessage = reqlines[2];
+        inc->rawHeaders = buff.substr(pos1+2, pos2-pos1);
+        buff = buff.substr(pos2+4, buff.size()-pos2-4);
+
+        if(inc->version == HTTP1_0)
+            inc->keepAlive = false;
+        else
+            inc->keepAlive = true;
+
+        vector<string> headers = StringHandle::StringSplit(inc->rawHeaders, "\r\n");
+        for(auto &hh : headers) {
+            string name, value;
+            bool b = false;
+            for(auto &c:hh){
+                if(!b) {
+                    if(c == ':'){
+                        b = true;
+                    } else {
+                        name.push_back(c);
+                    }
+                } else {
+                    if(!value.empty() || c != ' ')
+                        value.push_back(c);
+                }
+            }
+            // 检查关键头
+            if(!strcasecmp(name.c_str(), "Connection")) {
+                if(!strcasecmp(value.c_str(), "Keep-Alive"))
+                    inc->keepAlive = true;
+                else if(!strcasecmp(value.c_str(), "Close"))
+                    inc->keepAlive = false;
+            } else if(!strcasecmp(name.c_str(), "Content-Length")) {
+                inc->contentLen = stoi(value);
+            } else if(!strcasecmp(name.c_str(), "Transfer-Encoding")) {
+                if(inc->version != HTTP1_0 && !strcasecmp(value.c_str(), "chunked"))
+                    inc->chunked = true;
+            }
+            //保存头
+            inc->headers.insert(make_pair(name, value));
+        }
+        parseHeader = true;
+        return true;
     }
 
     bool ClientRequest::ParseContent() {
+        if(inc->chunked) {
+            size_t pos = buff.find("\r\n");
+            int len = htoi(buff.substr(0, pos).c_str());
+            if(buff.size() - pos - 4 >= len) {
+                // 接收完整块
+                if(len==0)
+                    inc->complete = true;
+                inc->contentLen = len;
+                inc->content = buff.substr(pos+2, len);
+                buff = buff.substr(pos+len+4,buff.size()-pos-len-4);
+                return true;
+            }
+            return false;
+        }
 
+        //chunked false时的情况
+        if(inc->contentLen == 0) {
+            // 没有设置长度，永不停止接收数据。这不是标准协议，自定义的处理
+            inc->content = buff;
+            buff.clear();
+            return true;
+        }
+
+        if(buff.size() >= inc->contentLen) {
+            inc->content = buff.substr(0, inc->contentLen);
+            buff = buff.substr(inc->contentLen, buff.size()-inc->contentLen);
+            inc->complete = true;
+            return true;
+        }
+
+        return false;
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -429,8 +524,8 @@ namespace Http {
         SendingMessage::WriteHead(ss.str());
     }
 
-    void ServerResponse::Write(char* chunk, int len, ResCb cb) {
-        responseData reqData = {chunk, len, cb};
+    void ServerResponse::Write(const char* chunk, int len, ResCb cb) {
+        responseData reqData = {(char*)chunk, len, cb};
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -463,7 +558,7 @@ namespace Http {
         m_bFinished = true;
     }
 
-    void ServerResponse::End(char* data, int len, ResCb cb) {
+    void ServerResponse::End(const char* data, int len, ResCb cb) {
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
         }

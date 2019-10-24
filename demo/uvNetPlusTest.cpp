@@ -218,7 +218,11 @@ void testServer()
 //////////////////////////////////////////////////////////////////////////
 
 static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
-
+    Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
+    Log::debug(response->rawHeaders.c_str());
+    Log::debug(response->content.c_str());
+    if(response->complete)
+        request->Delete();
 }
 
 void testHttpRequest()
@@ -227,16 +231,20 @@ void testHttpRequest()
     CTcpConnPool* client = CTcpConnPool::Create(net, NULL, NULL);
     client->maxConns = 10;
     client->maxIdle = 10;
-    for (int i=0; i<10; i++) {
+    for (int i=0; i<100; i++) {
          Http::CHttpRequest* req = Http::CHttpRequest::Create(client);
          req->OnResponse = OnHttpResponse;
-         req->host = "www.baidu.com";
+         //req->host = "www.baidu.com";
+         req->host = "127.0.0.1";
          req->protocol = PROTOCOL::HTTP;
-         req->method = Http::METHOD::GET;
-         req->path = "/s?wd=http+content+len";
+         //req->method = Http::METHOD::GET;
+         req->method = Http::METHOD::POST;
+         //req->path = "/s?wd=http+content+len";
+         req->path = "/imageServer/image?name=111111.jpg&type=1";
          req->version = Http::VERSION::HTTP1_1;
          req->SetHeader("myheader","????????\0");
-         req->End();
+         string content = "123456789\0";
+         req->End(content.c_str(), content.length(),NULL);
     }
 }
 

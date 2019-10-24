@@ -19,12 +19,20 @@ public:
     static char *printNow(const char *fmt, char buf[32]);
 
     /**
+     * 输出当前时间字符串
+     * @param fmt 输出的格式
+     */
+    static string printNow(const char *fmt);
+
+    /**
      * 打印指定时间
      * @param time 指定的时间
      * @param fmt 输出的格式
      * @param buf 输出内容的内存
      */
     static char *printTime(time_t *time, const char *fmt, char buf[32]);
+
+    static string printTime(time_t time, const char *fmt);
 
 private:
 
@@ -72,6 +80,17 @@ char *CTimeFormat::printNow(const char *fmt, char buf[32])
 }
 
 inline
+string CTimeFormat::printNow(const char *fmt) {
+    time_t now = time(NULL);
+    struct tm tm;
+    localtime_s(&tm, &now);
+
+    char buf[32];
+    strftime(buf, 32, fmt, &tm);
+    return buf;
+}
+
+inline
 char *CTimeFormat::printTime(time_t *time, const char *fmt, char buf[32])
 {
     struct tm tm;
@@ -80,5 +99,15 @@ char *CTimeFormat::printTime(time_t *time, const char *fmt, char buf[32])
     char stamp[32];
     strftime(stamp, 32, fmt, &tm);
     sprintf_s(buf, 32, "%s", stamp);
+    return buf;
+}
+
+inline
+string CTimeFormat::printTime(time_t time, const char *fmt) {
+    struct tm tm;
+    localtime_s(&tm, &time);
+
+    char buf[32];
+    strftime(buf, 32, fmt, &tm);
     return buf;
 }
