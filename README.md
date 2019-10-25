@@ -1,5 +1,7 @@
 # uvMoudles
 基于libUV实现一些常用的模块封装
+https://github.com/BigPig0/uvMoudles.git
+https://gitee.com/ztwlla/uvMoudles.git
 
 #### 功能模块
 * uvIPC [c]
