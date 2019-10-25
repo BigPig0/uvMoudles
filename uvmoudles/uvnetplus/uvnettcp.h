@@ -44,6 +44,7 @@ public:
     list<uv_buf_t>    sendList;         // 发送缓存
     list<uv_buf_t>    sendingList;      // 正在发送
     uv_mutex_t        sendMtx;          // 发送锁
+    bool              m_bUserClose;
 };
 
 //////////////////////////////////////////////////////////////////////////

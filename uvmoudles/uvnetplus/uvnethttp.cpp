@@ -209,6 +209,7 @@ namespace Http {
         , localport(0)
         , keepAlive(true)
         , chunked(false)
+        , usrData(NULL)
         , OnConnect(NULL)
         , OnInformation(NULL)
         , OnUpgrade(NULL)
@@ -365,6 +366,7 @@ namespace Http {
     std::string ClientRequest::GetHeadersString() {
         if(!m_strHeaders.empty())
             return m_strHeaders;
+		Log::debug("request %s %s %s", METHODS(method), path.c_str(), VERSIONS(version));
 
         stringstream ss;
         ss << METHODS(method) << " " << path << " " << VERSIONS(version) << "\r\n"
@@ -387,14 +389,13 @@ namespace Http {
         size_t pos2 = buff.find("\r\n\r\n");    //头的结尾位置
         string statusline = buff.substr(0, pos1);  //第一行的内容
 
-        vector<string> reqlines = StringHandle::StringSplit(statusline, ' ');
-        if(reqlines.size() != 3)
-            return false;
+		size_t hpos1 = statusline.find(" ");
+		size_t hpos2 = statusline.find(" ", pos1+1);
 
         inc = new IncomingMessage();
-        inc->version = VERSIONS(reqlines[0].c_str());
-        inc->statusCode = stoi(reqlines[1]);
-        inc->statusMessage = reqlines[2];
+		inc->version = VERSIONS(statusline.substr(0,hpos1).c_str());
+		inc->statusCode = stoi(statusline.substr(hpos1+1,hpos2-hpos1));
+		inc->statusMessage = statusline.substr(hpos2+1, statusline.size()-hpos2-1);
         inc->rawHeaders = buff.substr(pos1+2, pos2-pos1);
         buff = buff.substr(pos2+4, buff.size()-pos2-4);
 
@@ -455,7 +456,7 @@ namespace Http {
         }
 
         //chunked false时的情况
-        if(inc->contentLen == 0) {
+        if(inc->contentLen == (uint32_t)-1) {
             // 没有设置长度，永不停止接收数据。这不是标准协议，自定义的处理
             inc->content = buff;
             buff.clear();
@@ -628,7 +629,7 @@ namespace Http {
         , complete(false)
         , keepAlive(true)
         , chunked(false)
-        , contentLen(0)
+        , contentLen(-1)
     {}
 
     CIncomingMessage::~CIncomingMessage(){}
@@ -735,7 +736,7 @@ namespace Http {
         }
 
         //chunked false时的情况
-        if(inc->contentLen == 0) {
+        if(inc->contentLen == (uint32_t)-1) {
             // 没有设置长度，永不停止接收数据。这不是标准协议，自定义的处理
             inc->content = buff;
             buff.clear();

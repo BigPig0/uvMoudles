@@ -299,6 +299,7 @@ public:
     int                 localport; // 指定本地端口， 默认为0。只有很特殊的情形需要设置，正常都不需要
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     bool                chunked;   // Transfer-Encoding: chunked
+    void               *usrData;   // 用户自定义数据
 
 
     /** 客户端收到connect方法的应答时回调 */

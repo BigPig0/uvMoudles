@@ -39,16 +39,18 @@ int net_is_ip(const char* input) {
 
 static void on_uv_close(uv_handle_t* handle) {
     CUNTcpClient *skt = (CUNTcpClient*)handle->data;
-    Log::warning("close client %s  %d\n", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
+    Log::warning("close client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     if(skt->OnCLose) 
         skt->OnCLose(skt);
     skt->m_bInit = false;
-    delete skt;
+
+    if(skt->m_bUserClose)
+        delete skt;
 }
 
 static void on_uv_shutdown(uv_shutdown_t* req, int status) {
     CUNTcpClient *skt = (CUNTcpClient*)req->data;
-     Log::warning("shutdown client %s  %d\n", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
+     Log::warning("shutdown client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     delete req;
     uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
 }
@@ -61,6 +63,7 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     CUNTcpClient *skt = (CUNTcpClient*)stream->data;
     if(nread < 0) {
+        skt->m_bConnect = false;
         if(nread == UV__ECONNRESET || nread == UV_EOF) {
             //对端发送了FIN
             if(skt->OnEnd) 
@@ -69,7 +72,7 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
         } else {
             uv_shutdown_t* req = new uv_shutdown_t;
             req->data = skt;
-            printf("Read error %s\n", uv_strerror((int)nread));
+            printf("Read error %s", uv_strerror((int)nread));
             if(skt->OnError) 
                 skt->OnError(skt, uv_strerror((int)nread));
             uv_shutdown(req, stream, on_uv_shutdown);
@@ -113,7 +116,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 /** 数据发送完成 */
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpClient* skt = (CUNTcpClient*)req->data;
-    //printf("write finish %d\n", status);
+    //printf("write finish %d", status);
     if(status != 0) {
         if(skt->OnError)
             skt->OnError(skt, uv_strerror(status));
@@ -169,6 +172,7 @@ CUNTcpClient::CUNTcpClient(CUVNetPlus* net, bool copy)
     , m_bInit(false)
     , m_bConnect(false)
     , bytesRead(0)
+    , m_bUserClose(false)
 {
     readBuff = (char *)calloc(1, 1024*1024);
     uv_mutex_init(&sendMtx);
@@ -249,7 +253,7 @@ void CUNTcpClient::syncSend()
         int i =0;
         for (auto &it:sendList)
         {
-            Log::debug(it.base);
+            //Log::debug(it.base);
             bufs[i++] = it;
             sendingList.push_back(it);
         }
@@ -270,11 +274,12 @@ void CUNTcpClient::syncSend()
 
 void CUNTcpClient::syncClose()
 {
-    if(m_bInit) {
+    m_bUserClose = true;
+    if(m_bInit && m_bConnect) {
         uv_shutdown_t* req = new uv_shutdown_t;
         req->data = this;
         uv_shutdown(req, (uv_stream_t*)&uvTcp, on_uv_shutdown);
-    } else {
+    } else if(!m_bInit){
         delete this;
     }
 }
