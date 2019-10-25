@@ -2,8 +2,24 @@
 #include "st.h"
 #include "uvLog.h"
 #include "utilc.h"
+#include "cptr/cptr.h"
 #include "faster/fasterparse.h"
 #include "cstl_easy.h"
+
+char *level_info[] = {
+    "All",
+    "Trace",
+    "Debug",
+    "Info",
+    "Warn",
+    "Error",
+    "Fatal",
+    "OFF"
+};
+//////////////////////////////////////////////////////////////////////////
+/**
+ * 配置解析
+ */
 
 static void _parse_level(fxml_attr_t *attr, level_t *status) {
     if(attr->value_len == 3 && !strncasecmp(attr->value, "All", 3)) {
@@ -156,7 +172,7 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
             for(;appender_node; appender_node = appender_node->next) {
                 // 控制台输出的appender
                 if(!parse_xmlnode_namecmp(appender_node, "console")) {
-                    consol_t* apd = create_appender_consol();
+                    consol_appender_t* apd = create_appender_consol();
                     // 属性
                     for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(!parse_xmlattr_namecmp(attr, "name")) {
@@ -178,8 +194,9 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
                             if(!ret) ret = _parse_filters(appender_child_node, apd->filter);
                         }
                     }
+                    hash_map_insert_easy(config->appenders, apd->name, apd);
                 } else if(!parse_xmlnode_namecmp(appender_node, "File")) {
-                    file_t* apd = create_appender_file();
+                    file_appender_t* apd = create_appender_file();
                     //属性
                     for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(!parse_xmlattr_namecmp(attr, "name")) {
@@ -204,8 +221,9 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
                             if(!ret) ret = _parse_filters(appender_child_node, apd->filter);
                         }
                     }
+                    hash_map_insert_easy(config->appenders, apd->name, apd);
                 } else if(appender_node->name_len == 11 && !strncasecmp(appender_node->name, "RollingFile", 11)) {
-                    rolling_file_t* apd = create_appender_rolling_file();
+                    rolling_file_appender_t* apd = create_appender_rolling_file();
                     //属性
                     for(attr = appender_node->attr; attr; attr = attr->next) {
                         if(!parse_xmlattr_namecmp(attr, "name")) {
@@ -228,6 +246,7 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
                             if(!ret) ret = _parse_default_rollover_strategy(appender_child_node, &apd->drs.max);
                         }
                     }
+                    hash_map_insert_easy(config->appenders, apd->name, apd);
                 }
             }
         } else if (!parse_xmlnode_namecmp(tmp_node, "loggers")) {
@@ -252,8 +271,8 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
                     //ref
                     for(ref_node = logger_node->first_child; ref_node; ref_node = tmp_node->next) {
                         if (!parse_strcasecmp(ref_node->name, ref_node->name_len, "appender-ref")) {
-                            for(attr = logger_node->attr; attr; attr = attr->next) {
-                                if(!parse_strcasecmp(attr->name, attr->name_len, "name")) {
+                            for(attr = ref_node->attr; attr; attr = attr->next) {
+                                if(!parse_strcasecmp(attr->name, attr->name_len, "ref")) {
                                     string_t *ref = create_string();
                                     string_init_subcstr(ref, attr->value, attr->value_len);
                                     list_push_back(log->appender_ref, ref);
@@ -275,8 +294,8 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
                     //ref
                     for(ref_node = logger_node->first_child; ref_node; ref_node = tmp_node->next) {
                         if (!parse_strcasecmp(ref_node->name, ref_node->name_len, "appender-ref")) {
-                            for(attr = logger_node->attr; attr; attr = attr->next) {
-                                if(!parse_strcasecmp(attr->name, attr->name_len, "name")) {
+                            for(attr = ref_node->attr; attr; attr = attr->next) {
+                                if(!parse_strcasecmp(attr->name, attr->name_len, "ref")) {
                                     string_t *ref = create_string();
                                     string_init_subcstr(ref, attr->value, attr->value_len);
                                     list_push_back(config->root->appender_ref, ref);
@@ -293,6 +312,8 @@ static int _parse_xml_config(fxml_node_t *root, configuration_t *config) {
     return 0;
 }
 
+//////////////////////////////////////////////////////////////////////////
+/** uv回调处理 内部方法 */
 static int _uv_log_init_conf_buff(uv_log_handle_t *h, char* conf_buff) {
     fxml_node_t *root = NULL;
     int ret = parse_json(&root, conf_buff);
@@ -322,33 +343,221 @@ static int _uv_log_init_conf(uv_log_handle_t *h, uv_file file) {
     return ret;
 }
 
-static void uv_loop_thread_cb(void* arg) {
+static char* file_name_from_path(char *path) {
+    char *file_name = path;
+    char *p1 = strrchr(path, '\\');
+    char *p2 = strrchr(path, '/');
+    if(p1 > p2)
+        file_name = ++p1;
+    else if(p2 > p1)
+        file_name = ++p2;
+    return file_name;
+}
+
+static task_log_msg_req_t* _uv_make_task_msg(uv_log_handle_t *h, logger_t* logger, appender_t* appender, task_log_msg_t* task){
+    SAFE_MALLOC(task_log_msg_req_t, msg_req);
+    struct tm *lt = localtime(&task->msg_time);//转为时间结构。
+    char pre_msg[400]={0};           //代码位置信息
+    int pre_len;
+    char *msg;
+    int msg_len;
+    char *total;
+    int total_len;
+    char *tmp;
+
+    msg_req->handle = h;
+    msg_req->logger = logger;
+    msg_req->appender = appender;
+
+    sprintf_s(pre_msg, 400, "[%08d]\t[%04d-%02d-%02d %02d:%02d:%02d]\t[%s]\t%s:%04d\t%s:\t"
+        , task->tid , lt->tm_year+1900, lt->tm_mon+1, lt->tm_mday
+        , lt->tm_hour, lt->tm_min, lt->tm_sec
+        , level_info[(int)task->level]
+        , file_name_from_path(task->file_name)
+        , task->line
+        , task->func_name
+        );
+    pre_len = strlen(pre_msg);
+    msg = (char*)string_c_str(task->msg);
+    msg_len = string_size(task->msg);
+
+    total_len = pre_len + msg_len + 20;
+    total = (char*)calloc(1, total_len);
+    tmp = total;
+    if(appender->type == consol) {
+        if(task->level == Info) {
+            strcpy(tmp, "\033[32;40;1m"); //green
+            tmp += 10;
+        } else if(task->level == Warn) {
+            strcpy(tmp, "\033[33;40;1m"); //yellow
+            tmp += 10;
+        } else if(task->level == Error) {
+            strcpy(tmp, "\033[31;40;1m"); //red
+            tmp += 10;
+        } else if(task->level == Fatal) {
+            strcpy(tmp, "\033[35;40;1m");
+            tmp += 10;
+        }
+    }
+    strcpy(tmp, pre_msg);
+    tmp += pre_len;
+    strcpy(tmp, msg);
+    tmp += msg_len;
+    if(appender->type == consol) {
+        if(task->level == Info || task->level == Warn ||task->level == Error || task->level == Fatal) {
+            strcpy(tmp, "\033[0m");
+            tmp += 4;
+        }
+    }
+    strcpy(tmp, "\r\n");
+    tmp += 2;
+    msg_req->buff = uv_buf_init(total, total_len);
+
+    return msg_req;
+}
+
+static void _write_task_cb(uv_write_t* req, int status) {
+    task_log_msg_req_t *msg_req = (task_log_msg_req_t *)req->data;
+    free(msg_req->buff.base);
+    free(msg_req);
+    free(req);
+}
+
+static void _task_open_file_cb(uv_fs_t* req) {
+    if(req->result >= 0){
+        task_log_msg_req_t *msg_req = (task_log_msg_req_t *)req->data;
+        file_appender_t* appender = (file_appender_t*)msg_req->appender;
+        appender->file_handle = req->result;
+    }
+}
+
+static void _write_task_fs_cb(uv_fs_t* req) {
+
+}
+
+static void _write_consol_task(uv_log_handle_t *h, logger_t* logger, consol_appender_t* appender, task_log_msg_t* task){
+    if(!appender->opened && !appender->opening){
+        int ret = 0;
+        uv_file fd = 1; //stdout
+        if(appender->target == SYSTEM_ERR)
+            fd = 2;
+        ret = uv_tty_init(&h->loop, &appender->tty_handle, fd, 0);
+        if(ret < 0) {
+            printf("tty init failed: %s\r\n", strerror(ret));
+        }
+        appender->opened = true;
+    }
+
+    if(appender->opened){
+        task_log_msg_req_t *msg_req = _uv_make_task_msg(h, logger, (appender_t*)appender, task);
+        SAFE_MALLOC(uv_write_t, req);
+        req->data = msg_req;
+        uv_write(req, (uv_stream_t*)&appender->tty_handle, &msg_req->buff, 1, _write_task_cb);
+    }
+}
+
+static void _write_file_task(uv_log_handle_t *h, logger_t* logger, file_appender_t* appender, task_log_msg_t* task){
+    if(!appender->opened && !appender->opening){
+        SAFE_MALLOC(uv_fs_t, req);
+        //task_log_msg_req_t *msg_req = _uv_make_task_msg(h, logger, (appender_t*)appender, task);
+        int ret = 0;
+        int tag = O_RDWR | O_CREAT;
+        if(appender->append)
+            tag |= O_APPEND;
+        //req->data = msg_req;
+        ret = uv_fs_open(NULL, req, string_c_str(appender->file_name), tag, 0, NULL);
+        if(ret < 0) {
+            printf("fs open %s failed: %s\r\n", string_c_str(appender->file_name), strerror(ret));
+        }
+        appender->file_handle = req->result;
+    } 
+    if(appender->opened) {
+        SAFE_MALLOC(uv_fs_t, req);
+        task_log_msg_req_t *msg_req = _uv_make_task_msg(h, logger, (appender_t*)appender, task);
+        req->data = msg_req;
+        uv_fs_write(&h->loop, req, appender->file_handle, &msg_req->buff, 1, 0, _write_task_fs_cb);
+    }
+}
+
+static void _write_rolling_file_task(uv_log_handle_t *h, logger_t* logger, rolling_file_appender_t* appender, task_log_msg_t* task){
+
+}
+
+static void _write_task(uv_log_handle_t *h, logger_t* logger, appender_t* appender, task_log_msg_t* task){
+    if (appender->type == consol) {
+        _write_consol_task(h, logger, (consol_appender_t*)appender, task);
+    } else if (appender->type == file) {
+        _write_file_task(h, logger, (file_appender_t*)appender, task);
+    } else if (appender->type == rolling_file) {
+        _write_rolling_file_task(h, logger, (rolling_file_appender_t*)appender, task);
+    }
+}
+
+static void _uv_async_write_cb(uv_async_t* handle) {
+    uv_log_handle_t *h = (uv_log_handle_t*)handle->data;
+    task_log_msg_t* task = NULL;
+    //logger实例里面的日志
+    HASH_MAP_FOR_BEGIN(h->config->loggers, string_t*, name,logger_t*, logger){
+        task = (task_log_msg_t*)simple_ring_get_element(logger->ring);
+        if(!task)
+            continue;
+        LIST_FOR_BEGIN(logger->appender_ref, string_t*, appd_ref){
+            appender_t *appender = (appender_t*)hash_map_find_easy_str(h->config->appenders, string_c_str(appd_ref));
+            if(appender)
+                _write_task(h, logger, appender, task);
+        }LIST_FOR_END
+        if(logger->additivity){
+            LIST_FOR_BEGIN(h->config->root->appender_ref, string_t*, appd_ref){
+                appender_t *appender = (appender_t*)hash_map_find_easy_str(h->config->appenders, string_c_str(appd_ref));
+                if(appender)
+                    _write_task(h, logger, appender, task);
+            }LIST_FOR_END
+        }
+        simple_ring_cosume(logger->ring);
+    }HASH_MAP_FOR_END
+
+    //root里面的日志
+    task = (task_log_msg_t*)simple_ring_get_element(h->config->root->ring);
+    if(!task)
+        return;
+    LIST_FOR_BEGIN(h->config->root->appender_ref, string_t*, appd_ref){
+        appender_t *appender = (appender_t*)hash_map_find_easy_str(h->config->appenders, string_c_str(appd_ref));
+        if(appender)
+            _write_task(h,h->config->root, appender, task);
+    }LIST_FOR_END
+}
+
+static void _uv_loop_thread_cb(void* arg) {
     uv_log_handle_t* log = (uv_log_handle_t*)arg;
     while (true) {
-        uv_run(&log->uv, UV_RUN_DEFAULT);
+        uv_run(&log->loop, UV_RUN_DEFAULT);
         Sleep(1000);
     }
 }
 
-static void uv_task_timer_cb(uv_timer_t* handle);
 static uv_log_handle_t* _uv_log_init() {
     int uv_ret;
     uv_thread_t th;
     SAFE_MALLOC(uv_log_handle_t, logger);
     logger->config = create_config();
-    logger->task_queue = create_task_fifo_queue();
-    uv_ret = uv_loop_init(&logger->uv);
+    //logger->task_queue = create_task_fifo_queue();
+    logger->loop.data = logger;
+    uv_ret = uv_loop_init(&logger->loop);
     if(uv_ret < 0) {
         printf("uv loop init failed: %s\n", uv_strerror(uv_ret));
     }
-    logger->uv.data = logger;
-    uv_ret = uv_timer_init(&logger->uv, &logger->task_timer);
-    logger->task_timer.data = logger;
-    uv_ret = uv_timer_start(&logger->task_timer, uv_task_timer_cb, 10, 10);
-    uv_thread_create(&th, uv_loop_thread_cb, logger);
+
+    logger->async.data = logger;
+    uv_ret = uv_async_init(&logger->loop, &logger->async, _uv_async_write_cb);
+    //uv_ret = uv_timer_init(&logger->loop, &logger->task_timer);
+    //logger->task_timer.data = logger;
+    //uv_ret = uv_timer_start(&logger->task_timer, uv_task_timer_cb, 10, 10);
+    uv_thread_create(&th, _uv_loop_thread_cb, logger);
     return logger;
 }
 
+//////////////////////////////////////////////////////////////////////////
+/** 对外导出接口 */
 int uv_log_init(uv_log_handle_t **h) {
     uv_fs_t open_req;
     int ret=-1,i=0;
@@ -396,8 +605,10 @@ int uv_log_init_conf_buff(uv_log_handle_t **h, char* conf_buff) {
     uv_log_handle_t* logger = _uv_log_init();
 
     int ret = _uv_log_init_conf_buff(logger, conf_buff);
-    if(ret) *h = logger;
-    else uv_log_close(logger);
+    if(!ret) 
+        *h = logger;
+    else 
+        uv_log_close(logger);
 
     return ret;
 }
@@ -415,35 +626,45 @@ void uv_log_write(uv_log_handle_t *h, char *name, int level,
     va_list args;
     char buf[2048]={0};
     task_log_msg_t* task = create_task_log_msg();
-    string_init_cstr(task->name, name);
+    logger_t *logger = (logger_t*)hash_map_find_easy_str(h->config->loggers, name);
     task->level = (level_t)level;
+    task->tid = gettid();
     task->file_name = file_name;
     task->func_name = func_name;
     task->line = line;
+    task->msg_time = time(0);
     va_start(args, msg);
     vsnprintf(buf, 2047, msg, args);
     va_end(args);
     string_init_cstr(task->msg, buf);
 
-    add_task(h->task_queue, task);
+    if(!logger) {
+        simple_ring_insert(h->config->root->ring, task);
+    } else {
+        simple_ring_insert(logger->ring, task);
+    }
+
+    uv_async_send(&h->async);
+
+    //add_task(h->task_queue, task);
 }
 
 static void log_task_job(uv_log_handle_t* h, task_log_msg_t* task) {
-    hash_map_iterator_t it_pos = hash_map_find(h->config->loggers, task->name);
-    hash_map_iterator_t it_end = hash_map_end(h->config->loggers);
-    printf("%s,%s,%d,%s,%s\n", string_c_str(task->name), task->file_name, task->line, task->func_name, string_c_str(task->msg));
-    do{
-        pair_t* pt_pair;
-        logger_t* logger;
-        if (iterator_equal(it_pos, it_end)) {
-            break;
-        }
-        pt_pair = (pair_t*)iterator_get_pointer(it_pos);
-        logger = *(logger_t**)pair_second(pt_pair);
-    }while (0);
+    //hash_map_iterator_t it_pos = hash_map_find(h->config->loggers, task->name);
+    //hash_map_iterator_t it_end = hash_map_end(h->config->loggers);
+    //printf("%s,%s,%d,%s,%s\n", string_c_str(task->name), task->file_name, task->line, task->func_name, string_c_str(task->msg));
+    //do{
+    //    pair_t* pt_pair;
+    //    logger_t* logger;
+    //    if (iterator_equal(it_pos, it_end)) {
+    //        break;
+    //    }
+    //    pt_pair = (pair_t*)iterator_get_pointer(it_pos);
+    //    logger = *(logger_t**)pair_second(pt_pair);
+    //}while (0);
 }
 
-static void uv_task_timer_cb(uv_timer_t* handle) {
-    uv_log_handle_t* log = (uv_log_handle_t*)handle->data;
-    get_task(log, log->task_queue, log_task_job);
-}
+//static void uv_task_timer_cb(uv_timer_t* handle) {
+//    uv_log_handle_t* log = (uv_log_handle_t*)handle->data;
+//    get_task(log, log->task_queue, log_task_job);
+//}

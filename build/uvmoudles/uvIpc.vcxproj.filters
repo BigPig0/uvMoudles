@@ -11,12 +11,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvipc\\uvIpc.c">
+    <ClCompile Include="..\..\uvmoudles\uvipc\uvIpc.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvipc\\uvIpc.h">
+    <ClInclude Include="..\..\uvmoudles\uvipc\uvIpc.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

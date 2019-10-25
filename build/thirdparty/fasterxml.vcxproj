@@ -11,14 +11,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\thirdParty\cptr\cptr.h" />
     <ClInclude Include="..\..\thirdParty\faster\fasterjson.h" />
     <ClInclude Include="..\..\thirdParty\faster\fasterparse.h" />
     <ClInclude Include="..\..\thirdParty\faster\fasterxml.h" />
+    <ClInclude Include="..\..\thirdParty\libcstl\cstl_easy.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\thirdParty\cptr\cptr.c" />
     <ClCompile Include="..\..\thirdParty\faster\fasterjson.c" />
     <ClCompile Include="..\..\thirdParty\faster\fasterparse.c" />
     <ClCompile Include="..\..\thirdParty\faster\fasterxml.c" />
+    <ClCompile Include="..\..\thirdParty\libcstl\cstl_easy.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{42E795E5-3ABC-42BE-8080-D0CD3D0A0B0F}</ProjectGuid>
@@ -49,8 +53,14 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)$(Platform)_$(Configuration)\TMP\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)_$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)$(Platform)_$(Configuration)\TMP\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)_$(Configuration)\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>

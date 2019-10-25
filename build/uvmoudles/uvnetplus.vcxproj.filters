@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetplus.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetpuclic.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnethttp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcppool.h">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnethttp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcppool.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

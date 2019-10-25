@@ -1,6 +1,6 @@
-/out
-*.user
-*.opensdf
-*.sdf
 *.suo
-*.ipch
+*.sdf
+*.opensdf
+*.vs/
+*.user
+/out
