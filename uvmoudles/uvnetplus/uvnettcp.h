@@ -11,7 +11,7 @@ extern int  net_is_ip(const char* input);
 class CUNTcpServer;
 //////////////////////////////////////////////////////////////////////////
 
-class CUNTcpClient : public uvNetPlus::CTcpClient
+class CUNTcpClient : public CTcpClient
 {
 public:
     CUNTcpClient(CUVNetPlus* net, bool copy = true);

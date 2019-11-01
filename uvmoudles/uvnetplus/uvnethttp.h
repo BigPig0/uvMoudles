@@ -131,10 +131,11 @@ private:
     bool ParseContent();
 
     CTcpConnPool        *m_pTcpPool;
-    CTcpRequest         *m_pTcpReq;
+    CTcpClient          *m_pTcpReq;
     IncomingMessage     *inc;
     bool                 parseHeader;   //请求报文中解析出http头。默认false
-    std::string          buff;   //接收数据缓存
+    list<uv_buf_t>       sendBuffs;     //skt连接之前，缓存发送的数据
+    std::string          recvBuff;      //接收数据缓存
 };
 
 /** 服务端生成应答数据并发送 */

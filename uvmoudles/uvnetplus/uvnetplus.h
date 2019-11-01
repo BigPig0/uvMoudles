@@ -113,56 +113,44 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
+class CTcpConnPool;
 
 /** TCP连接池 请求结构 */
-class CTcpRequest {
-    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
-    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
-public:
+struct CTcpRequest {
     std::string     host;   //请求目标域名或ip
     uint32_t        port;   //请求端口
     std::string     localaddr; //本地ip，表明使用哪一块网卡。默认空，不限制
-    void           *usr;    //用户自定义数据
     bool            copy;   //需要发送的数据是否拷贝到内部维护
     bool            recv;   //tcp请求是否需要接收数据
+    void           *usr;    //用户自定义数据
 
-    ReqCB      OnRequest;
-    ResCB      OnResponse;
-
-    /* 向请求追加发送数据,在发送回调中使用,不能另开线程 */
-    virtual void Request(const char* buff, int length) = 0;
-
-    /**
-     * 一个请求完成，将socket放到空闲池里面去
-     */
-    virtual void Finish() = 0;
-
-protected:
-    CTcpRequest();
-    virtual ~CTcpRequest() = 0;
+    CTcpConnPool   *pool;   //从哪一个连接池获取连接
+    CTcpRequest()
+        : port(80)
+        , copy(true)
+        , recv(true)
+        , usr(NULL)
+        , pool(NULL)
+    {}
 };
 
-/** TCP连接池，进行请求应答 */
+/** TCP客户端连接池，自动管理多个CTcpAgent */
 class CTcpConnPool
 {
+    typedef void (*ReqCB)(CTcpRequest* req, CTcpClient* skt, bool connected);
 public:
-    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
-    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
-
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
 
-    ReqCB      OnRequest;
-    ResCB      OnResponse;
+    ReqCB      OnRequest;   //获取TCP客户端连接回调
 
     /**
      * 创建连接池
      * @param net loop实例
-     * @param onReq 发送请求结果回调
-     * @param onRes 应答回调
+     * @param onReq 获取TCP客户端连接回调
      */
-    static CTcpConnPool* Create(CNet* net, ReqCB onReq, ResCB onRes);
+    static CTcpConnPool* Create(CNet* net, ReqCB onReq);
 
     /**
      * 异步删除连接池
@@ -170,7 +158,7 @@ public:
     virtual void Delete() = 0;
 
     /**
-     * 发送一个请求
+     * 从连接池获取一个socket。内部申请的对象，需要用户删除
      * @param host 请求目标域名或端口
      * @param port 请求目标端口
      * @param localaddr 本地ip，指定网卡，为空表示不指定
@@ -179,10 +167,14 @@ public:
      * @param recv 是否需要接收应答
      * @return 返回新的请求实例
      */
-    virtual CTcpRequest* Request(std::string host, uint32_t port
-        , std::string localaddr, void *usr=nullptr
-        , bool copy=true, bool recv=true
-        , ReqCB onReq=NULL, ResCB onRes=NULL) = 0;
+    virtual bool Request(std::string host, uint32_t port, std::string localaddr
+        , void *usr=nullptr, bool copy=true, bool recv=true) = 0;
+
+    /**
+     * 从连接池获取一个socket
+     * @param req 请求参数结构
+     */
+    virtual bool Request(CTcpRequest *req) = 0;
 
 protected:
     CTcpConnPool();

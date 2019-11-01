@@ -34,7 +34,7 @@ static void on_uv_async(uv_async_t* handle) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncClose();
         } else if(e.event == ASYNC_EVENT_TCPAGENT_REQUEST) {
-            TcpAgent *pool = (TcpAgent*)e.param;
+            CTcpPoolAgent *pool = (CTcpPoolAgent*)e.param;
             pool->Request(NULL);
         }
     }

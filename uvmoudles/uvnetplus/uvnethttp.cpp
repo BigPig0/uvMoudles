@@ -259,7 +259,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true, OnConnectRequest, OnConnectResponse);
+            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true);
             m_pTcpReq->Request(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
@@ -336,9 +336,9 @@ namespace Http {
         if(data == NULL || len == 0)
             return;
 
-        buff.append(data, len);
+        recvBuff.append(data, len);
         // http头解析
-        if(!parseHeader && buff.find("\r\n\r\n") != std::string::npos) {
+        if(!parseHeader && recvBuff.find("\r\n\r\n") != std::string::npos) {
             if(!ParseHeader()) {
                 Log::error("error response");
                 return;
@@ -385,9 +385,9 @@ namespace Http {
     }
 
     bool ClientRequest::ParseHeader() {
-        size_t pos1 = buff.find("\r\n");        //第一行的结尾
-        size_t pos2 = buff.find("\r\n\r\n");    //头的结尾位置
-        string statusline = buff.substr(0, pos1);  //第一行的内容
+        size_t pos1 = recvBuff.find("\r\n");        //第一行的结尾
+        size_t pos2 = recvBuff.find("\r\n\r\n");    //头的结尾位置
+        string statusline = recvBuff.substr(0, pos1);  //第一行的内容
 
 		size_t hpos1 = statusline.find(" ");
 		size_t hpos2 = statusline.find(" ", pos1+1);
@@ -396,8 +396,8 @@ namespace Http {
 		inc->version = VERSIONS(statusline.substr(0,hpos1).c_str());
 		inc->statusCode = stoi(statusline.substr(hpos1+1,hpos2-hpos1));
 		inc->statusMessage = statusline.substr(hpos2+1, statusline.size()-hpos2-1);
-        inc->rawHeaders = buff.substr(pos1+2, pos2-pos1);
-        buff = buff.substr(pos2+4, buff.size()-pos2-4);
+        inc->rawHeaders = recvBuff.substr(pos1+2, pos2-pos1);
+        recvBuff = recvBuff.substr(pos2+4, recvBuff.size()-pos2-4);
 
         if(inc->version == HTTP1_0)
             inc->keepAlive = false;
@@ -441,15 +441,15 @@ namespace Http {
 
     bool ClientRequest::ParseContent() {
         if(inc->chunked) {
-            size_t pos = buff.find("\r\n");
-            int len = htoi(buff.substr(0, pos).c_str());
-            if(buff.size() - pos - 4 >= len) {
+            size_t pos = recvBuff.find("\r\n");
+            int len = htoi(recvBuff.substr(0, pos).c_str());
+            if(recvBuff.size() - pos - 4 >= len) {
                 // 接收完整块
                 if(len==0)
                     inc->complete = true;
                 inc->contentLen = len;
-                inc->content = buff.substr(pos+2, len);
-                buff = buff.substr(pos+len+4,buff.size()-pos-len-4);
+                inc->content = recvBuff.substr(pos+2, len);
+                recvBuff = recvBuff.substr(pos+len+4,recvBuff.size()-pos-len-4);
                 return true;
             }
             return false;
@@ -458,14 +458,14 @@ namespace Http {
         //chunked false时的情况
         if(inc->contentLen == (uint32_t)-1) {
             // 没有设置长度，永不停止接收数据。这不是标准协议，自定义的处理
-            inc->content = buff;
-            buff.clear();
+            inc->content = recvBuff;
+            recvBuff.clear();
             return true;
         }
 
-        if(buff.size() >= inc->contentLen) {
-            inc->content = buff.substr(0, inc->contentLen);
-            buff = buff.substr(inc->contentLen, buff.size()-inc->contentLen);
+        if(recvBuff.size() >= inc->contentLen) {
+            inc->content = recvBuff.substr(0, inc->contentLen);
+            recvBuff = recvBuff.substr(inc->contentLen, recvBuff.size()-inc->contentLen);
             inc->complete = true;
             return true;
         }
