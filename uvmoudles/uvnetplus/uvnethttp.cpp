@@ -268,9 +268,6 @@ namespace Http {
         , OnInformation(NULL)
         , OnUpgrade(NULL)
         , OnResponse(NULL)
-        , OnRequest(NULL)
-        , OnData(NULL)
-        , OnEnd(NULL)
         , OnError(NULL)
     {}
 
@@ -376,8 +373,6 @@ namespace Http {
     void ClientRequest::Socket(CTcpSocket *skt) {
         tcpSocket  = skt;
         incMsg     = new IncomingMessage();
-        if(OnRequest)
-            OnRequest(this, incMsg);
     }
 
     void ClientRequest::ConnectFinish(string err) {

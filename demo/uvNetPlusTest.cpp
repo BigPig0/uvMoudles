@@ -227,7 +227,9 @@ void testServer()
 }
 
 //////////////////////////////////////////////////////////////////////////
+static void OnHttpError(Http::CHttpRequest *request, string error) {
 
+}
 static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
     Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
     Log::debug(response->rawHeaders.c_str());
@@ -236,15 +238,13 @@ static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* 
         request->Delete();
 }
 
-/*
 void testHttpRequest()
 {
     CNet* net = CNet::Create();
-    CTcpConnPool* client = CTcpConnPool::Create(net, NULL, NULL);
-    client->maxConns = 10;
-    client->maxIdle = 10;
+    Http::CHttpClientEnv *http = new Http::CHttpClientEnv(net, 10, 10);
     for (int i=0; i<100; i++) {
-         Http::CHttpRequest* req = Http::CHttpRequest::Create(client);
+         Http::CHttpRequest* req = http->Request();
+         req->OnError    = OnHttpError;
          req->OnResponse = OnHttpResponse;
          //req->host = "www.baidu.com";
          req->host = "127.0.0.1";
@@ -256,7 +256,7 @@ void testHttpRequest()
          req->version = Http::VERSION::HTTP1_1;
          req->SetHeader("myheader","????????\0");
          string content = "123456789\0";
-         req->End(content.c_str(), content.length(),NULL);
+         req->End(content.c_str(), content.length());
     }
 }
 
@@ -283,15 +283,15 @@ void testHttpServer()
     svr->OnRequest = OnHttpRequest;
     svr->Listen("0.0.0.0", svrport);
 }
-*/
+
 //////////////////////////////////////////////////////////////////////////
 
 int _tmain(int argc, _TCHAR* argv[])
 {
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
-    testServer();
-    //testHttpServer();
+    //testServer();
+    testHttpServer();
     //testHttpRequest();
 
 	Sleep(INFINITE);

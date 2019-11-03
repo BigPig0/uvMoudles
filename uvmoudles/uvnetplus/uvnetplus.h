@@ -294,8 +294,6 @@ protected:
 };
 
 class CHttpRequest : public CHttpMsg {
-    typedef void(*DataCB)(CHttpRequest *req, char* chunk, uint32_t len);
-    typedef void(*EndCB)(CHttpRequest *req);
     typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
     typedef void(*ResCB)(CHttpRequest *req, CIncomingMessage* response);
 public:
@@ -321,11 +319,8 @@ public:
     ResCB OnUpgrade;
     /** 客户端收到应答时回调，如果是其他指定回调，则不会再次进入这里 */
     ResCB OnResponse;
-    /** 请求建立的回调,必填项 */
-    ResCB OnRequest;
 
-    DataCB      OnData;         // 收到http应答内容实体
-    EndCB       OnEnd;          // 接收完成
+
     ErrorCB     OnError;        // 发生错误
 
     /** 删除实例 */
