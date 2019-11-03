@@ -38,7 +38,7 @@ int net_is_ip(const char* input) {
 #define CONNECT_CALLBACK(e) if(OnConnect) OnConnect(this,e);
 
 static void on_uv_close(uv_handle_t* handle) {
-    CUNTcpClient *skt = (CUNTcpClient*)handle->data;
+    CUNTcpSocket *skt = (CUNTcpSocket*)handle->data;
     Log::warning("close client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     if(skt->OnCLose) 
         skt->OnCLose(skt);
@@ -49,19 +49,19 @@ static void on_uv_close(uv_handle_t* handle) {
 }
 
 static void on_uv_shutdown(uv_shutdown_t* req, int status) {
-    CUNTcpClient *skt = (CUNTcpClient*)req->data;
+    CUNTcpSocket *skt = (CUNTcpSocket*)req->data;
      Log::warning("shutdown client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     delete req;
     uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
 }
 
 static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf){
-    CUNTcpClient *skt = (CUNTcpClient*)handle->data;
+    CUNTcpSocket *skt = (CUNTcpSocket*)handle->data;
     *buf = uv_buf_init(skt->readBuff, 1024*1024);
 }
 
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-    CUNTcpClient *skt = (CUNTcpClient*)stream->data;
+    CUNTcpSocket *skt = (CUNTcpSocket*)stream->data;
     if(nread < 0) {
         skt->m_bConnect = false;
         if(nread == UV__ECONNRESET || nread == UV_EOF) {
@@ -85,7 +85,7 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
 }
 
 static void on_uv_connect(uv_connect_t* req, int status){
-    CUNTcpClient* skt = (CUNTcpClient*)req->data;
+    CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
     delete req;
 
     if(status != 0){
@@ -115,7 +115,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 
 /** 数据发送完成 */
 static void on_uv_write(uv_write_t* req, int status) {
-    CUNTcpClient* skt = (CUNTcpClient*)req->data;
+    CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
     //printf("write finish %d", status);
     if(status != 0) {
         if(skt->OnError)
@@ -142,7 +142,7 @@ static void on_uv_write(uv_write_t* req, int status) {
     }
 }
 
-CTcpClient::CTcpClient()
+CTcpSocket::CTcpSocket()
     : OnReady(nullptr)
     , OnConnect(nullptr)
     , OnRecv(nullptr)
@@ -156,16 +156,16 @@ CTcpClient::CTcpClient()
     , userData(NULL)
 {}
 
-CTcpClient::~CTcpClient(){}
+CTcpSocket::~CTcpSocket(){}
 
-CTcpClient* CTcpClient::Create(CNet* net, void *usr, bool copy){
-    CUNTcpClient* ret = new CUNTcpClient((CUVNetPlus*)net, copy);
+CTcpSocket* CTcpSocket::Create(CNet* net, void *usr, bool copy){
+    CUNTcpSocket* ret = new CUNTcpSocket((CUVNetPlus*)net, copy);
     ret->userData = usr;
     ret->copy = copy;
     return ret;
 }
 
-CUNTcpClient::CUNTcpClient(CUVNetPlus* net, bool copy)
+CUNTcpSocket::CUNTcpSocket(CUVNetPlus* net, bool copy)
     : m_pNet(net)
     , m_pSvr(nullptr)
     , m_bSetLocal(false)
@@ -178,7 +178,7 @@ CUNTcpClient::CUNTcpClient(CUVNetPlus* net, bool copy)
     uv_mutex_init(&sendMtx);
 }
 
-CUNTcpClient::~CUNTcpClient()
+CUNTcpSocket::~CUNTcpSocket()
 {
     free(readBuff);
     uv_mutex_destroy(&sendMtx);
@@ -187,7 +187,7 @@ CUNTcpClient::~CUNTcpClient()
     }
 }
 
-void CUNTcpClient::Delete()
+void CUNTcpSocket::Delete()
 {
     OnReady = nullptr;
     OnConnect = nullptr;
@@ -200,7 +200,7 @@ void CUNTcpClient::Delete()
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CLTCLOSE, this);
 }
 
-void CUNTcpClient::syncInit()
+void CUNTcpSocket::syncInit()
 {
     uvTcp.data = this;
     int ret = uv_tcp_init(&m_pNet->pNode->m_uvLoop, &uvTcp);
@@ -212,7 +212,7 @@ void CUNTcpClient::syncInit()
     READY_CALLBACK; // socket 建立完成回调
 }
 
-void CUNTcpClient::syncConnect()
+void CUNTcpSocket::syncConnect()
 {
     syncInit();
     int ret = 0;
@@ -243,7 +243,7 @@ void CUNTcpClient::syncConnect()
     }
 }
 
-void CUNTcpClient::syncSend()
+void CUNTcpSocket::syncSend()
 {
     uv_mutex_lock(&sendMtx);
     size_t num = sendList.size();
@@ -272,7 +272,7 @@ void CUNTcpClient::syncSend()
     delete[] bufs;
 }
 
-void CUNTcpClient::syncClose()
+void CUNTcpSocket::syncClose()
 {
     m_bUserClose = true;
     if(m_bInit && m_bConnect) {
@@ -284,21 +284,21 @@ void CUNTcpClient::syncClose()
     }
 }
 
-void CUNTcpClient::Connect(std::string strIP, uint32_t nPort)
+void CUNTcpSocket::Connect(std::string strIP, uint32_t nPort)
 {
     m_strRemoteIP = strIP;
     m_nRemotePort = nPort;
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CONNECT, this);
 }
 
-void CUNTcpClient::SetLocal(std::string strIP, uint32_t nPort)
+void CUNTcpSocket::SetLocal(std::string strIP, uint32_t nPort)
 {
     m_strLocalIP = strIP;
     m_nLocalPort = nPort;
     m_bSetLocal = true;
 }
 
-void CUNTcpClient::Send(const char *pData, uint32_t nLen)
+void CUNTcpSocket::Send(const char *pData, uint32_t nLen)
 {
     char* tmp = NULL;
     if(copy) {
@@ -432,7 +432,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
     }
     CUNTcpServer *svr = (CUNTcpServer*)server->data;
 
-    CUNTcpClient *client = new CUNTcpClient(m_pNet);
+    CUNTcpSocket *client = new CUNTcpSocket(m_pNet);
     client->m_pSvr = this;
     client->syncInit();
     int ret = uv_accept(server, (uv_stream_t*)(&client->uvTcp));
@@ -492,7 +492,7 @@ void CUNTcpServer::syncClose()
     m_bListening = false;
 }
 
-void CUNTcpServer::removeClient(CUNTcpClient* c)
+void CUNTcpServer::removeClient(CUNTcpSocket* c)
 {
     m_listClients.remove(c);
     if(!m_bListening && m_listClients.empty()){

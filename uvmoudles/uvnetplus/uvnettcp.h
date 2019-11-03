@@ -11,11 +11,11 @@ extern int  net_is_ip(const char* input);
 class CUNTcpServer;
 //////////////////////////////////////////////////////////////////////////
 
-class CUNTcpClient : public CTcpClient
+class CUNTcpSocket : public CTcpSocket
 {
 public:
-    CUNTcpClient(CUVNetPlus* net, bool copy = true);
-    ~CUNTcpClient();
+    CUNTcpSocket(CUVNetPlus* net, bool copy = true);
+    ~CUNTcpSocket();
     virtual void Delete();
     virtual void Connect(std::string strIP, uint32_t nPort);
     virtual void SetLocal(std::string strIP, uint32_t nPort);
@@ -60,7 +60,7 @@ public:
     void syncListen();
     void syncConnection(uv_stream_t* server, int status);
     void syncClose();
-    void removeClient(CUNTcpClient* c);
+    void removeClient(CUNTcpSocket* c);
 
 public:
     CUVNetPlus       *m_pNet;
@@ -73,7 +73,7 @@ public:
     int               m_nFamily;        //绑定本地IP的族 4 或 6
 
 
-    list<CUNTcpClient*> m_listClients;
+    list<CUNTcpSocket*> m_listClients;
 };
 
 }

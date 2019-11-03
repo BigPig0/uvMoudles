@@ -10,23 +10,23 @@ namespace uvNetPlus {
 //////////////////////////////////////////////////////////////////////////
 //////////////   连接到服务器的单个连接    ///////////////////////////////
 
-CUNTcpConnect::CUNTcpConnect(CUVNetPlus* net, bool copy)
-    : CUNTcpClient(net, copy)
+CUNTcpPoolSocket::CUNTcpPoolSocket(CUVNetPlus* net, bool copy)
+    : CUNTcpSocket(net, copy)
 {
 }
 
-CUNTcpConnect::~CUNTcpConnect()
+CUNTcpPoolSocket::~CUNTcpPoolSocket()
 {
     //Log::debug("~CUNTcpConnect()");
 }
 
-void CUNTcpConnect::syncClose()
+void CUNTcpPoolSocket::syncClose()
 {
     m_pReq = nullptr;
     m_pAgent->GiveBackSkt(this);
 }
 
-void CUNTcpConnect::Delete()
+void CUNTcpPoolSocket::Delete()
 {
     m_pNet->AddEvent(ASYNC_EVENT_TCP_CONNCLOSE, this);
 }
@@ -120,7 +120,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
     //Log::debug("busyConn %d idleConn %d", m_listBusyConns.size(), m_listIdleConns.size());
     //查找空闲连接
     if(!m_listIdleConns.empty()){
-        CUNTcpConnect *conn = m_listIdleConns.front();
+        CUNTcpPoolSocket *conn = m_listIdleConns.front();
         m_listIdleConns.pop_front();
 
         //处理下一个请求
@@ -146,10 +146,11 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
         //处理下一个请求
         m_pNet->AddEvent(ASYNC_EVENT_TCPAGENT_REQUEST, this);
 
-        CUNTcpConnect *conn = new CUNTcpConnect(m_pNet, req->copy);
+        CUNTcpPoolSocket *conn = new CUNTcpPoolSocket(m_pNet, req->copy);
         conn->m_nLastTime = time(NULL);
         m_listBusyConns.push_back(conn);
         conn->m_pReq = req;
+        conn->m_pAgent = this;
 
         //回调通知用户取到的socket
         if(m_pTcpConnPool->OnRequest)
@@ -161,12 +162,12 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
     return true;
 }
 
-void CTcpPoolAgent::GiveBackSkt(CUNTcpConnect *skt) {   
+void CTcpPoolAgent::GiveBackSkt(CUNTcpPoolSocket *skt) {   
     m_listBusyConns.remove(skt);
-    if(m_listIdleConns.size() < maxIdle){
+    if(skt->m_bConnect && m_listIdleConns.size() < maxIdle){
         m_listIdleConns.push_front(skt);
     } else {
-        skt->CUNTcpClient::Delete();
+        skt->CUNTcpSocket::Delete();
     }
     m_pNet->AddEvent(ASYNC_EVENT_TCPAGENT_REQUEST, this);
 }
@@ -181,7 +182,7 @@ static void on_timer_cb(uv_timer_t* handle) {
     for(auto it = pool->m_mapAgents.begin(); it != pool->m_mapAgents.end(); ){
         CTcpPoolAgent* agent = it->second;
         while(!agent->m_listIdleConns.empty()){
-            CUNTcpConnect *conn = agent->m_listIdleConns.back();
+            CUNTcpPoolSocket *conn = agent->m_listIdleConns.back();
             if(difftime(now, conn->m_nLastTime) < agent->timeOut)
                 break;
 

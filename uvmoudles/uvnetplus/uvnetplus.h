@@ -18,11 +18,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 
 /** TCP客户端 */
-class CTcpClient
+class CTcpSocket
 {
-    typedef void (*EventCB)(CTcpClient* skt);
-    typedef void (*RecvCB)(CTcpClient* skt, char *data, int len);
-    typedef void (*ErrorCB)(CTcpClient* skt, std::string error);
+    typedef void (*EventCB)(CTcpSocket* skt);
+    typedef void (*RecvCB)(CTcpSocket* skt, char *data, int len);
+    typedef void (*ErrorCB)(CTcpSocket* skt, std::string error);
 public:
     EventCB      OnReady;     //socket创建完成
     ErrorCB      OnConnect;   //连接完成
@@ -43,7 +43,7 @@ public:
      * @param usr 设定用户自定义数据
      * @param copy 调用发送接口时，是否将数据拷贝到缓存由内部进行管理
      */
-    static CTcpClient* Create(CNet* net, void *usr=nullptr, bool copy=true);
+    static CTcpSocket* Create(CNet* net, void *usr=nullptr, bool copy=true);
 
     /**
      * 异步删除这个实例
@@ -67,15 +67,15 @@ public:
      */
     virtual void Send(const char *pData, uint32_t nLen) = 0;
 protected:
-    CTcpClient();
-    virtual ~CTcpClient() = 0;
+    CTcpSocket();
+    virtual ~CTcpSocket() = 0;
 };
 
 /** TCP服务端 */
 class CTcpServer
 {
     typedef void (*EventCB)(CTcpServer* svr, std::string err);
-    typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpClient* client);
+    typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpSocket* client);
 public:
 
     EventCB          OnListen;       // 开启监听完成回调，错误时上抛错误消息
@@ -137,7 +137,7 @@ struct CTcpRequest {
 /** TCP客户端连接池，自动管理多个CTcpAgent */
 class CTcpConnPool
 {
-    typedef void (*ReqCB)(CTcpRequest* req, CTcpClient* skt, bool connected);
+    typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt, bool connected);
 public:
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
@@ -230,31 +230,34 @@ protected:
 
 class CHttpMsg {
 public:
+    CHttpMsg();
+    ~CHttpMsg();
+
     /**
      * 显示填写http头，调用后隐式http头的接口就无效了
      * @param headers http头域完整字符串，包含每一行结尾的"\r\n"
      */
-    virtual void WriteHead(std::string headers) = 0;
+    virtual void WriteHead(std::string headers);
 
     /**
      * 获取已经设定的隐式头
      */
-    virtual std::vector<std::string> GetHeader(std::string name) = 0;
+    virtual std::vector<std::string> GetHeader(std::string name);
 
     /**
      * 获取所有设定的隐式头的key
      */
-    virtual std::vector<std::string> GetHeaderNames() = 0;
+    virtual std::vector<std::string> GetHeaderNames();
 
     /**
      * 隐式头是否已经包含一个名称
      */
-    virtual bool HasHeader(std::string name) = 0;
+    virtual bool HasHeader(std::string name);
 
     /**
      * 移除一个隐式头
      */
-    virtual void RemoveHeader(std::string name) = 0;
+    virtual void RemoveHeader(std::string name);
 
     /**
      * 重新设置一个头的值，或者新增一个隐式头
@@ -262,24 +265,40 @@ public:
      * param value 单个field value
      * param values 以NULL结尾的字符串数组，多个field value
      */
-    virtual void SetHeader(std::string name, std::string value) = 0;
-    virtual void SetHeader(std::string name, char **values) = 0;
+    virtual void SetHeader(std::string name, std::string value);
+    virtual void SetHeader(std::string name, char **values);
 
     /**
      * 设置内容长度。内容分多次发送，且不使用chunked时使用。
      */
-    virtual void SetContentLen(uint32_t len) = 0;
+    virtual void SetContentLen(uint32_t len);
 
     /**
      * 查看是否完成
      */
-    virtual bool Finished() = 0;
+    virtual bool Finished();
+
+public:
+     CTcpSocket        *m_pSocket;
+
+protected:
+    /** 由隐式头组成字符串 */
+    std::string getImHeaderString();
+
+protected:
+    std::string         m_strHeaders;   // 显式的头
+    hash_list           m_Headers;      // 隐式头的内容
+    bool                m_bHeadersSent; // header是否已经发送
+    bool                m_bFinished;    // 接收应答是否完成
+    uint32_t            m_nContentLen;  // 设置内容的长度
 };
 
 class CHttpRequest : public CHttpMsg {
+    typedef void(*DataCB)(CHttpRequest *req, char* chunk, uint32_t len);
+    typedef void(*EndCB)(CHttpRequest *req);
+    typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
+    typedef void(*ResCB)(CHttpRequest *req, CIncomingMessage* response);
 public:
-    typedef void(*ReqCb)(CHttpRequest *request);
-    typedef void(*ResCB)(CHttpRequest *request, CIncomingMessage* response);
 
     PROTOCOL            protocol;  // 协议,http或https
     METHOD              method;    // 方法
@@ -302,9 +321,12 @@ public:
     ResCB OnUpgrade;
     /** 客户端收到应答时回调，如果是其他指定回调，则不会再次进入这里 */
     ResCB OnResponse;
+    /** 请求建立的回调,必填项 */
+    ResCB OnRequest;
 
-    /** 创建实例 */
-    static CHttpRequest* Create(CTcpConnPool *pool);
+    DataCB      OnData;         // 收到http应答内容实体
+    EndCB       OnEnd;          // 接收完成
+    ErrorCB     OnError;        // 发生错误
 
     /** 删除实例 */
     virtual void Delete() = 0;
@@ -316,7 +338,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(const char* chunk, int len, ReqCb cb = NULL) = 0;
+    virtual bool Write(const char* chunk, int len) = 0;
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -327,10 +349,19 @@ public:
     /**
      * 相当于Write(data, len, cb);end();
      */
-    virtual void End(const char* data, int len, ReqCb cb = NULL) = 0;
+    virtual void End(const char* data, int len) = 0;
 protected:
     CHttpRequest();
     virtual ~CHttpRequest() = 0;
+};
+
+class CHttpClientEnv {
+public:
+    CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20);
+    ~CHttpClientEnv();
+    CHttpRequest* Request();
+private:
+    CTcpConnPool        *connPool;
 };
 
 class CHttpResponse : public CHttpMsg {

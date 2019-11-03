@@ -12,74 +12,9 @@ class IncomingMessage;
 class ServerResponse;
 class Server;
 
-/** http协议使用的socket的发送操作 */
-class SendingMessage
-{
-public:
-    SendingMessage();
-    virtual ~SendingMessage();
-
-    /**
-     * 显示填写http头，调用后隐式http头的接口就无效了
-     * @param headers http头域完整字符串，包含每一行结尾的"\r\n"
-     */
-    void WriteHead(std::string headers);
-
-    /**
-     * 获取已经设定的隐式头
-     */
-    std::vector<std::string> GetHeader(std::string name);
-
-    /**
-     * 获取所有设定的隐式头的key
-     */
-    std::vector<std::string> GetHeaderNames();
-
-    /**
-     * 隐式头是否已经包含一个名称
-     */
-    bool HasHeader(std::string name);
-
-    /**
-     * 移除一个隐式头
-     */
-    void RemoveHeader(std::string name);
-
-    /**
-     * 重新设置一个头的值，或者新增一个隐式头
-     * param name field name
-     * param value 单个field value
-     * param values 以NULL结尾的字符串数组，多个field value
-     */
-    void SetHeader(std::string name, std::string value);
-    void SetHeader(std::string name, char **values);
-
-    /**
-     * 设置内容长度。内容分多次发送，且不使用chunked时使用。
-     */
-    void SetContentLen(uint32_t len);
-
-    /**
-     * 查看是否完成
-     */
-    bool Finished();
-
-    CTcpClient*         m_pSocket;     // tcp连接
-protected:
-    /** 由隐式头组成字符串 */
-    std::string getImHeaderString();
-
-protected:
-    std::string         m_strHeaders;   // 显式的头
-    hash_list           m_Headers;      // 隐式头的内容
-    bool                m_bHeadersSent; // header是否已经发送
-    bool                m_bFinished;    // 接收应答是否完成
-    uint32_t            m_nContentLen;  // 设置内容的长度
-};
-
 
 /** HTTP客户端请求,用于客户端组织数据并发送 */
-class ClientRequest : public SendingMessage, public CHttpRequest
+class ClientRequest : public CHttpRequest
 {
 public:
     ClientRequest(CTcpConnPool *pool);
@@ -95,7 +30,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(const char* chunk, int len, ReqCb cb = NULL);
+    virtual bool Write(const char* chunk, int len);
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -106,20 +41,19 @@ public:
     /**
      * 相当于Write(data, len, cb);end();
      */
-    virtual void End(const char* data, int len, ReqCb cb = NULL);
+    virtual void End(const char* data, int len);
 
-    virtual void WriteHead(std::string headers);
-    virtual std::vector<std::string> GetHeader(std::string name);
-    virtual std::vector<std::string> GetHeaderNames();
-    virtual bool HasHeader(std::string name);
-    virtual void RemoveHeader(std::string name);
-    virtual void SetHeader(std::string name, std::string value);
-    virtual void SetHeader(std::string name, char **values);
-    virtual void SetContentLen(uint32_t len);
-    virtual bool Finished();
+    /** 从连接池获取socket完成 */
+    void Socket(CTcpSocket *skt);
+
+    /** 连接完成 */
+    void ConnectFinish(string err);
 
     /* 收到的数据处理 */
     void Receive(const char *data, int len);
+
+    /** 发生错误处理 */
+    void DoError(string err);
 
 private:
     std::string GetAgentName();
@@ -130,16 +64,19 @@ private:
     /** 解析内容，已经接收完整内容或块返回true，否则false */
     bool ParseContent();
 
-    CTcpConnPool        *m_pTcpPool;
-    CTcpClient          *m_pTcpReq;
-    IncomingMessage     *inc;
+    CTcpConnPool        *connPool;
+    CTcpSocket          *tcpSocket;
+    IncomingMessage     *incMsg;
+    bool                 connected;     //已经连接
+    bool                 connecting;    //正在连接
     bool                 parseHeader;   //请求报文中解析出http头。默认false
-    list<uv_buf_t>       sendBuffs;     //skt连接之前，缓存发送的数据
+    list<string>         sendBuffs;     //skt连接之前，缓存发送的数据
+    uv_mutex_t           mutex;         //write和end线程安全
     std::string          recvBuff;      //接收数据缓存
 };
 
 /** 服务端生成应答数据并发送 */
-class ServerResponse : public SendingMessage, public CHttpResponse
+class ServerResponse : public CHttpResponse
 {
 public:
     ServerResponse();
@@ -185,15 +122,6 @@ public:
      */
     virtual void End(const char* data, int len, ResCb cb = NULL);
 
-    virtual void WriteHead(std::string headers);
-    virtual std::vector<std::string> GetHeader(std::string name);
-    virtual std::vector<std::string> GetHeaderNames();
-    virtual bool HasHeader(std::string name);
-    virtual void RemoveHeader(std::string name);
-    virtual void SetHeader(std::string name, std::string value);
-    virtual void SetHeader(std::string name, char **values);
-    virtual void SetContentLen(uint32_t len);
-    virtual bool Finished();
 private:
     std::string GetHeadersString();
 
@@ -219,7 +147,7 @@ public:
 
     Server          *http;
     CTcpServer      *server;
-    CTcpClient      *client;
+    CTcpSocket      *client;
     std::string      buff;   //接收数据缓存
     IncomingMessage *inc;    //保存解析到的请求数据
     ServerResponse  *res;    //应答
@@ -242,12 +170,12 @@ public:
 
 private:
     static void OnListen(CTcpServer* svr, std::string err);
-    static void OnTcpConnection(CTcpServer* svr, std::string err, CTcpClient* client);
-    static void OnSvrCltRecv(CTcpClient* skt, char *data, int len);
-    static void OnSvrCltDrain(CTcpClient* skt);
-    static void OnSvrCltClose(CTcpClient* skt);
-    static void OnSvrCltEnd(CTcpClient* skt);
-    static void OnSvrCltError(CTcpClient* skt, string err);
+    static void OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client);
+    static void OnSvrCltRecv(CTcpSocket* skt, char *data, int len);
+    static void OnSvrCltDrain(CTcpSocket* skt);
+    static void OnSvrCltClose(CTcpSocket* skt);
+    static void OnSvrCltEnd(CTcpSocket* skt);
+    static void OnSvrCltError(CTcpSocket* skt, string err);
 
 private:
     int           m_nPort;      //服务监听端口

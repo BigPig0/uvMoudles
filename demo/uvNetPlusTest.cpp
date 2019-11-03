@@ -21,12 +21,12 @@ struct clientData {
     int finishNum;
 };
 
-void OnClientReady(CTcpClient* skt){
+void OnClientReady(CTcpSocket* skt){
     clientData* data = (clientData*)skt->userData;
     Log::debug("client %d ready", data->tid);
 }
 
-void OnClientConnect(CTcpClient* skt, string err){
+void OnClientConnect(CTcpSocket* skt, string err){
     clientData* data = (clientData*)skt->userData;
     if(err.empty()){
         char buff[1024] = {0};
@@ -39,11 +39,13 @@ void OnClientConnect(CTcpClient* skt, string err){
     }
 }
 
-void OnClientRecv(CTcpClient* skt, char *data, int len){
+void OnClientRecv(CTcpSocket* skt, char *data, int len){
     clientData* c = (clientData*)skt->userData;
     c->finishNum++;
     Log::debug("client%d recv[%d]: %s", c->tid, c->finishNum, data);
-    //skt->Delete();
+#if 1
+    skt->Delete();
+#else
     if(c->finishNum < c->tid) {
         char buff[1024] = {0};
         sprintf(buff, "client%d %d",c->tid, c->finishNum+1);
@@ -52,25 +54,26 @@ void OnClientRecv(CTcpClient* skt, char *data, int len){
     } else {
         skt->Delete();
     }
+#endif
 }
 
-void OnClientDrain(CTcpClient* skt){
+void OnClientDrain(CTcpSocket* skt){
     clientData* data = (clientData*)skt->userData;
     Log::debug("client%d drain", data->tid);
 }
 
-void OnClientClose(CTcpClient* skt){
+void OnClientClose(CTcpSocket* skt){
     clientData* data = (clientData*)skt->userData;
     Log::debug("client%d close", data->tid);
     delete data;
 }
 
-void OnClientEnd(CTcpClient* skt){
+void OnClientEnd(CTcpSocket* skt){
     clientData* data = (clientData*)skt->userData;
     Log::debug("client%d end", data->tid);
 }
 
-void OnClientError(CTcpClient* skt, string err){
+void OnClientError(CTcpSocket* skt, string err){
     clientData* data = (clientData*)skt->userData;
     Log::error("client%d error: %s ", data->tid, err.c_str());
 }
@@ -82,7 +85,7 @@ void testClient()
         clientData* data = new clientData;
         data->tid = i+1;
         data->finishNum = 0;
-        CTcpClient* client = CTcpClient::Create(net, (void*)data);
+        CTcpSocket* client = CTcpSocket::Create(net, (void*)data);
         client->OnRecv = OnClientRecv;
         client->OnDrain = OnClientDrain;
         client->OnCLose = OnClientClose;
@@ -96,35 +99,43 @@ void testClient()
 //////////////////////////////////////////////////////////////////////////
 /////////////     tcp客户端连接池      ///////////////////////////////////
 
-static void OnConnectRequest(CTcpRequest* req, std::string error){
+static void OnConnectRequest(CTcpRequest* req, CTcpSocket* skt, bool connected){
     clientData* data = (clientData*)req->usr;
-    if(!error.empty())
-        Log::error("OnConnectRequest client%d error: %s ", data->tid, error.c_str());
-}
-
-static void OnConnectResponse(CTcpRequest* req, std::string error, const char *data, int len){
-    clientData* cli = (clientData*)req->usr;
-    if(!error.empty())
-        Log::error("OnConnectResponse fialed client%d error: %s ", cli->tid, error.c_str());
-    else
-        //Log::debug("OnConnectResponse ok req%d recv%s", cli->tid, data);
-    req->Finish();
+    delete req;
+    if(!connected) {
+        //新建连接
+        skt->OnReady   = OnClientReady;
+        skt->OnConnect = OnClientConnect;
+        skt->OnRecv    = OnClientRecv;
+        skt->OnDrain   = OnClientDrain;
+        skt->OnCLose   = OnClientClose;
+        skt->OnEnd     = OnClientEnd;
+        skt->OnError   = OnClientError;
+        skt->autoRecv  = true;
+        skt->copy      = true;
+        skt->userData  = data;
+    } else {
+        //连接池取出的连接
+        clientData* ddd = (clientData*)skt->userData;
+        data->finishNum = ddd->finishNum;
+        skt->userData  = data;
+        skt->Send("123456789", 9);
+        skt->Send("987654321", 9);
+    }
 }
 
 static void testTcpPool(){
     std::thread t([&](){
         CNet* net = CNet::Create();
-        CTcpConnPool* client = CTcpConnPool::Create(net, OnConnectRequest, OnConnectResponse);
-        client->maxConns = 10;
-        client->maxIdle = 10;
-        for (int i=0; i<500; i++) {
+        CTcpConnPool* pool = CTcpConnPool::Create(net, OnConnectRequest);
+        pool->maxConns = 10;
+        pool->maxIdle = 10;
+        for (int i=0; i<100; i++) {
             Log::debug("new request %d", i);
             clientData* data = new clientData;
             data->tid = i+1;
             data->finishNum = 0;
-            CTcpRequest* tcpReq = client->Request("127.0.0.1", svrport, "", data, true, true);
-            tcpReq->Request("123456789", 9);
-            tcpReq->Request("987654321", 9);
+            pool->Request("127.0.0.1", svrport, "", data, true, true);
         }
     });
     t.detach();
@@ -136,7 +147,7 @@ struct sclientData {
     int id;
 };
 
-void OnSvrCltRecv(CTcpClient* skt, char *data, int len){
+void OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
     sclientData *c = (sclientData*)skt->userData;
     Log::debug("server client%d recv: %s ", c->id, data);
     char buff[1024] = {0};
@@ -145,28 +156,28 @@ void OnSvrCltRecv(CTcpClient* skt, char *data, int len){
     skt->Send("123456", 6);
 }
 
-void OnSvrCltDrain(CTcpClient* skt){
+void OnSvrCltDrain(CTcpSocket* skt){
     sclientData *c = (sclientData*)skt->userData;
     Log::debug("server client%d drain", c->id);
 }
 
-void OnSvrCltClose(CTcpClient* skt){
+void OnSvrCltClose(CTcpSocket* skt){
     sclientData *c = (sclientData*)skt->userData;
     Log::debug("server client%d close", c->id);
     delete c;
 }
 
-void OnSvrCltEnd(CTcpClient* skt){
+void OnSvrCltEnd(CTcpSocket* skt){
     sclientData *c = (sclientData*)skt->userData;
     Log::debug("server client%d end", c->id);
 }
 
-void OnSvrCltError(CTcpClient* skt, string err){
+void OnSvrCltError(CTcpSocket* skt, string err){
     sclientData *c = (sclientData*)skt->userData;
     Log::error("server client%d error:%s ",c->id, err.c_str());
 }
 
-void OnTcpConnection(CTcpServer* svr, std::string err, CTcpClient* client) {
+void OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
     if(!err.empty()){
         Log::error("tcp server error: %s ", err.c_str());
         return;
@@ -225,6 +236,7 @@ static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* 
         request->Delete();
 }
 
+/*
 void testHttpRequest()
 {
     CNet* net = CNet::Create();
@@ -271,16 +283,16 @@ void testHttpServer()
     svr->OnRequest = OnHttpRequest;
     svr->Listen("0.0.0.0", svrport);
 }
-
+*/
 //////////////////////////////////////////////////////////////////////////
 
 int _tmain(int argc, _TCHAR* argv[])
 {
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
-    //testServer();
+    testServer();
     //testHttpServer();
-    testHttpRequest();
+    //testHttpRequest();
 
 	Sleep(INFINITE);
 	return 0;

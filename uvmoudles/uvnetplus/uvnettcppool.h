@@ -37,10 +37,10 @@ enum ConnState {
 /**
  * tcp客户端连接类
  */
-class CUNTcpConnect : public CUNTcpClient {
+class CUNTcpPoolSocket : public CUNTcpSocket {
 public:
-    CUNTcpConnect(CUVNetPlus* net, bool copy);
-    ~CUNTcpConnect();
+    CUNTcpPoolSocket(CUVNetPlus* net, bool copy);
+    ~CUNTcpPoolSocket();
 
     void syncClose();
 
@@ -73,7 +73,7 @@ public:
     bool Request(CTcpRequest *req);
 
     /** 返还使用完毕的socket */
-    void GiveBackSkt(CUNTcpConnect *skt);
+    void GiveBackSkt(CUNTcpPoolSocket *skt);
 
 public:
     string     host;
@@ -87,8 +87,8 @@ public:
     CUNTcpConnPool     *m_pTcpConnPool;        //所在的连接池
 
     list<string>           m_listIP;           //解析host得到的ip地址，轮流使用，如果不通会移除
-    list<CUNTcpConnect*>   m_listBusyConns;    //正在使用中的连接
-    list<CUNTcpConnect*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
+    list<CUNTcpPoolSocket*>   m_listBusyConns;    //正在使用中的连接
+    list<CUNTcpPoolSocket*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
     list<CTcpRequest*>     m_listReqs;         //请求列表
 };
 

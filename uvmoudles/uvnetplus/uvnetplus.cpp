@@ -10,16 +10,16 @@ static void on_uv_async(uv_async_t* handle) {
     uv_mutex_lock(&h->m_uvMtxAsEvts);
     for(auto e : h->m_listAsyncEvents) {
         if(e.event == ASYNC_EVENT_TCP_CONNECT) {
-            CUNTcpClient *tcp = (CUNTcpClient*)e.param;
+            CUNTcpSocket *tcp = (CUNTcpSocket*)e.param;
             tcp->syncConnect();
         } else if(e.event == ASYNC_EVENT_TCP_SEND) {
-            CUNTcpClient *tcp = (CUNTcpClient*)e.param;
+            CUNTcpSocket *tcp = (CUNTcpSocket*)e.param;
             tcp->syncSend();
         } else if(e.event == ASYNC_EVENT_TCP_LISTEN) {
             CUNTcpServer *tcp = (CUNTcpServer*)e.param;
             tcp->syncListen();
         } else if(e.event == ASYNC_EVENT_TCP_CLTCLOSE) {
-            CUNTcpClient *tcp = (CUNTcpClient*)e.param;
+            CUNTcpSocket *tcp = (CUNTcpSocket*)e.param;
             tcp->syncClose();
         } else if(e.event == ASYNC_EVENT_TCP_SVRCLOSE) {
             CUNTcpServer *tcp = (CUNTcpServer*)e.param;
@@ -30,13 +30,16 @@ static void on_uv_async(uv_async_t* handle) {
         } else if(e.event == ASYNC_EVENT_TCPCONN_REQUEST) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncRequest();
+        } else if(e.event == ASYNC_EVENT_TCP_CONNCLOSE) {
+            CUNTcpPoolSocket *pool = (CUNTcpPoolSocket*)e.param;
+            pool->syncClose();
+        }else if(e.event == ASYNC_EVENT_TCPAGENT_REQUEST) {
+            CTcpPoolAgent *pool = (CTcpPoolAgent*)e.param;
+            pool->Request(NULL);
         } else if(e.event == ASYNC_EVENT_TCPCONN_CLOSE) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncClose();
-        } else if(e.event == ASYNC_EVENT_TCPAGENT_REQUEST) {
-            CTcpPoolAgent *pool = (CTcpPoolAgent*)e.param;
-            pool->Request(NULL);
-        }
+        } 
     }
     h->m_listAsyncEvents.clear();
     uv_mutex_unlock(&h->m_uvMtxAsEvts);

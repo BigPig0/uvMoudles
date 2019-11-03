@@ -98,23 +98,94 @@ namespace Http {
         return "Unknow status";
     }
 
+    //////////////////////////////////////////////////////////////////////////
+    /** Http客户端环境 */
+    static void OnClientReady(CTcpSocket* skt){
+        Log::debug("client ready");
+    }
+
+    static void OnClientConnect(CTcpSocket* skt, string err){
+        ClientRequest* http = (ClientRequest*)skt->userData;
+        http->ConnectFinish(err);
+    }
+
+    static void OnClientRecv(CTcpSocket* skt, char *data, int len){
+        ClientRequest* http = (ClientRequest*)skt->userData;
+        http->Receive(data, len);
+    }
+
+    static void OnClientDrain(CTcpSocket* skt){
+        Log::debug("client drain");
+    }
+
+    static void OnClientClose(CTcpSocket* skt){
+        Log::debug("client close");
+    }
+
+    static void OnClientEnd(CTcpSocket* skt){
+        Log::debug("client end");
+    }
+
+    static void OnClientError(CTcpSocket* skt, string err){
+        ClientRequest* http = (ClientRequest*)skt->userData;
+        Log::error("client error: %s ", err.c_str());
+    }
+
+    static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected) {
+        ClientRequest *http = (ClientRequest*)req->usr;
+        http->Socket(skt); 
+        delete req;
+        if(!connected) {
+            //socket是新建立的
+            skt->OnReady   = OnClientReady;
+            skt->OnConnect = OnClientConnect;
+            skt->OnRecv    = OnClientRecv;
+            skt->OnDrain   = OnClientDrain;
+            skt->OnCLose   = OnClientClose;
+            skt->OnEnd     = OnClientEnd;
+            skt->OnError   = OnClientError;
+            skt->autoRecv  = true;
+            skt->copy      = true;
+            skt->userData  = http;
+        } else {
+            http->ConnectFinish("");
+        }
+
+    }
+
+    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut) {
+        connPool = CTcpConnPool::Create(net, OnPoolSocket);
+        connPool->maxConns = maxConns;
+        connPool->maxIdle  = maxIdle;
+        connPool->timeOut  = timeOut;
+    }
+
+    CHttpClientEnv::~CHttpClientEnv() {
+        connPool->Delete();
+    }
+
+    CHttpRequest* CHttpClientEnv::Request() {
+        ClientRequest *req = new ClientRequest(connPool);
+        return req;
+    }
+
 
     //////////////////////////////////////////////////////////////////////////
     /** 基础发送消息 */
 
-    SendingMessage::SendingMessage()
+    CHttpMsg::CHttpMsg()
         : m_bHeadersSent(false)
         , m_bFinished(false)
         , m_nContentLen(0)
         , m_pSocket(NULL){}
 
-    SendingMessage::~SendingMessage(){}
+    CHttpMsg::~CHttpMsg(){}
 
-    void SendingMessage::WriteHead(std::string headers) {
+    void CHttpMsg::WriteHead(std::string headers) {
         m_strHeaders = headers;
     }
 
-    std::vector<std::string> SendingMessage::GetHeader(std::string name) {
+    std::vector<std::string> CHttpMsg::GetHeader(std::string name) {
         std::vector<std::string> ret;
         auto first = m_Headers.lower_bound(name);
         auto last = m_Headers.upper_bound(name);
@@ -124,7 +195,7 @@ namespace Http {
         return ret;
     }
 
-    std::vector<std::string> SendingMessage::GetHeaderNames() {
+    std::vector<std::string> CHttpMsg::GetHeaderNames() {
         std::set<std::string> tmp;
         std::vector<std::string> ret;
         for(auto &it : m_Headers){
@@ -136,17 +207,17 @@ namespace Http {
         return ret;
     }
 
-    bool SendingMessage::HasHeader(std::string name) {
+    bool CHttpMsg::HasHeader(std::string name) {
         return m_Headers.count(name) > 0;
     }
 
-    void SendingMessage::RemoveHeader(std::string name) {
+    void CHttpMsg::RemoveHeader(std::string name) {
         auto pos = m_Headers.equal_range(name);
         for(auto it=pos.first; it!=pos.second; ++it)
             m_Headers.erase(it);
     }
 
-    void SendingMessage::SetHeader(std::string name, std::string value) {
+    void CHttpMsg::SetHeader(std::string name, std::string value) {
         if(!strcasecmp(name.c_str(), "Content-Length")) {
             m_nContentLen = stoi(value);
             return;
@@ -155,7 +226,7 @@ namespace Http {
         m_Headers.insert(make_pair(name, value));
     }
 
-    void SendingMessage::SetHeader(std::string name, char **values) {
+    void CHttpMsg::SetHeader(std::string name, char **values) {
         RemoveHeader(name);
         
         for(int i = 0; values[i]; i++) {
@@ -163,15 +234,15 @@ namespace Http {
         }
     }
 
-    void SendingMessage::SetContentLen(uint32_t len) {
+    void CHttpMsg::SetContentLen(uint32_t len) {
         m_nContentLen = len;
     }
 
-    bool SendingMessage::Finished() {
+    bool CHttpMsg::Finished() {
         return m_bFinished;
     }
 
-    std::string SendingMessage::getImHeaderString() {
+    std::string CHttpMsg::getImHeaderString() {
         std::stringstream ss;
         for(auto &h:m_Headers) {
             ss << h.first << ": " << h.second << "\r\n";
@@ -181,23 +252,6 @@ namespace Http {
 
     //////////////////////////////////////////////////////////////////////////
     /** 客户端发送请求 */
-
-    static void OnConnectRequest(CTcpRequest* req, std::string error){
-        ClientRequest* data = (ClientRequest*)req->usr;
-        if(!error.empty())
-            Log::error("OnConnectRequest client error: %s ", error.c_str());
-    }
-
-    static void OnConnectResponse(CTcpRequest* req, std::string error, const char *data, int len){
-        ClientRequest* cli = (ClientRequest*)req->usr;
-        if(!error.empty())
-            Log::error("OnConnectResponse fialed client error: %s ", error.c_str());
-        else {
-            //Log::debug("OnConnectResponse ok recv%s", data);
-            cli->Receive(data, len);
-        }
-    }
-
 
     CHttpRequest::CHttpRequest()
         : protocol(HTTP)
@@ -214,40 +268,41 @@ namespace Http {
         , OnInformation(NULL)
         , OnUpgrade(NULL)
         , OnResponse(NULL)
+        , OnRequest(NULL)
+        , OnData(NULL)
+        , OnEnd(NULL)
+        , OnError(NULL)
     {}
 
     CHttpRequest::~CHttpRequest(){}
 
-    CHttpRequest* CHttpRequest::Create(CTcpConnPool *pool) {
-        ClientRequest *req = new ClientRequest(pool);
-        return req;
+    ClientRequest::ClientRequest(CTcpConnPool *pool)
+        : connPool(pool)
+        , tcpSocket(NULL)
+        , incMsg(NULL)
+        , connected(false)
+        , connecting(false)
+        , parseHeader(false)
+    {
+        uv_mutex_init(&mutex);
     }
 
-    struct requestData {
-        typedef void(*ReqCb)(CHttpRequest *request);
-        char* data;
-        int len;
-        ReqCb cb;
-    };
-
-    ClientRequest::ClientRequest(CTcpConnPool *pool)
-        : m_pTcpPool(pool)
-        , m_pTcpReq(NULL)
-        , inc(NULL)
-        , parseHeader(false)
-    {}
-
     ClientRequest::~ClientRequest(){
-        m_pTcpReq->Finish();
-        SAFE_DELETE(inc);
+        tcpSocket->Delete();
+        SAFE_DELETE(incMsg);
     }
 
     void ClientRequest::Delete(){
         delete this;
     }
 
-    bool ClientRequest::Write(const char* chunk, int len, ReqCb cb){
-        requestData reqData = {(char*)chunk, len, cb};
+    bool ClientRequest::Write(const char* chunk, int len){
+        uv_mutex_lock(&mutex);
+        if(!connected && !connecting) {
+            connPool->Request(host, port, "", this, true, true);
+            connecting = true;
+        }
+        
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -259,8 +314,11 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true);
-            m_pTcpReq->Request(buff.c_str(), (int)buff.size());
+            if(!connected) {
+                sendBuffs.push_back(buff);
+            } else {
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
+            }
             m_bHeadersSent = true;
         } else {
             if(chunked && version == HTTP1_1) {
@@ -269,67 +327,71 @@ namespace Http {
                 ss.write(chunk, len);
                 ss << "\r\n";
                 string buff = ss.str();
-                m_pTcpReq->Request(buff.c_str(), (int)buff.size());
+                if(!connected) {
+                    sendBuffs.push_back(buff);
+                } else {
+                    tcpSocket->Send(buff.c_str(), (int)buff.size());
+                }
             } else {
-                m_pTcpReq->Request(chunk, len);
+                if(!connected) {
+                    string buff(chunk, len);
+                    sendBuffs.push_back(buff);
+                } else {
+                    tcpSocket->Send(chunk, len);
+                }
             }
         }
+        uv_mutex_unlock(&mutex);
         return true;
     }
 
     bool ClientRequest::End() {
+        uv_mutex_lock(&mutex);
+        if(!connected && !connecting) {
+            connPool->Request(host, port, "", this, true, true);
+            connecting = true;
+        }
         if(!m_bHeadersSent) {
             string buff = GetHeadersString() + "\r\n";
-            m_pTcpReq = m_pTcpPool->Request(host, port, "", this, true, true, OnConnectRequest, OnConnectResponse);
-            m_pTcpReq->Request(buff.c_str(), (int)buff.size());
+            if(!connected) {
+                sendBuffs.push_back(buff);
+            } else {
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
+            }
             m_bHeadersSent = true;
         }
         m_bFinished = true;
+        uv_mutex_unlock(&mutex);
         return true;
     }
 
-    void ClientRequest::End(const char* data, int len, ReqCb cb){
+    void ClientRequest::End(const char* data, int len){
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
         }
-        Write(data, len, cb);
+        Write(data, len);
         End();
     }
 
-    void ClientRequest::WriteHead(std::string headers) {
-        SendingMessage::WriteHead(headers);
+    void ClientRequest::Socket(CTcpSocket *skt) {
+        tcpSocket  = skt;
+        incMsg     = new IncomingMessage();
+        if(OnRequest)
+            OnRequest(this, incMsg);
     }
 
-    std::vector<std::string> ClientRequest::GetHeader(std::string name) {
-        return SendingMessage::GetHeader(name);
-    }
-
-    std::vector<std::string> ClientRequest::GetHeaderNames() {
-        return SendingMessage::GetHeaderNames();
-    }
-
-    bool ClientRequest::HasHeader(std::string name) {
-        return SendingMessage::HasHeader(name);
-    }
-
-    void ClientRequest::RemoveHeader(std::string name) {
-        SendingMessage::RemoveHeader(name);
-    }
-
-    void ClientRequest::SetHeader(std::string name, std::string value) {
-        SendingMessage::SetHeader(name, value);
-    }
-
-    void ClientRequest::SetHeader(std::string name, char **values) {
-        SendingMessage::SetHeader(name, values);
-    }
-
-    void ClientRequest::SetContentLen(uint32_t len){
-        SendingMessage::SetContentLen(len);
-    }
-
-    bool ClientRequest::Finished() {
-        return SendingMessage::Finished();
+    void ClientRequest::ConnectFinish(string err) {
+        if(err.empty()){
+            connected  = true;
+            connecting = false;
+            uv_mutex_lock(&mutex);
+            for(auto &buf : sendBuffs) {
+                tcpSocket->Send(buf.c_str(), buf.size());
+            }
+            sendBuffs.clear();
+            uv_mutex_unlock(&mutex);
+        } else {
+        }
     }
 
     void ClientRequest::Receive(const char *data, int len){
@@ -350,7 +412,13 @@ namespace Http {
 
         // 接收到的数据可以上抛回调
         if(OnResponse)
-            OnResponse(this, inc);
+            OnResponse(this, incMsg);
+    }
+
+    void ClientRequest::DoError(string err) {
+        if(OnError) {
+            OnError(this, err);
+        }
     }
 
     std::string ClientRequest::GetAgentName() {
@@ -392,19 +460,19 @@ namespace Http {
 		size_t hpos1 = statusline.find(" ");
 		size_t hpos2 = statusline.find(" ", pos1+1);
 
-        inc = new IncomingMessage();
-		inc->version = VERSIONS(statusline.substr(0,hpos1).c_str());
-		inc->statusCode = stoi(statusline.substr(hpos1+1,hpos2-hpos1));
-		inc->statusMessage = statusline.substr(hpos2+1, statusline.size()-hpos2-1);
-        inc->rawHeaders = recvBuff.substr(pos1+2, pos2-pos1);
+        
+		incMsg->version = VERSIONS(statusline.substr(0,hpos1).c_str());
+		incMsg->statusCode = stoi(statusline.substr(hpos1+1,hpos2-hpos1));
+		incMsg->statusMessage = statusline.substr(hpos2+1, statusline.size()-hpos2-1);
+        incMsg->rawHeaders = recvBuff.substr(pos1+2, pos2-pos1);
         recvBuff = recvBuff.substr(pos2+4, recvBuff.size()-pos2-4);
 
-        if(inc->version == HTTP1_0)
-            inc->keepAlive = false;
+        if(incMsg->version == HTTP1_0)
+            incMsg->keepAlive = false;
         else
-            inc->keepAlive = true;
+            incMsg->keepAlive = true;
 
-        vector<string> headers = StringHandle::StringSplit(inc->rawHeaders, "\r\n");
+        vector<string> headers = StringHandle::StringSplit(incMsg->rawHeaders, "\r\n");
         for(auto &hh : headers) {
             string name, value;
             bool b = false;
@@ -423,32 +491,32 @@ namespace Http {
             // 检查关键头
             if(!strcasecmp(name.c_str(), "Connection")) {
                 if(!strcasecmp(value.c_str(), "Keep-Alive"))
-                    inc->keepAlive = true;
+                    incMsg->keepAlive = true;
                 else if(!strcasecmp(value.c_str(), "Close"))
-                    inc->keepAlive = false;
+                    incMsg->keepAlive = false;
             } else if(!strcasecmp(name.c_str(), "Content-Length")) {
-                inc->contentLen = stoi(value);
+                incMsg->contentLen = stoi(value);
             } else if(!strcasecmp(name.c_str(), "Transfer-Encoding")) {
-                if(inc->version != HTTP1_0 && !strcasecmp(value.c_str(), "chunked"))
-                    inc->chunked = true;
+                if(incMsg->version != HTTP1_0 && !strcasecmp(value.c_str(), "chunked"))
+                    incMsg->chunked = true;
             }
             //保存头
-            inc->headers.insert(make_pair(name, value));
+            incMsg->headers.insert(make_pair(name, value));
         }
         parseHeader = true;
         return true;
     }
 
     bool ClientRequest::ParseContent() {
-        if(inc->chunked) {
+        if(incMsg->chunked) {
             size_t pos = recvBuff.find("\r\n");
             int len = htoi(recvBuff.substr(0, pos).c_str());
             if(recvBuff.size() - pos - 4 >= len) {
                 // 接收完整块
                 if(len==0)
-                    inc->complete = true;
-                inc->contentLen = len;
-                inc->content = recvBuff.substr(pos+2, len);
+                    incMsg->complete = true;
+                incMsg->contentLen = len;
+                incMsg->content = recvBuff.substr(pos+2, len);
                 recvBuff = recvBuff.substr(pos+len+4,recvBuff.size()-pos-len-4);
                 return true;
             }
@@ -456,17 +524,17 @@ namespace Http {
         }
 
         //chunked false时的情况
-        if(inc->contentLen == (uint32_t)-1) {
+        if(incMsg->contentLen == (uint32_t)-1) {
             // 没有设置长度，永不停止接收数据。这不是标准协议，自定义的处理
-            inc->content = recvBuff;
+            incMsg->content = recvBuff;
             recvBuff.clear();
             return true;
         }
 
-        if(recvBuff.size() >= inc->contentLen) {
-            inc->content = recvBuff.substr(0, inc->contentLen);
-            recvBuff = recvBuff.substr(inc->contentLen, recvBuff.size()-inc->contentLen);
-            inc->complete = true;
+        if(recvBuff.size() >= incMsg->contentLen) {
+            incMsg->content = recvBuff.substr(0, incMsg->contentLen);
+            recvBuff = recvBuff.substr(incMsg->contentLen, recvBuff.size()-incMsg->contentLen);
+            incMsg->complete = true;
             return true;
         }
 
@@ -487,14 +555,6 @@ namespace Http {
     {}
 
     CHttpResponse::~CHttpResponse() {}
-
-    struct responseData {
-        typedef void(*ResCb)(CHttpResponse *request);
-        char* data;
-        int len;
-        ResCb cb;
-    };
-
 
     ServerResponse::ServerResponse()
     {}
@@ -522,11 +582,10 @@ namespace Http {
             ss << STATUS_CODES(statusCode);
         ss << "\r\n"
             << headers;
-        SendingMessage::WriteHead(ss.str());
+        CHttpMsg::WriteHead(ss.str());
     }
 
     void ServerResponse::Write(const char* chunk, int len, ResCb cb) {
-        responseData reqData = {(char*)chunk, len, cb};
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -565,42 +624,6 @@ namespace Http {
         }
         Write(data, len, cb);
         End();
-    }
-
-    void ServerResponse::WriteHead(std::string headers) {
-        SendingMessage::WriteHead(headers);
-    }
-
-    std::vector<std::string> ServerResponse::GetHeader(std::string name) {
-        return SendingMessage::GetHeader(name);
-    }
-
-    std::vector<std::string> ServerResponse::GetHeaderNames() {
-        return SendingMessage::GetHeaderNames();
-    }
-
-    bool ServerResponse::HasHeader(std::string name) {
-        return SendingMessage::HasHeader(name);
-    }
-
-    void ServerResponse::RemoveHeader(std::string name) {
-        SendingMessage::RemoveHeader(name);
-    }
-
-    void ServerResponse::SetHeader(std::string name, std::string value) {
-        SendingMessage::SetHeader(name, value);
-    }
-
-    void ServerResponse::SetHeader(std::string name, char **values) {
-        SendingMessage::SetHeader(name, values);
-    }
-
-    void ServerResponse::SetContentLen(uint32_t len){
-        SendingMessage::SetContentLen(len);
-    }
-
-    bool ServerResponse::Finished() {
-        return SendingMessage::Finished();
     }
 
     std::string ServerResponse::GetHeadersString() {
@@ -764,7 +787,7 @@ namespace Http {
         }
     }
 
-    void Server::OnSvrCltRecv(CTcpClient* skt, char *data, int len){
+    void Server::OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
         CSvrConn *c = (CSvrConn*)skt->userData;
         c->buff.append(data, len);
         // http头解析
@@ -812,28 +835,28 @@ namespace Http {
         }
     }
 
-    void Server::OnSvrCltDrain(CTcpClient* skt){
+    void Server::OnSvrCltDrain(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client drain");
     }
 
-    void Server::OnSvrCltClose(CTcpClient* skt){
+    void Server::OnSvrCltClose(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client close");
         delete c;
     }
 
-    void Server::OnSvrCltEnd(CTcpClient* skt){
+    void Server::OnSvrCltEnd(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client end");
     }
 
-    void Server::OnSvrCltError(CTcpClient* skt, string err){
+    void Server::OnSvrCltError(CTcpSocket* skt, string err){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::error("server client error:%s ", err.c_str());
     }
 
-    void Server::OnTcpConnection(CTcpServer* svr, std::string err, CTcpClient* client) {
+    void Server::OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
         Log::debug("Http server accept new connection");
         Server *http = (Server*)svr->userData;
         static int sid = 1;
