@@ -228,21 +228,27 @@ void testServer()
 
 //////////////////////////////////////////////////////////////////////////
 static void OnHttpError(Http::CHttpRequest *request, string error) {
-
+    clientData* data = (clientData*)request->usrData;
+    Log::error("http error[%d]: %s",data->tid, error.c_str());
+    request->Delete();
 }
 static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
+    clientData* data = (clientData*)request->usrData;
+    Log::debug("http response %d", data->tid);
     Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
     Log::debug(response->rawHeaders.c_str());
     Log::debug(response->content.c_str());
-    if(response->complete)
-        request->Delete();
+    //if(response->complete)
+    //    request->Delete();
 }
 
 void testHttpRequest()
 {
     CNet* net = CNet::Create();
-    Http::CHttpClientEnv *http = new Http::CHttpClientEnv(net, 10, 10);
+    Http::CHttpClientEnv *http = new Http::CHttpClientEnv(net, 10, 2, 20, 20);
     for (int i=0; i<100; i++) {
+        clientData* data = new clientData();
+        data->tid = i;
          Http::CHttpRequest* req = http->Request();
          req->OnError    = OnHttpError;
          req->OnResponse = OnHttpResponse;
@@ -254,6 +260,8 @@ void testHttpRequest()
          //req->path = "/s?wd=http+content+len";
          req->path = "/imageServer/image?name=111111.jpg&type=1";
          req->version = Http::VERSION::HTTP1_1;
+         req->usrData = data;
+
          req->SetHeader("myheader","????????\0");
          string content = "123456789\0";
          req->End(content.c_str(), content.length());
@@ -291,8 +299,8 @@ int _tmain(int argc, _TCHAR* argv[])
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
     //testServer();
-    testHttpServer();
-    //testHttpRequest();
+    //testHttpServer();
+    testHttpRequest();
 
 	Sleep(INFINITE);
 	return 0;

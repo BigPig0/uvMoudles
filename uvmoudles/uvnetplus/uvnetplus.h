@@ -123,6 +123,7 @@ struct CTcpRequest {
     bool            copy;   //需要发送的数据是否拷贝到内部维护
     bool            recv;   //tcp请求是否需要接收数据
     void           *usr;    //用户自定义数据
+    bool            autodel;//回调后自动删除，不需要用户手动删除。默认true。
 
     CTcpConnPool   *pool;   //从哪一个连接池获取连接
     CTcpRequest()
@@ -130,6 +131,7 @@ struct CTcpRequest {
         , copy(true)
         , recv(true)
         , usr(NULL)
+        , autodel(true)
         , pool(NULL)
     {}
 };
@@ -137,12 +139,15 @@ struct CTcpRequest {
 /** TCP客户端连接池，自动管理多个CTcpAgent */
 class CTcpConnPool
 {
+    typedef void(*ErrorCB)(CTcpRequest *req, std::string error);
     typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt, bool connected);
 public:
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
+    uint32_t   maxRequest;  //连接达到最大时能存放的请求数 默认0 不限制
 
+    ErrorCB    OnError;     //获取连接失败回调
     ReqCB      OnRequest;   //获取TCP客户端连接回调
 
     /**
@@ -279,7 +284,7 @@ public:
     virtual bool Finished();
 
 public:
-     CTcpSocket        *m_pSocket;
+     CTcpSocket        *tcpSocket;
 
 protected:
     /** 由隐式头组成字符串 */
@@ -309,6 +314,7 @@ public:
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     bool                chunked;   // Transfer-Encoding: chunked
     void               *usrData;   // 用户自定义数据
+    bool                autodel;   // 接收完成后自动删除，不需要手动释放。失败时不会自动删除
 
 
     /** 客户端收到connect方法的应答时回调 */
@@ -352,7 +358,15 @@ protected:
 
 class CHttpClientEnv {
 public:
-    CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20);
+    /**
+     * 创建一个http客户端环境
+     * @param net 环境句柄
+     * @param maxConns 同一个地址最大连接数
+     * @param maxIdle 同一个地址最大空闲连接
+     * @param timeOut 空闲连接超时时间
+     * @param maxRequest 同一个地址请求最大缓存
+     */
+    CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
     ~CHttpClientEnv();
     CHttpRequest* Request();
 private:

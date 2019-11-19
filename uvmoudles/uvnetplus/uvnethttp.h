@@ -43,14 +43,15 @@ public:
      */
     virtual void End(const char* data, int len);
 
+    /** 这几个Do函数是内部使用的 */
     /** 从连接池获取socket完成 */
-    void Socket(CTcpSocket *skt);
+    void DoGetSocket(CTcpSocket *skt);
 
-    /** 连接完成 */
-    void ConnectFinish(string err);
+    /** 新建立的连接完成 */
+    void DoConnected(string err);
 
     /* 收到的数据处理 */
-    void Receive(const char *data, int len);
+    void DoReceive(const char *data, int len);
 
     /** 发生错误处理 */
     void DoError(string err);
@@ -65,7 +66,6 @@ private:
     bool ParseContent();
 
     CTcpConnPool        *connPool;
-    CTcpSocket          *tcpSocket;
     IncomingMessage     *incMsg;
     bool                 connected;     //已经连接
     bool                 connecting;    //正在连接

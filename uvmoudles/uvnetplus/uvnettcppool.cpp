@@ -17,7 +17,7 @@ CUNTcpPoolSocket::CUNTcpPoolSocket(CUVNetPlus* net, bool copy)
 
 CUNTcpPoolSocket::~CUNTcpPoolSocket()
 {
-    //Log::debug("~CUNTcpConnect()");
+    Log::debug("~CUNTcpConnect()");
 }
 
 void CUNTcpPoolSocket::syncClose()
@@ -50,6 +50,10 @@ void CTcpPoolAgent::Delete()
 CTcpPoolAgent::CTcpPoolAgent(CUVNetPlus* net, CUNTcpConnPool *p)
     : m_pNet(net)
     , m_pTcpConnPool(p)
+    , maxConns(512)
+    , maxIdle(100)
+    , timeOut(20)
+    , maxRequest(0)
 {
 }
 
@@ -98,6 +102,13 @@ void CTcpPoolAgent::OnParseHost(int status, struct addrinfo* res) {
 bool CTcpPoolAgent::Request(CTcpRequest *req) {
     //外部请求先放到请求列表
     if(req) {
+        if(maxRequest > 0 && m_listReqs.size() > maxRequest) {
+            if(m_pTcpConnPool->OnError)
+                m_pTcpConnPool->OnError(req, "request list is max");
+            if(req->autodel)
+                delete req;
+            return false;
+        }
         m_listReqs.push_back(req);
     }
 
@@ -135,6 +146,8 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
         //回调通知用户取到的socket
         if(m_pTcpConnPool->OnRequest)
             m_pTcpConnPool->OnRequest(req, conn, true);
+        if(req->autodel)
+            delete req;
     } else {
         //连接总数未达上限，可以新增l个连接
         //Log::debug("create a new connect and send");
@@ -155,6 +168,8 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
         //回调通知用户取到的socket
         if(m_pTcpConnPool->OnRequest)
             m_pTcpConnPool->OnRequest(req, conn, false);
+        if(req->autodel)
+            delete req;
 
         conn->Connect(ip, port);
     }
@@ -164,7 +179,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
 
 void CTcpPoolAgent::GiveBackSkt(CUNTcpPoolSocket *skt) {   
     m_listBusyConns.remove(skt);
-    if(skt->m_bConnect && m_listIdleConns.size() < maxIdle){
+    if(skt->m_bConnect && (m_listIdleConns.size() < maxIdle || !m_listReqs.empty())){
         m_listIdleConns.push_front(skt);
     } else {
         skt->CUNTcpSocket::Delete();
@@ -211,6 +226,7 @@ CTcpConnPool::CTcpConnPool()
     : maxConns(512)
     , maxIdle(100)
     , timeOut(20)
+    , maxRequest(0)
     , OnRequest(NULL)
 {}
 
@@ -225,8 +241,6 @@ CTcpConnPool* CTcpConnPool::Create(CNet* net, ReqCB onReq)
 
 CUNTcpConnPool::CUNTcpConnPool(CUVNetPlus* net)
     : m_pNet(net)
-    , m_nBusyCount(0)
-    , m_nIdleCount(0)
 {
     uv_mutex_init(&m_ReqMtx);
     m_pNet->AddEvent(ASYNC_EVENT_TCPCONN_INIT, this);
@@ -268,6 +282,7 @@ void CUNTcpConnPool::syncRequest()
             agent->maxConns = maxConns;
             agent->maxIdle = maxIdle;
             agent->timeOut = timeOut;
+            agent->maxRequest = maxRequest;
             agent->syncHostDns(req->host);
             m_mapAgents.insert(make_pair(ss.str(), agent));
         } else {

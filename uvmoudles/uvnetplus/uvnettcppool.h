@@ -82,14 +82,15 @@ public:
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
+    uint32_t   maxRequest;  //连接达到最大时能存放的请求数 默认0 不限制
 
     CUVNetPlus         *m_pNet;                //事件线程句柄
     CUNTcpConnPool     *m_pTcpConnPool;        //所在的连接池
 
-    list<string>           m_listIP;           //解析host得到的ip地址，轮流使用，如果不通会移除
+    list<string>              m_listIP;           //解析host得到的ip地址，轮流使用，如果不通会移除
     list<CUNTcpPoolSocket*>   m_listBusyConns;    //正在使用中的连接
     list<CUNTcpPoolSocket*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
-    list<CTcpRequest*>     m_listReqs;         //请求列表
+    list<CTcpRequest*>        m_listReqs;         //请求列表
 };
 
 /**
@@ -114,8 +115,6 @@ public:
 
 public:
     CUVNetPlus         *m_pNet;         //事件线程句柄
-    uint32_t            m_nBusyCount;   //当前使用中的连接数
-    uint32_t            m_nIdleCount;   //当前空闲的连接数
 
     list<CTcpRequest*>  m_listReqs;      //请求列表,暂存外部的请求
     uv_mutex_t          m_ReqMtx;        //请求列表锁

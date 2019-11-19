@@ -106,12 +106,12 @@ namespace Http {
 
     static void OnClientConnect(CTcpSocket* skt, string err){
         ClientRequest* http = (ClientRequest*)skt->userData;
-        http->ConnectFinish(err);
+        http->DoConnected(err);
     }
 
     static void OnClientRecv(CTcpSocket* skt, char *data, int len){
         ClientRequest* http = (ClientRequest*)skt->userData;
-        http->Receive(data, len);
+        http->DoReceive(data, len);
     }
 
     static void OnClientDrain(CTcpSocket* skt){
@@ -133,8 +133,9 @@ namespace Http {
 
     static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected) {
         ClientRequest *http = (ClientRequest*)req->usr;
-        http->Socket(skt); 
-        delete req;
+        http->DoGetSocket(skt); 
+        skt->userData  = http;
+        //delete req;
         if(!connected) {
             //socket是新建立的
             skt->OnReady   = OnClientReady;
@@ -146,18 +147,25 @@ namespace Http {
             skt->OnError   = OnClientError;
             skt->autoRecv  = true;
             skt->copy      = true;
-            skt->userData  = http;
         } else {
-            http->ConnectFinish("");
+            http->DoConnected("");
         }
 
     }
 
-    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut) {
+    static void OnPoolError(CTcpRequest* req, string error) {
+        ClientRequest *http = (ClientRequest*)req->usr;
+        //if(http->OnError)
+        //    http->OnError(http, error);
+    }
+
+    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest) {
         connPool = CTcpConnPool::Create(net, OnPoolSocket);
         connPool->maxConns = maxConns;
         connPool->maxIdle  = maxIdle;
         connPool->timeOut  = timeOut;
+        connPool->maxRequest = maxRequest;
+        connPool->OnError  = OnPoolError;
     }
 
     CHttpClientEnv::~CHttpClientEnv() {
@@ -177,7 +185,7 @@ namespace Http {
         : m_bHeadersSent(false)
         , m_bFinished(false)
         , m_nContentLen(0)
-        , m_pSocket(NULL){}
+        , tcpSocket(NULL){}
 
     CHttpMsg::~CHttpMsg(){}
 
@@ -264,6 +272,7 @@ namespace Http {
         , keepAlive(true)
         , chunked(false)
         , usrData(NULL)
+        , autodel(true)
         , OnConnect(NULL)
         , OnInformation(NULL)
         , OnUpgrade(NULL)
@@ -275,7 +284,6 @@ namespace Http {
 
     ClientRequest::ClientRequest(CTcpConnPool *pool)
         : connPool(pool)
-        , tcpSocket(NULL)
         , incMsg(NULL)
         , connected(false)
         , connecting(false)
@@ -285,7 +293,9 @@ namespace Http {
     }
 
     ClientRequest::~ClientRequest(){
-        tcpSocket->Delete();
+        Log::debug("~ClientRequest");
+        if(tcpSocket)
+            tcpSocket->Delete();
         SAFE_DELETE(incMsg);
     }
 
@@ -370,12 +380,12 @@ namespace Http {
         End();
     }
 
-    void ClientRequest::Socket(CTcpSocket *skt) {
+    void ClientRequest::DoGetSocket(CTcpSocket *skt) {
         tcpSocket  = skt;
         incMsg     = new IncomingMessage();
     }
 
-    void ClientRequest::ConnectFinish(string err) {
+    void ClientRequest::DoConnected(string err) {
         if(err.empty()){
             connected  = true;
             connecting = false;
@@ -386,10 +396,12 @@ namespace Http {
             sendBuffs.clear();
             uv_mutex_unlock(&mutex);
         } else {
+            if(OnError)
+                OnError(this, err);
         }
     }
 
-    void ClientRequest::Receive(const char *data, int len){
+    void ClientRequest::DoReceive(const char *data, int len){
         if(data == NULL || len == 0)
             return;
 
@@ -408,6 +420,8 @@ namespace Http {
         // 接收到的数据可以上抛回调
         if(OnResponse)
             OnResponse(this, incMsg);
+        if(autodel && incMsg->complete)
+            Delete();
     }
 
     void ClientRequest::DoError(string err) {
@@ -593,7 +607,7 @@ namespace Http {
             }
             string buff = ss.str();
             Log::debug(buff.c_str());
-            m_pSocket->Send(buff.c_str(), (uint32_t)buff.size());
+            tcpSocket->Send(buff.c_str(), (uint32_t)buff.size());
             m_bHeadersSent = true;
         } else {
             if(chunked && version == HTTP1_1) {
@@ -602,9 +616,9 @@ namespace Http {
                 ss.write(chunk, len);
                 ss << "\r\n";
                 string buff = ss.str();
-                m_pSocket->Send(buff.c_str(), (uint32_t)buff.size());
+                tcpSocket->Send(buff.c_str(), (uint32_t)buff.size());
             } else {
-                m_pSocket->Send(chunk, len);
+                tcpSocket->Send(chunk, len);
             }
         }
     }
@@ -690,7 +704,7 @@ namespace Http {
 
         inc = new IncomingMessage();
         res = new ServerResponse();
-        res->m_pSocket = client;
+        res->tcpSocket = client;
 
         inc->method = METHODS(reqlines[0].c_str());
         inc->url = reqlines[1];
