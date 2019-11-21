@@ -2,6 +2,7 @@
 #include "uvnetprivate.h"
 #include "uvnettcp.h"
 #include "uvnettcppool.h"
+#include "Log.h"
 
 namespace uvNetPlus {
 
@@ -54,7 +55,7 @@ static void run_loop_thread(void* arg)
     }
 
     uv_loop_close(&h->m_uvLoop);
-    free(h);
+    delete h;
 }
 
 CUVNetPlus::CUVNetPlus()

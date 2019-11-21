@@ -105,17 +105,20 @@ namespace Http {
     }
 
     static void OnClientConnect(CTcpSocket* skt, string err){
-        ClientRequest* http = (ClientRequest*)skt->userData;
+        //Log::debug("HttpReq:%x, %s", skt->userData, err.c_str());
+        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         http->DoConnected(err);
     }
 
     static void OnClientRecv(CTcpSocket* skt, char *data, int len){
-        ClientRequest* http = (ClientRequest*)skt->userData;
+        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         http->DoReceive(data, len);
     }
 
     static void OnClientDrain(CTcpSocket* skt){
         Log::debug("client drain");
+        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
+        http->DoDrain();
     }
 
     static void OnClientClose(CTcpSocket* skt){
@@ -127,12 +130,19 @@ namespace Http {
     }
 
     static void OnClientError(CTcpSocket* skt, string err){
-        ClientRequest* http = (ClientRequest*)skt->userData;
+        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         Log::error("client error: %s ", err.c_str());
     }
 
+    /**
+     * 从连接池获取socket成功
+     * @param req 连接池获取socket的请求
+     * @param skt 获取到的socket实例
+     * @param connected false表示新建立的socket，还没有连接到服务端；true表示从池中取出的socket，已经建立了连接
+     */
     static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected) {
-        ClientRequest *http = (ClientRequest*)req->usr;
+        Log::debug("get socket");
+        CUNHttpRequest *http = (CUNHttpRequest*)req->usr;
         http->DoGetSocket(skt); 
         skt->userData  = http;
         //delete req;
@@ -153,10 +163,11 @@ namespace Http {
 
     }
 
+    //从连接池获取socket失败
     static void OnPoolError(CTcpRequest* req, string error) {
-        ClientRequest *http = (ClientRequest*)req->usr;
-        //if(http->OnError)
-        //    http->OnError(http, error);
+        CUNHttpRequest *http = (CUNHttpRequest*)req->usr;
+        //Log::debug("HttpReq:%x  TCPREQ:%x", http, req);
+        http->DoConnected(error);
     }
 
     CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest) {
@@ -173,7 +184,7 @@ namespace Http {
     }
 
     CHttpRequest* CHttpClientEnv::Request() {
-        ClientRequest *req = new ClientRequest(connPool);
+        CUNHttpRequest *req = new CUNHttpRequest(connPool);
         return req;
     }
 
@@ -282,7 +293,7 @@ namespace Http {
 
     CHttpRequest::~CHttpRequest(){}
 
-    ClientRequest::ClientRequest(CTcpConnPool *pool)
+    CUNHttpRequest::CUNHttpRequest(CTcpConnPool *pool)
         : connPool(pool)
         , incMsg(NULL)
         , connected(false)
@@ -292,23 +303,23 @@ namespace Http {
         uv_mutex_init(&mutex);
     }
 
-    ClientRequest::~ClientRequest(){
-        Log::debug("~ClientRequest");
+    CUNHttpRequest::~CUNHttpRequest(){
+        Log::debug("~ClientRequest HttpReq:%x USER:%x",this, usrData);
         if(tcpSocket)
             tcpSocket->Delete();
         SAFE_DELETE(incMsg);
+        uv_mutex_destroy(&mutex);
     }
 
-    void ClientRequest::Delete(){
+    void CUNHttpRequest::Delete(){
         delete this;
     }
 
-    bool ClientRequest::Write(const char* chunk, int len){
+    bool CUNHttpRequest::Write(const char* chunk, int len, DrainCB cb){
+        if(cb)
+            OnDrain = cb;
+        Log::debug("lock %x", &mutex);
         uv_mutex_lock(&mutex);
-        if(!connected && !connecting) {
-            connPool->Request(host, port, "", this, true, true);
-            connecting = true;
-        }
         
         if(!m_bHeadersSent) {
             stringstream ss;
@@ -348,17 +359,22 @@ namespace Http {
                 }
             }
         }
-        uv_mutex_unlock(&mutex);
-        return true;
-    }
 
-    bool ClientRequest::End() {
-        uv_mutex_lock(&mutex);
+        // 如果未连接且未开始连接
         if(!connected && !connecting) {
             connPool->Request(host, port, "", this, true, true);
             connecting = true;
         }
+        uv_mutex_unlock(&mutex);
+        Log::debug("unlock %x", &mutex);
+        return true;
+    }
+
+    bool CUNHttpRequest::End() {
+        Log::debug("lock %x", &mutex);
+        uv_mutex_lock(&mutex);
         if(!m_bHeadersSent) {
+            // 这种情况下，不可能包含body
             string buff = GetHeadersString() + "\r\n";
             if(!connected) {
                 sendBuffs.push_back(buff);
@@ -366,42 +382,118 @@ namespace Http {
                 tcpSocket->Send(buff.c_str(), (int)buff.size());
             }
             m_bHeadersSent = true;
+        } else {
+            if(chunked && method == HTTP1_1) {
+                string buff = "0\r\n\r\n";
+                if(!connected) {
+                    sendBuffs.push_back(buff);
+                } else {
+                    tcpSocket->Send(buff.c_str(), (int)buff.size());
+                }
+            }
         }
         m_bFinished = true;
+
+        // 如果未连接且未开始连接
+        if(!connected && !connecting) {
+            connPool->Request(host, port, "", this, true, true);
+            connecting = true;
+        }
         uv_mutex_unlock(&mutex);
+        Log::debug("unlock %x", &mutex);
         return true;
     }
 
-    void ClientRequest::End(const char* data, int len){
+    void CUNHttpRequest::End(const char* chunk, int len){
+        Log::debug("lock %x", &mutex);
+        uv_mutex_lock(&mutex);
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
         }
-        Write(data, len);
-        End();
+
+        if(!m_bHeadersSent) {
+            stringstream ss;
+            ss << GetHeadersString() << "\r\n";
+            if(chunked && method == HTTP1_1) {
+                ss << std::hex << len << "\r\n";
+                ss.write(chunk, len);
+                ss << "\r\n0\r\n\r\n"; //chunk结束
+            } else {
+                ss.write(chunk, len);
+            }
+            string buff = ss.str();
+            if(!connected) {
+                sendBuffs.push_back(buff);
+            } else {
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
+            }
+            m_bHeadersSent = true;
+        } else {
+            if(chunked && version == HTTP1_1) {
+                stringstream ss;
+                ss << std::hex << len << "\r\n";
+                ss.write(chunk, len);
+                ss << "\r\n0\r\n\r\n";  //chunk结束
+                string buff = ss.str();
+                if(!connected) {
+                    sendBuffs.push_back(buff);
+                } else {
+                    tcpSocket->Send(buff.c_str(), (int)buff.size());
+                }
+            } else {
+                if(!connected) {
+                    string buff(chunk, len);
+                    sendBuffs.push_back(buff);
+                } else {
+                    tcpSocket->Send(chunk, len);
+                }
+            }
+        }
+        m_bFinished = true;
+        uv_mutex_unlock(&mutex);
+        Log::debug("unlock %x", &mutex);
+
+        // 如果未连接且未开始连接
+        if(!connected && !connecting) {
+            Log::debug("1111 %x", &mutex);
+            connPool->Request(host, port, "", this, true, true);
+            Log::debug("2222 %x", &mutex);
+            connecting = true;
+        }
+        //Log::debug("HttpReq:%x user:%x", this, usrData);
     }
 
-    void ClientRequest::DoGetSocket(CTcpSocket *skt) {
+    void CUNHttpRequest::DoGetSocket(CTcpSocket *skt) {
         tcpSocket  = skt;
         incMsg     = new IncomingMessage();
     }
 
-    void ClientRequest::DoConnected(string err) {
+    void CUNHttpRequest::DoConnected(string err) {
         if(err.empty()){
+            uv_mutex_lock(&mutex);
             connected  = true;
             connecting = false;
-            uv_mutex_lock(&mutex);
             for(auto &buf : sendBuffs) {
                 tcpSocket->Send(buf.c_str(), buf.size());
             }
             sendBuffs.clear();
             uv_mutex_unlock(&mutex);
         } else {
+            //connected  = false;
+            //connecting = false;
+            //Log::debug("HttpReq:%x", this);
+            Log::debug("lock %x", &mutex);
+            uv_mutex_lock(&mutex);
+            uv_mutex_unlock(&mutex);
+            Log::debug("unlock %x", &mutex);
             if(OnError)
                 OnError(this, err);
+            if(autodel)
+                Delete();
         }
     }
 
-    void ClientRequest::DoReceive(const char *data, int len){
+    void CUNHttpRequest::DoReceive(const char *data, int len){
         if(data == NULL || len == 0)
             return;
 
@@ -424,13 +516,18 @@ namespace Http {
             Delete();
     }
 
-    void ClientRequest::DoError(string err) {
+    void CUNHttpRequest::DoError(string err) {
         if(OnError) {
             OnError(this, err);
         }
     }
 
-    std::string ClientRequest::GetAgentName() {
+    void CUNHttpRequest::DoDrain(){
+        if(!m_bFinished && OnDrain)
+            OnDrain(this);
+    }
+
+    std::string CUNHttpRequest::GetAgentName() {
         stringstream ss;
         ss << host << ":" << port;
         if(!localaddr.empty())
@@ -440,10 +537,10 @@ namespace Http {
         return ss.str();
     }
 
-    std::string ClientRequest::GetHeadersString() {
+    std::string CUNHttpRequest::GetHeadersString() {
         if(!m_strHeaders.empty())
             return m_strHeaders;
-		Log::debug("request %s %s %s", METHODS(method), path.c_str(), VERSIONS(version));
+		//Log::debug("request %s %s %s HttpReq:%x", METHODS(method), path.c_str(), VERSIONS(version), this);
 
         stringstream ss;
         ss << METHODS(method) << " " << path << " " << VERSIONS(version) << "\r\n"
@@ -461,7 +558,7 @@ namespace Http {
         return ss.str();
     }
 
-    bool ClientRequest::ParseHeader() {
+    bool CUNHttpRequest::ParseHeader() {
         size_t pos1 = recvBuff.find("\r\n");        //第一行的结尾
         size_t pos2 = recvBuff.find("\r\n\r\n");    //头的结尾位置
         string statusline = recvBuff.substr(0, pos1);  //第一行的内容
@@ -516,7 +613,7 @@ namespace Http {
         return true;
     }
 
-    bool ClientRequest::ParseContent() {
+    bool CUNHttpRequest::ParseContent() {
         if(incMsg->chunked) {
             size_t pos = recvBuff.find("\r\n");
             int len = htoi(recvBuff.substr(0, pos).c_str());
@@ -606,7 +703,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            Log::debug(buff.c_str());
+            //Log::debug(buff.c_str());
             tcpSocket->Send(buff.c_str(), (uint32_t)buff.size());
             m_bHeadersSent = true;
         } else {

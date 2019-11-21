@@ -87,6 +87,7 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
 static void on_uv_connect(uv_connect_t* req, int status){
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
     delete req;
+    //Log::debug("On connect");
 
     if(status != 0){
         if(skt->OnConnect)
@@ -214,6 +215,7 @@ void CUNTcpSocket::syncInit()
 
 void CUNTcpSocket::syncConnect()
 {
+    //Log::debug("connect...");
     syncInit();
     int ret = 0;
     int t = net_is_ip(m_strRemoteIP.c_str());
@@ -275,11 +277,15 @@ void CUNTcpSocket::syncSend()
 void CUNTcpSocket::syncClose()
 {
     m_bUserClose = true;
-    if(m_bInit && m_bConnect) {
-        uv_shutdown_t* req = new uv_shutdown_t;
-        req->data = this;
-        uv_shutdown(req, (uv_stream_t*)&uvTcp, on_uv_shutdown);
-    } else if(!m_bInit){
+    if(m_bInit) { //init为true时表示uv_tcp_t 实例被创建
+        if(m_bConnect){
+            uv_shutdown_t* req = new uv_shutdown_t;
+            req->data = this;
+            uv_shutdown(req, (uv_stream_t*)&uvTcp, on_uv_shutdown);
+        } else {
+            uv_close((uv_handle_t*)&uvTcp, on_uv_close);
+        }
+    } else {
         delete this;
     }
 }

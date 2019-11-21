@@ -7,18 +7,18 @@
 namespace uvNetPlus {
 namespace Http {
 
-class ClientRequest;
+class CUNHttpRequest;
 class IncomingMessage;
 class ServerResponse;
 class Server;
 
 
 /** HTTP客户端请求,用于客户端组织数据并发送 */
-class ClientRequest : public CHttpRequest
+class CUNHttpRequest : public CHttpRequest
 {
 public:
-    ClientRequest(CTcpConnPool *pool);
-    ~ClientRequest();
+    CUNHttpRequest(CTcpConnPool *pool);
+    ~CUNHttpRequest();
 
     /** 删除实例 */
     virtual void Delete();
@@ -30,7 +30,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(const char* chunk, int len);
+    virtual bool Write(const char* chunk, int len, DrainCB cb = NULL);
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -40,8 +40,9 @@ public:
 
     /**
      * 相当于Write(data, len, cb);end();
+     * @remark Write和End方法只能直接调用一次，多次发送需要在回调中执行
      */
-    virtual void End(const char* data, int len);
+    virtual void End(const char* chunk, int len);
 
     /** 这几个Do函数是内部使用的 */
     /** 从连接池获取socket完成 */
@@ -55,6 +56,9 @@ public:
 
     /** 发生错误处理 */
     void DoError(string err);
+
+    /** 客户端数据全部发送 */
+    void DoDrain();
 
 private:
     std::string GetAgentName();

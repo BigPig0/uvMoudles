@@ -1,17 +1,26 @@
 // uvHttpClient.cpp : 定义控制台应用程序的入口点。
 //
 
+#include "uvnetplus.h"
+#include "Log.h"
+#include "uv.h"
 #include <stdio.h>
 #include <tchar.h>
 #include <windows.h>
-#include "uvnetplus.h"
-#include "Log.h"
 #include <string>
 #include <thread>
 using namespace std;
 using namespace uvNetPlus;
 
+#ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
+#include "vld.h"
+#endif
+
 const int svrport = 8080;
+CNet* net = NULL;
+Http::CHttpServer *svr = NULL;
+Http::CHttpClientEnv *http = NULL;
+uv_mutex_t _mutex;
 
 //////////////////////////////////////////////////////////////////////////
 ////////////       TCP客户端         /////////////////////////////////////
@@ -19,6 +28,8 @@ const int svrport = 8080;
 struct clientData {
     int tid;
     int finishNum;
+    bool err;
+    int ref;
 };
 
 void OnClientReady(CTcpSocket* skt){
@@ -99,9 +110,9 @@ void testClient()
 //////////////////////////////////////////////////////////////////////////
 /////////////     tcp客户端连接池      ///////////////////////////////////
 
-static void OnConnectRequest(CTcpRequest* req, CTcpSocket* skt, bool connected){
+static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected){
     clientData* data = (clientData*)req->usr;
-    delete req;
+    //delete req;
     if(!connected) {
         //新建连接
         skt->OnReady   = OnClientReady;
@@ -118,18 +129,29 @@ static void OnConnectRequest(CTcpRequest* req, CTcpSocket* skt, bool connected){
         //连接池取出的连接
         clientData* ddd = (clientData*)skt->userData;
         data->finishNum = ddd->finishNum;
+        delete ddd;
         skt->userData  = data;
         skt->Send("123456789", 9);
         skt->Send("987654321", 9);
     }
 }
 
+//从连接池获取socket失败
+static void OnPoolError(CTcpRequest* req, string error) {
+    clientData* data = (clientData*)req->usr;
+    Log::error("get pool socket fail %d %s",data->tid, error.c_str());
+    delete data;
+}
+
 static void testTcpPool(){
     std::thread t([&](){
         CNet* net = CNet::Create();
-        CTcpConnPool* pool = CTcpConnPool::Create(net, OnConnectRequest);
-        pool->maxConns = 10;
-        pool->maxIdle = 10;
+        CTcpConnPool* pool = CTcpConnPool::Create(net, OnPoolSocket);
+        pool->maxConns = 1;
+        pool->maxIdle  = 1;
+        pool->timeOut  = 2;
+        pool->maxRequest = 2;
+        pool->OnError  = OnPoolError;
         for (int i=0; i<100; i++) {
             Log::debug("new request %d", i);
             clientData* data = new clientData;
@@ -229,31 +251,45 @@ void testServer()
 //////////////////////////////////////////////////////////////////////////
 static void OnHttpError(Http::CHttpRequest *request, string error) {
     clientData* data = (clientData*)request->usrData;
-    Log::error("http error[%d]: %s",data->tid, error.c_str());
-    request->Delete();
+    Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
+    //uv_mutex_lock(&_mutex);
+    //data->err = true;
+    //if(request->Finished()) { //主线程的http请求调用过了end才给删除
+    //    request->Delete();
+    //    data->ref--;
+    //    if(!data->ref)
+    //        delete data;
+    //}
+    //uv_mutex_unlock(&_mutex);
+    delete data;
 }
 static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
     clientData* data = (clientData*)request->usrData;
-    Log::debug("http response %d", data->tid);
+    Log::debug("http response %d %x", data->tid, data);
     Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
     Log::debug(response->rawHeaders.c_str());
     Log::debug(response->content.c_str());
-    //if(response->complete)
-    //    request->Delete();
+    if(response->complete && !request->autodel) {
+        request->Delete();
+    }
+    delete data;
 }
 
 void testHttpRequest()
 {
-    CNet* net = CNet::Create();
-    Http::CHttpClientEnv *http = new Http::CHttpClientEnv(net, 10, 2, 20, 20);
+    net = CNet::Create();
+    http = new Http::CHttpClientEnv(net, 1, 2, 2, 2);
     for (int i=0; i<100; i++) {
         clientData* data = new clientData();
         data->tid = i;
+        data->err = false;
+        data->ref = 2;
          Http::CHttpRequest* req = http->Request();
+         //Log::debug("new http request %x", req);
          req->OnError    = OnHttpError;
          req->OnResponse = OnHttpResponse;
-         //req->host = "www.baidu.com";
-         req->host = "127.0.0.1";
+         req->host = "www.baidu.com";
+         //req->host = "127.0.0.1";
          req->protocol = PROTOCOL::HTTP;
          //req->method = Http::METHOD::GET;
          req->method = Http::METHOD::POST;
@@ -264,7 +300,17 @@ void testHttpRequest()
 
          req->SetHeader("myheader","????????\0");
          string content = "123456789\0";
+         //Log::debug("11111111   %x", data);
          req->End(content.c_str(), content.length());
+         //uv_mutex_lock(&_mutex);
+         //if(data->err){
+         //    //Log::debug("22222222   %x", data);
+         //    req->Delete();
+         //    data->ref--;
+         //    if(!data->ref)
+         //       delete data;
+         //}
+         //uv_mutex_unlock(&_mutex);
     }
 }
 
@@ -286,21 +332,42 @@ static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMessage *req
 
 void testHttpServer()
 {
-    CNet* net = CNet::Create();
-    Http::CHttpServer *svr = Http::CHttpServer::Create(net);
+    net = CNet::Create();
+    svr = Http::CHttpServer::Create(net);
     svr->OnRequest = OnHttpRequest;
     svr->Listen("0.0.0.0", svrport);
 }
 
 //////////////////////////////////////////////////////////////////////////
+BOOL CtrlCHandler(DWORD type)
+{
+    switch(type)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_CLOSE_EVENT:
+        delete http;
+        if(type == CTRL_C_EVENT)
+            exit(0);
+        return TRUE;
+    default:
+        return FALSE;
+    }
+    return FALSE;
+}
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+    /** 设置控制台消息回调 */
+    //SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlCHandler, TRUE); 
+
+    uv_mutex_init(&_mutex);
+
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
     //testServer();
+    testTcpPool();
     //testHttpServer();
-    testHttpRequest();
+    //testHttpRequest();
 
 	Sleep(INFINITE);
 	return 0;

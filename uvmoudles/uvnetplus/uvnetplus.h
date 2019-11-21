@@ -302,6 +302,7 @@ class CHttpRequest : public CHttpMsg {
     typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
     typedef void(*ResCB)(CHttpRequest *req, CIncomingMessage* response);
 public:
+    typedef void(*DrainCB)(CHttpRequest *req);
 
     PROTOCOL            protocol;  // 协议,http或https
     METHOD              method;    // 方法
@@ -314,7 +315,7 @@ public:
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     bool                chunked;   // Transfer-Encoding: chunked
     void               *usrData;   // 用户自定义数据
-    bool                autodel;   // 接收完成后自动删除，不需要手动释放。失败时不会自动删除
+    bool                autodel;   // 接收完成后自动删除，不需要手动释放。
 
 
     /** 客户端收到connect方法的应答时回调 */
@@ -328,6 +329,7 @@ public:
 
 
     ErrorCB     OnError;        // 发生错误
+    DrainCB     OnDrain;        // 发送数据完成
 
     /** 删除实例 */
     virtual void Delete() = 0;
@@ -339,7 +341,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(const char* chunk, int len) = 0;
+    virtual bool Write(const char* chunk, int len, DrainCB cb = NULL) = 0;
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'

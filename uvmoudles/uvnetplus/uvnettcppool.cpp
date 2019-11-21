@@ -103,6 +103,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
     //外部请求先放到请求列表
     if(req) {
         if(maxRequest > 0 && m_listReqs.size() > maxRequest) {
+            //Log::debug("HttpReq:%x TcpReq:%x", req->usr, req);
             if(m_pTcpConnPool->OnError)
                 m_pTcpConnPool->OnError(req, "request list is max");
             if(req->autodel)
@@ -201,7 +202,9 @@ static void on_timer_cb(uv_timer_t* handle) {
             if(difftime(now, conn->m_nLastTime) < agent->timeOut)
                 break;
 
-            delete conn;
+            // 空闲连接超时
+            //delete conn;
+            conn->CUNTcpSocket::Delete();
             agent->m_listIdleConns.pop_back();
         }
 
@@ -291,7 +294,7 @@ void CUNTcpConnPool::syncRequest()
         }
         agent->Request(req);
     }
-    uv_mutex_unlock(&m_ReqMtx);    
+    uv_mutex_unlock(&m_ReqMtx);
 }
 
 void CUNTcpConnPool::syncClose()
@@ -315,12 +318,14 @@ bool CUNTcpConnPool::Request(std::string host, uint32_t port, std::string locala
     req->copy = copy;
     req->recv = recv;
     req->usr = usr;
+    //Log::debug("1HttpReq:%x TcpReq:%x", req->usr, req);
 
     return Request(req);
 }
 
 bool CUNTcpConnPool::Request(CTcpRequest *req)
 {
+    //Log::debug("2HttpReq:%x TcpReq:%x", req->usr, req);
     req->pool = this;
     uv_mutex_lock(&m_ReqMtx);
     m_listReqs.push_back(req);
