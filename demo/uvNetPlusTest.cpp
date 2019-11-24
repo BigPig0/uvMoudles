@@ -259,7 +259,7 @@ static void OnHttpError(Http::CHttpRequest *request, string error) {
     //uv_mutex_unlock(&_mutex);
     delete data;
 }
-static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* response) {
+static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMsg* response) {
     clientData* data = (clientData*)request->usrData;
     Log::debug("http response %d %x", data->tid, data);
     Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
@@ -304,13 +304,13 @@ void testHttpRequest()
         data->tid = i;
         data->err = false;
         data->ref = 2;
-        //http->Request("www.baidu.com", 80, data, OnHttpRequest);
-        http->Request("127.0.0.1", 80, data, OnHttpRequest);
+        http->Request("www.baidu.com", 80, data, OnHttpRequest);
+        //http->Request("127.0.0.1", 80, data, OnHttpRequest);
     }
 }
 
-static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMessage *request, Http::CHttpResponse *response) {
-    Log::debug("%d %s %d", request->method, request->url.c_str(), request->version);
+static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMsg *request, Http::CHttpResponse *response) {
+    Log::debug("%d %s %d", request->method, request->path.c_str(), request->version);
     for(auto &h:request->headers) {
         Log::debug("%s: %s", h.first.c_str(), h.second.c_str());
     }

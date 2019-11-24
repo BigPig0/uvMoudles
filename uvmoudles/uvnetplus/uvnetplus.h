@@ -208,13 +208,13 @@ enum VERSION {
     HTTP3
 };
 
-class CIncomingMessage {
+class CIncomingMsg {
 public:
     bool aborted;   //请求终止时设置为true
     bool complete;  //http消息接收完整时设置为true
 
     METHOD      method;     // 请求方法
-    std::string url;        // 请求路径
+    std::string path;        // 请求路径
 
     int         statusCode;     //应答状态码
     std::string statusMessage;  //应答状态消息
@@ -228,9 +228,9 @@ public:
     bool        chunked;        // Transfer-Encoding: chunked
     uint32_t    contentLen;     // chunked为false时：内容长度；chunked为true时，块长度
     std::string content;        // 一次的接收内容
-protected:
-    CIncomingMessage();
-    virtual ~CIncomingMessage() = 0;
+
+    CIncomingMsg();
+    ~CIncomingMsg();
 };
 
 class CHttpMsg {
@@ -294,13 +294,13 @@ protected:
     std::string         m_strHeaders;   // 显式的头
     hash_list           m_Headers;      // 隐式头的内容
     bool                m_bHeadersSent; // header是否已经发送
-    bool                m_bFinished;    // 接收应答是否完成
+    bool                m_bFinished;    // 发送是否完成
     uint32_t            m_nContentLen;  // 设置内容的长度
 };
 
 class CHttpRequest : public CHttpMsg {
     typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
-    typedef void(*ResCB)(CHttpRequest *req, CIncomingMessage* response);
+    typedef void(*ResCB)(CHttpRequest *req, CIncomingMsg* response);
 public:
     typedef void(*DrainCB)(CHttpRequest *req);
 
@@ -443,7 +443,7 @@ protected:
 };
 
 class CHttpServer {
-    typedef void(*ReqCb)(CHttpServer *server, CIncomingMessage *request, CHttpResponse *response);
+    typedef void(*ReqCb)(CHttpServer *server, CIncomingMsg *request, CHttpResponse *response);
 public:
     /** 接受到一个包含'Expect: 100-continue'的请求时调用，如果没有指定，自动发送'100 Continue' */
     ReqCb OnCheckContinue;

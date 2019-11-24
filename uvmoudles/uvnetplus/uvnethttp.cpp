@@ -100,37 +100,6 @@ namespace Http {
 
     //////////////////////////////////////////////////////////////////////////
     /** Http客户端环境 */
-    //static void OnClientReady(CTcpSocket* skt){
-    //    Log::debug("client ready");
-    //}
-
-    //static void OnClientConnect(CTcpSocket* skt, string err){
-    //    //Log::debug("HttpReq:%x, %s", skt->userData, err.c_str());
-    //    //CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
-    //    //http->DoConnected(err);
-    //    HttpConnReq *httpconn = (HttpConnReq*)skt->userData;
-    //    if(err.empty()) {
-    //        CUNHttpRequest *http = new CUNHttpRequest();
-    //        http->host = httpconn->host;
-    //        http->port = httpconn->port;
-    //        http->usrData = httpconn->usr;
-    //        http->tcpSocket = skt;
-    //        skt->userData = http;
-    //        if(httpconn->cb)
-    //            httpconn->cb(http, "");
-    //        else if(httpconn->env && httpconn->env->OnRequest)
-    //            httpconn->env->OnRequest(http, "");
-    //        else
-    //            skt->Delete();
-    //    } else {
-    //        if(httpconn->cb)
-    //            httpconn->cb(NULL, err);
-    //        else if(httpconn->env && httpconn->env->OnRequest)
-    //            httpconn->env->OnRequest(NULL, err);
-    //    }
-    //    delete httpconn;
-    //}
-
     static void OnClientRecv(CTcpSocket* skt, char *data, int len){
         CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         http->DoReceive(data, len);
@@ -151,8 +120,9 @@ namespace Http {
     }
 
     static void OnClientError(CTcpSocket* skt, string err){
-        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         Log::error("client error: %s ", err.c_str());
+        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
+        http->DoError(err);
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -169,7 +139,6 @@ namespace Http {
      * 从连接池获取socket成功
      * @param req 连接池获取socket的请求
      * @param skt 获取到的socket实例
-     * @param connected false表示新建立的socket，还没有连接到服务端；true表示从池中取出的socket，已经建立了连接
      */
     static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt) {
         HttpConnReq    *httpconn = (HttpConnReq*)req->usr;
@@ -343,7 +312,7 @@ namespace Http {
         : parseHeader(false)
     {
         uv_mutex_init(&mutex);
-        incMsg = new IncomingMessage();
+        incMsg = new CIncomingMsg();
     }
 
     CUNHttpRequest::~CUNHttpRequest(){
@@ -361,9 +330,8 @@ namespace Http {
     bool CUNHttpRequest::Write(const char* chunk, int len, DrainCB cb){
         if(cb)
             OnDrain = cb;
-        Log::debug("lock %x", &mutex);
+
         uv_mutex_lock(&mutex);
-        
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -390,12 +358,11 @@ namespace Http {
             }
         }
         uv_mutex_unlock(&mutex);
-        Log::debug("unlock %x", &mutex);
+
         return true;
     }
 
     bool CUNHttpRequest::End() {
-        Log::debug("lock %x", &mutex);
         uv_mutex_lock(&mutex);
         if(!m_bHeadersSent) {
             // 这种情况下，不可能包含body
@@ -409,14 +376,12 @@ namespace Http {
             }
         }
         m_bFinished = true;
-
         uv_mutex_unlock(&mutex);
-        Log::debug("unlock %x", &mutex);
+
         return true;
     }
 
     void CUNHttpRequest::End(const char* chunk, int len){
-        Log::debug("lock %x", &mutex);
         uv_mutex_lock(&mutex);
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
@@ -449,7 +414,6 @@ namespace Http {
         }
         m_bFinished = true;
         uv_mutex_unlock(&mutex);
-        Log::debug("unlock %x", &mutex);
     }
 
     void CUNHttpRequest::DoReceive(const char *data, int len){
@@ -484,16 +448,6 @@ namespace Http {
     void CUNHttpRequest::DoDrain(){
         if(!m_bFinished && OnDrain)
             OnDrain(this);
-    }
-
-    std::string CUNHttpRequest::GetAgentName() {
-        stringstream ss;
-        ss << host << ":" << port;
-        if(!localaddr.empty())
-            ss << ":" << localaddr;
-        if(!localport)
-            ss << ":" << localport;
-        return ss.str();
     }
 
     std::string CUNHttpRequest::GetHeadersString() {
@@ -621,24 +575,24 @@ namespace Http {
 
     CHttpResponse::~CHttpResponse() {}
 
-    ServerResponse::ServerResponse()
+    CUNHttpResponse::CUNHttpResponse()
     {}
 
-    ServerResponse::~ServerResponse(){}
+    CUNHttpResponse::~CUNHttpResponse(){}
 
-    void ServerResponse::AddTrailers(std::string key, std::string value) {
+    void CUNHttpResponse::AddTrailers(std::string key, std::string value) {
         m_Trailers.insert(make_pair(key, value));
     }
 
-    void ServerResponse::WriteContinue() {
+    void CUNHttpResponse::WriteContinue() {
 
     }
 
-    void ServerResponse::WriteProcessing() {
+    void CUNHttpResponse::WriteProcessing() {
 
     }
 
-    void ServerResponse::WriteHead(int statusCode, std::string statusMessage, std::string headers) {
+    void CUNHttpResponse::WriteHead(int statusCode, std::string statusMessage, std::string headers) {
         stringstream ss;
         ss << VERSIONS(version) << " " << statusCode << " ";
         if(!statusMessage.empty())
@@ -650,7 +604,7 @@ namespace Http {
         CHttpMsg::WriteHead(ss.str());
     }
 
-    void ServerResponse::Write(const char* chunk, int len, ResCb cb) {
+    void CUNHttpResponse::Write(const char* chunk, int len, ResCb cb) {
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
@@ -679,11 +633,11 @@ namespace Http {
         }
     }
 
-    void ServerResponse::End() {
+    void CUNHttpResponse::End() {
         m_bFinished = true;
     }
 
-    void ServerResponse::End(const char* data, int len, ResCb cb) {
+    void CUNHttpResponse::End(const char* data, int len, ResCb cb) {
         if(!chunked && !m_nContentLen) {
             m_nContentLen = len;
         }
@@ -691,7 +645,7 @@ namespace Http {
         End();
     }
 
-    std::string ServerResponse::GetHeadersString() {
+    std::string CUNHttpResponse::GetHeadersString() {
         if(!m_strHeaders.empty())
             return m_strHeaders;
 
@@ -712,7 +666,7 @@ namespace Http {
     //////////////////////////////////////////////////////////////////////////
     /** 服务端接收到的请求或客户端接收到的应答 */
 
-    CIncomingMessage::CIncomingMessage()
+    CIncomingMsg::CIncomingMsg()
         : aborted(false)
         , complete(false)
         , keepAlive(true)
@@ -720,12 +674,7 @@ namespace Http {
         , contentLen(-1)
     {}
 
-    CIncomingMessage::~CIncomingMessage(){}
-
-    IncomingMessage::IncomingMessage(){}
-
-    IncomingMessage::~IncomingMessage(){}
-
+    CIncomingMsg::~CIncomingMsg(){}
 
     //////////////////////////////////////////////////////////////////////////
     /** http服务 */
@@ -740,7 +689,7 @@ namespace Http {
     CHttpServer::~CHttpServer(){}
 
     CHttpServer* CHttpServer::Create(CNet* net){
-        Server *svr = new Server(net);
+        CUNHttpServer *svr = new CUNHttpServer(net);
         return svr;
     }
 
@@ -758,12 +707,12 @@ namespace Http {
         if(reqlines.size() != 3)
             return false;
 
-        inc = new IncomingMessage();
-        res = new ServerResponse();
+        inc = new CIncomingMsg();
+        res = new CUNHttpResponse();
         res->tcpSocket = client;
 
         inc->method = METHODS(reqlines[0].c_str());
-        inc->url = reqlines[1];
+        inc->path = reqlines[1];
         inc->version = VERSIONS(reqlines[2].c_str());
         inc->rawHeaders = buff.substr(pos1+2, pos2-pos1);
         buff = buff.substr(pos2+4, buff.size()-pos2-4);
@@ -841,8 +790,8 @@ namespace Http {
         return false;
     }
 
-    void Server::OnListen(CTcpServer* svr, std::string err) {
-        Server *http = (Server*)svr->userData;
+    void CUNHttpServer::OnListen(CTcpServer* svr, std::string err) {
+        CUNHttpServer *http = (CUNHttpServer*)svr->userData;
         if(err.empty()) {
             //开启监听成功
             Log::debug("Http server listen %d begining...", http->m_nPort);
@@ -852,7 +801,7 @@ namespace Http {
         }
     }
 
-    void Server::OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
+    void CUNHttpServer::OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
         CSvrConn *c = (CSvrConn*)skt->userData;
         c->buff.append(data, len);
         // http头解析
@@ -900,30 +849,30 @@ namespace Http {
         }
     }
 
-    void Server::OnSvrCltDrain(CTcpSocket* skt){
+    void CUNHttpServer::OnSvrCltDrain(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client drain");
     }
 
-    void Server::OnSvrCltClose(CTcpSocket* skt){
+    void CUNHttpServer::OnSvrCltClose(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client close");
         delete c;
     }
 
-    void Server::OnSvrCltEnd(CTcpSocket* skt){
+    void CUNHttpServer::OnSvrCltEnd(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::debug("server client end");
     }
 
-    void Server::OnSvrCltError(CTcpSocket* skt, string err){
+    void CUNHttpServer::OnSvrCltError(CTcpSocket* skt, string err){
         CSvrConn *c = (CSvrConn*)skt->userData;
         Log::error("server client error:%s ", err.c_str());
     }
 
-    void Server::OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
+    void CUNHttpServer::OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
         Log::debug("Http server accept new connection");
-        Server *http = (Server*)svr->userData;
+        CUNHttpServer *http = (CUNHttpServer*)svr->userData;
         static int sid = 1;
         CSvrConn *c = new CSvrConn();
         c->http   = http;
@@ -937,25 +886,25 @@ namespace Http {
         client->OnError = OnSvrCltError;
     }
 
-    Server::Server(CNet* net)
+    CUNHttpServer::CUNHttpServer(CNet* net)
         : m_nPort(0)
     {
         m_pTcpSvr = CTcpServer::Create(net, OnTcpConnection, this);
         m_pTcpSvr->OnListen = OnListen;
     }
 
-    Server::~Server(){}
+    CUNHttpServer::~CUNHttpServer(){}
 
-    bool Server::Listen(std::string strIP, uint32_t nPort){
+    bool CUNHttpServer::Listen(std::string strIP, uint32_t nPort){
         m_nPort = nPort;
         return m_pTcpSvr->Listen(strIP, nPort);
     }
 
-    void Server::Close() {
+    void CUNHttpServer::Close() {
 
     }
 
-    bool Server::Listening() {
+    bool CUNHttpServer::Listening() {
         return m_pTcpSvr->Listening();
     }
 

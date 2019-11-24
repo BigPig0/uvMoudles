@@ -8,9 +8,8 @@ namespace uvNetPlus {
 namespace Http {
 
 class CUNHttpRequest;
-class IncomingMessage;
-class ServerResponse;
-class Server;
+class CUNHttpResponse;
+class CUNHttpServer;
 
 
 /** HTTP客户端请求,用于客户端组织数据并发送 */
@@ -61,7 +60,6 @@ public:
     void DoDrain();
 
 private:
-    std::string GetAgentName();
     std::string GetHeadersString();
 
     /** 解析http头，成功返回true，不是http头返回false */
@@ -69,22 +67,19 @@ private:
     /** 解析内容，已经接收完整内容或块返回true，否则false */
     bool ParseContent();
 
-    //CTcpConnPool        *connPool;
-    IncomingMessage     *incMsg;        //解析出的应答数据
-    //bool                 connected;     //已经连接
-    //bool                 connecting;    //正在连接
+    CIncomingMsg    *incMsg;        //解析出的应答数据
     bool                 parseHeader;   //请求报文中解析出http头。默认false
-    list<string>         sendBuffs;     //skt连接之前，缓存发送的数据
+
     uv_mutex_t           mutex;         //write和end线程安全
     std::string          recvBuff;      //接收数据缓存
 };
 
 /** 服务端生成应答数据并发送 */
-class ServerResponse : public CHttpResponse
+class CUNHttpResponse : public CHttpResponse
 {
 public:
-    ServerResponse();
-    ~ServerResponse();
+    CUNHttpResponse();
+    ~CUNHttpResponse();
 
     /**
      * 添加一个尾部数据
@@ -132,13 +127,6 @@ private:
     hash_list   m_Trailers;
 };
 
-/** 接收到的数据，服务端接收到的请求或客户端接收到的应答 */
-class IncomingMessage : public CIncomingMessage
-{
-public:
-    IncomingMessage();
-    ~IncomingMessage();
-};
 
 /** http服务端连接 */
 class CSvrConn {
@@ -149,21 +137,21 @@ public:
     /** 解析内容，已经接收完整内容或块返回true，否则false */
     bool ParseContent();
 
-    Server          *http;
+    CUNHttpServer   *http;
     CTcpServer      *server;
     CTcpSocket      *client;
     std::string      buff;   //接收数据缓存
-    IncomingMessage *inc;    //保存解析到的请求数据
-    ServerResponse  *res;    //应答
+    CIncomingMsg *inc;    //保存解析到的请求数据
+    CUNHttpResponse *res;    //应答
     bool             parseHeader;   //请求报文中解析出http头。默认false，请求完成后要重置为false。
 };
 
 /** http服务 */
-class Server : public CHttpServer
+class CUNHttpServer : public CHttpServer
 {
 public:
-    Server(CNet* net);
-    ~Server();
+    CUNHttpServer(CNet* net);
+    ~CUNHttpServer();
 
     /** 服务器启动监听 */
     bool Listen(std::string strIP, uint32_t nPort);
