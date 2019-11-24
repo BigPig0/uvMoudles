@@ -100,15 +100,36 @@ namespace Http {
 
     //////////////////////////////////////////////////////////////////////////
     /** Http客户端环境 */
-    static void OnClientReady(CTcpSocket* skt){
-        Log::debug("client ready");
-    }
+    //static void OnClientReady(CTcpSocket* skt){
+    //    Log::debug("client ready");
+    //}
 
-    static void OnClientConnect(CTcpSocket* skt, string err){
-        //Log::debug("HttpReq:%x, %s", skt->userData, err.c_str());
-        CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
-        http->DoConnected(err);
-    }
+    //static void OnClientConnect(CTcpSocket* skt, string err){
+    //    //Log::debug("HttpReq:%x, %s", skt->userData, err.c_str());
+    //    //CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
+    //    //http->DoConnected(err);
+    //    HttpConnReq *httpconn = (HttpConnReq*)skt->userData;
+    //    if(err.empty()) {
+    //        CUNHttpRequest *http = new CUNHttpRequest();
+    //        http->host = httpconn->host;
+    //        http->port = httpconn->port;
+    //        http->usrData = httpconn->usr;
+    //        http->tcpSocket = skt;
+    //        skt->userData = http;
+    //        if(httpconn->cb)
+    //            httpconn->cb(http, "");
+    //        else if(httpconn->env && httpconn->env->OnRequest)
+    //            httpconn->env->OnRequest(http, "");
+    //        else
+    //            skt->Delete();
+    //    } else {
+    //        if(httpconn->cb)
+    //            httpconn->cb(NULL, err);
+    //        else if(httpconn->env && httpconn->env->OnRequest)
+    //            httpconn->env->OnRequest(NULL, err);
+    //    }
+    //    delete httpconn;
+    //}
 
     static void OnClientRecv(CTcpSocket* skt, char *data, int len){
         CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
@@ -134,43 +155,63 @@ namespace Http {
         Log::error("client error: %s ", err.c_str());
     }
 
+    //////////////////////////////////////////////////////////////////////////
+
+    struct HttpConnReq {
+        CHttpClientEnv *env;
+        std::string     host;
+        int             port;
+        void           *usr;
+        CHttpClientEnv::ReqCB cb;
+    };
+
     /**
      * 从连接池获取socket成功
      * @param req 连接池获取socket的请求
      * @param skt 获取到的socket实例
      * @param connected false表示新建立的socket，还没有连接到服务端；true表示从池中取出的socket，已经建立了连接
      */
-    static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected) {
-        Log::debug("get socket");
-        CUNHttpRequest *http = (CUNHttpRequest*)req->usr;
-        http->DoGetSocket(skt); 
-        skt->userData  = http;
-        //delete req;
-        if(!connected) {
-            //socket是新建立的
-            skt->OnReady   = OnClientReady;
-            skt->OnConnect = OnClientConnect;
-            skt->OnRecv    = OnClientRecv;
-            skt->OnDrain   = OnClientDrain;
-            skt->OnCLose   = OnClientClose;
-            skt->OnEnd     = OnClientEnd;
-            skt->OnError   = OnClientError;
-            skt->autoRecv  = true;
-            skt->copy      = true;
-        } else {
-            http->DoConnected("");
-        }
+    static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt) {
+        HttpConnReq    *httpconn = (HttpConnReq*)req->usr;
+        CUNHttpRequest *http     = new CUNHttpRequest();
 
+        skt->OnRecv     = OnClientRecv;
+        skt->OnDrain    = OnClientDrain;
+        skt->OnCLose    = OnClientClose;
+        skt->OnEnd      = OnClientEnd;
+        skt->OnError    = OnClientError;
+        skt->autoRecv   = true;
+        skt->copy       = true;
+        skt->userData   = http;
+
+        http->host      = httpconn->host;
+        http->port      = httpconn->port;
+        http->usrData   = httpconn->usr;
+        http->tcpSocket = skt;
+
+        if(httpconn->cb)
+            httpconn->cb(http, httpconn->usr, "");
+        else if(httpconn->env && httpconn->env->OnRequest)
+            httpconn->env->OnRequest(http, httpconn->usr, "");
+        else
+            skt->Delete();
+
+        delete httpconn;
     }
 
     //从连接池获取socket失败
     static void OnPoolError(CTcpRequest* req, string error) {
-        CUNHttpRequest *http = (CUNHttpRequest*)req->usr;
-        //Log::debug("HttpReq:%x  TCPREQ:%x", http, req);
-        http->DoConnected(error);
+        HttpConnReq *httpconn = (HttpConnReq*)req->usr;
+        if(httpconn->cb)
+            httpconn->cb(NULL, httpconn->usr, error);
+        else if(httpconn->env && httpconn->env->OnRequest)
+            httpconn->env->OnRequest(NULL, httpconn->usr, error);
+        delete httpconn;
     }
 
-    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest) {
+    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest)
+        : OnRequest(NULL)
+    {
         connPool = CTcpConnPool::Create(net, OnPoolSocket);
         connPool->maxConns = maxConns;
         connPool->maxIdle  = maxIdle;
@@ -183,9 +224,14 @@ namespace Http {
         connPool->Delete();
     }
 
-    CHttpRequest* CHttpClientEnv::Request() {
-        CUNHttpRequest *req = new CUNHttpRequest(connPool);
-        return req;
+    bool CHttpClientEnv::Request(std::string host, int port, void* usr /*= NULL*/, ReqCB cb /*= NULL*/) {
+        HttpConnReq *req = new HttpConnReq();
+        req->env  = this;
+        req->host = host;
+        req->port = port;
+        req->usr  = usr;
+        req->cb   = cb;
+        return connPool->Request(host, port, "", req, true, true);
     }
 
 
@@ -293,14 +339,11 @@ namespace Http {
 
     CHttpRequest::~CHttpRequest(){}
 
-    CUNHttpRequest::CUNHttpRequest(CTcpConnPool *pool)
-        : connPool(pool)
-        , incMsg(NULL)
-        , connected(false)
-        , connecting(false)
-        , parseHeader(false)
+    CUNHttpRequest::CUNHttpRequest(/*CTcpConnPool *pool*/)
+        : parseHeader(false)
     {
         uv_mutex_init(&mutex);
+        incMsg = new IncomingMessage();
     }
 
     CUNHttpRequest::~CUNHttpRequest(){
@@ -332,11 +375,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            if(!connected) {
-                sendBuffs.push_back(buff);
-            } else {
-                tcpSocket->Send(buff.c_str(), (int)buff.size());
-            }
+            tcpSocket->Send(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
             if(chunked && version == HTTP1_1) {
@@ -345,25 +384,10 @@ namespace Http {
                 ss.write(chunk, len);
                 ss << "\r\n";
                 string buff = ss.str();
-                if(!connected) {
-                    sendBuffs.push_back(buff);
-                } else {
-                    tcpSocket->Send(buff.c_str(), (int)buff.size());
-                }
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
             } else {
-                if(!connected) {
-                    string buff(chunk, len);
-                    sendBuffs.push_back(buff);
-                } else {
-                    tcpSocket->Send(chunk, len);
-                }
+                tcpSocket->Send(chunk, len);
             }
-        }
-
-        // 如果未连接且未开始连接
-        if(!connected && !connecting) {
-            connPool->Request(host, port, "", this, true, true);
-            connecting = true;
         }
         uv_mutex_unlock(&mutex);
         Log::debug("unlock %x", &mutex);
@@ -376,29 +400,16 @@ namespace Http {
         if(!m_bHeadersSent) {
             // 这种情况下，不可能包含body
             string buff = GetHeadersString() + "\r\n";
-            if(!connected) {
-                sendBuffs.push_back(buff);
-            } else {
-                tcpSocket->Send(buff.c_str(), (int)buff.size());
-            }
+            tcpSocket->Send(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
             if(chunked && method == HTTP1_1) {
                 string buff = "0\r\n\r\n";
-                if(!connected) {
-                    sendBuffs.push_back(buff);
-                } else {
-                    tcpSocket->Send(buff.c_str(), (int)buff.size());
-                }
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
             }
         }
         m_bFinished = true;
 
-        // 如果未连接且未开始连接
-        if(!connected && !connecting) {
-            connPool->Request(host, port, "", this, true, true);
-            connecting = true;
-        }
         uv_mutex_unlock(&mutex);
         Log::debug("unlock %x", &mutex);
         return true;
@@ -422,11 +433,7 @@ namespace Http {
                 ss.write(chunk, len);
             }
             string buff = ss.str();
-            if(!connected) {
-                sendBuffs.push_back(buff);
-            } else {
-                tcpSocket->Send(buff.c_str(), (int)buff.size());
-            }
+            tcpSocket->Send(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
             if(chunked && version == HTTP1_1) {
@@ -435,62 +442,14 @@ namespace Http {
                 ss.write(chunk, len);
                 ss << "\r\n0\r\n\r\n";  //chunk结束
                 string buff = ss.str();
-                if(!connected) {
-                    sendBuffs.push_back(buff);
-                } else {
-                    tcpSocket->Send(buff.c_str(), (int)buff.size());
-                }
+                tcpSocket->Send(buff.c_str(), (int)buff.size());
             } else {
-                if(!connected) {
-                    string buff(chunk, len);
-                    sendBuffs.push_back(buff);
-                } else {
-                    tcpSocket->Send(chunk, len);
-                }
+                tcpSocket->Send(chunk, len);
             }
         }
         m_bFinished = true;
         uv_mutex_unlock(&mutex);
         Log::debug("unlock %x", &mutex);
-
-        // 如果未连接且未开始连接
-        if(!connected && !connecting) {
-            Log::debug("1111 %x", &mutex);
-            connPool->Request(host, port, "", this, true, true);
-            Log::debug("2222 %x", &mutex);
-            connecting = true;
-        }
-        //Log::debug("HttpReq:%x user:%x", this, usrData);
-    }
-
-    void CUNHttpRequest::DoGetSocket(CTcpSocket *skt) {
-        tcpSocket  = skt;
-        incMsg     = new IncomingMessage();
-    }
-
-    void CUNHttpRequest::DoConnected(string err) {
-        if(err.empty()){
-            uv_mutex_lock(&mutex);
-            connected  = true;
-            connecting = false;
-            for(auto &buf : sendBuffs) {
-                tcpSocket->Send(buf.c_str(), buf.size());
-            }
-            sendBuffs.clear();
-            uv_mutex_unlock(&mutex);
-        } else {
-            //connected  = false;
-            //connecting = false;
-            //Log::debug("HttpReq:%x", this);
-            Log::debug("lock %x", &mutex);
-            uv_mutex_lock(&mutex);
-            uv_mutex_unlock(&mutex);
-            Log::debug("unlock %x", &mutex);
-            if(OnError)
-                OnError(this, err);
-            if(autodel)
-                Delete();
-        }
     }
 
     void CUNHttpRequest::DoReceive(const char *data, int len){

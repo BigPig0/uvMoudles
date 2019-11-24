@@ -7,6 +7,25 @@
 
 namespace uvNetPlus {
 
+static void OnClientReady(CTcpSocket* skt){
+    Log::debug("client ready");
+}
+
+static void OnClientConnect(CTcpSocket* skt, string err){
+    CUNTcpPoolSocket *pskt = (CUNTcpPoolSocket*)skt;
+    CTcpRequest *req = pskt->m_pReq;
+    if(err.empty()) {
+        if(pskt->m_pAgent->m_pTcpConnPool->OnRequest)
+            pskt->m_pAgent->m_pTcpConnPool->OnRequest(req, skt);
+    } else {
+        if(pskt->m_pAgent->m_pTcpConnPool->OnError)
+            pskt->m_pAgent->m_pTcpConnPool->OnError(req, err);
+        skt->Delete();
+    }
+    if(req->autodel)
+        delete req;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //////////////   连接到服务器的单个连接    ///////////////////////////////
 
@@ -132,7 +151,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
     //Log::debug("busyConn %d idleConn %d", m_listBusyConns.size(), m_listIdleConns.size());
     //查找空闲连接
     if(!m_listIdleConns.empty()){
-        CUNTcpPoolSocket *conn = m_listIdleConns.front();
+        CUNTcpPoolSocket *skt = m_listIdleConns.front();
         m_listIdleConns.pop_front();
 
         //处理下一个请求
@@ -140,13 +159,13 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
 
         // 使用现有的连接进行发送请求
         //Log::debug("use a idle connect send");
-        conn->m_nLastTime = time(NULL);
-        m_listBusyConns.push_back(conn);
-        conn->m_pReq = req;
+        skt->m_nLastTime = time(NULL);
+        m_listBusyConns.push_back(skt);
+        skt->m_pReq = req;
 
         //回调通知用户取到的socket
         if(m_pTcpConnPool->OnRequest)
-            m_pTcpConnPool->OnRequest(req, conn, true);
+            m_pTcpConnPool->OnRequest(req, skt);
         if(req->autodel)
             delete req;
     } else {
@@ -160,19 +179,21 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
         //处理下一个请求
         m_pNet->AddEvent(ASYNC_EVENT_TCPAGENT_REQUEST, this);
 
-        CUNTcpPoolSocket *conn = new CUNTcpPoolSocket(m_pNet, req->copy);
-        conn->m_nLastTime = time(NULL);
-        m_listBusyConns.push_back(conn);
-        conn->m_pReq = req;
-        conn->m_pAgent = this;
+        CUNTcpPoolSocket *skt = new CUNTcpPoolSocket(m_pNet, req->copy);
+        skt->m_nLastTime = time(NULL);
+        skt->m_pReq      = req;
+        skt->m_pAgent    = this;
+        skt->OnReady     = OnClientReady;
+        skt->OnConnect   = OnClientConnect;
+        m_listBusyConns.push_back(skt);
 
         //回调通知用户取到的socket
-        if(m_pTcpConnPool->OnRequest)
-            m_pTcpConnPool->OnRequest(req, conn, false);
-        if(req->autodel)
-            delete req;
+        //if(m_pTcpConnPool->OnRequest)
+        //    m_pTcpConnPool->OnRequest(req, skt, false);
+        //if(req->autodel)
+        //    delete req;
 
-        conn->Connect(ip, port);
+        skt->Connect(ip, port);
     }
 
     return true;

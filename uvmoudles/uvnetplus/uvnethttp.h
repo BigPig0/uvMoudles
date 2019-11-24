@@ -17,7 +17,7 @@ class Server;
 class CUNHttpRequest : public CHttpRequest
 {
 public:
-    CUNHttpRequest(CTcpConnPool *pool);
+    CUNHttpRequest(/*CTcpConnPool *pool*/);
     ~CUNHttpRequest();
 
     /** 删除实例 */
@@ -46,10 +46,10 @@ public:
 
     /** 这几个Do函数是内部使用的 */
     /** 从连接池获取socket完成 */
-    void DoGetSocket(CTcpSocket *skt);
+    //void DoGetSocket(CTcpSocket *skt);
 
     /** 新建立的连接完成 */
-    void DoConnected(string err);
+    //void DoConnected(string err);
 
     /* 收到的数据处理 */
     void DoReceive(const char *data, int len);
@@ -69,10 +69,10 @@ private:
     /** 解析内容，已经接收完整内容或块返回true，否则false */
     bool ParseContent();
 
-    CTcpConnPool        *connPool;
-    IncomingMessage     *incMsg;
-    bool                 connected;     //已经连接
-    bool                 connecting;    //正在连接
+    //CTcpConnPool        *connPool;
+    IncomingMessage     *incMsg;        //解析出的应答数据
+    //bool                 connected;     //已经连接
+    //bool                 connecting;    //正在连接
     bool                 parseHeader;   //请求报文中解析出http头。默认false
     list<string>         sendBuffs;     //skt连接之前，缓存发送的数据
     uv_mutex_t           mutex;         //write和end线程安全

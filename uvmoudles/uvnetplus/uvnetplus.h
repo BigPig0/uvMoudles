@@ -140,7 +140,7 @@ struct CTcpRequest {
 class CTcpConnPool
 {
     typedef void(*ErrorCB)(CTcpRequest *req, std::string error);
-    typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt, bool connected);
+    typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt);
 public:
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
@@ -360,6 +360,8 @@ protected:
 
 class CHttpClientEnv {
 public:
+    typedef void(*ReqCB)(CHttpRequest *req, void* usr, std::string error);
+
     /**
      * 创建一个http客户端环境
      * @param net 环境句柄
@@ -370,8 +372,12 @@ public:
      */
     CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
     ~CHttpClientEnv();
-    CHttpRequest* Request();
-private:
+    bool Request(std::string host, int port, void* usr = NULL, ReqCB cb = NULL);
+
+    /**
+     * 默认请求获取成功回调函数，如果Request设置了指定回调，则优先使用指定的回调
+     */
+    ReqCB                OnRequest;
     CTcpConnPool        *connPool;
 };
 

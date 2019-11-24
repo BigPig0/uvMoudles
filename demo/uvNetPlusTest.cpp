@@ -13,7 +13,7 @@ using namespace std;
 using namespace uvNetPlus;
 
 #ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
-#include "vld.h"
+//#include "vld.h"
 #endif
 
 const int svrport = 8080;
@@ -110,30 +110,26 @@ void testClient()
 //////////////////////////////////////////////////////////////////////////
 /////////////     tcp客户端连接池      ///////////////////////////////////
 
-static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt, bool connected){
+static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt){
     clientData* data = (clientData*)req->usr;
     //delete req;
-    if(!connected) {
-        //新建连接
-        skt->OnReady   = OnClientReady;
-        skt->OnConnect = OnClientConnect;
-        skt->OnRecv    = OnClientRecv;
-        skt->OnDrain   = OnClientDrain;
-        skt->OnCLose   = OnClientClose;
-        skt->OnEnd     = OnClientEnd;
-        skt->OnError   = OnClientError;
-        skt->autoRecv  = true;
-        skt->copy      = true;
-        skt->userData  = data;
-    } else {
-        //连接池取出的连接
-        clientData* ddd = (clientData*)skt->userData;
-        data->finishNum = ddd->finishNum;
-        delete ddd;
-        skt->userData  = data;
-        skt->Send("123456789", 9);
-        skt->Send("987654321", 9);
-    }
+
+    skt->OnRecv    = OnClientRecv;
+    skt->OnDrain   = OnClientDrain;
+    skt->OnCLose   = OnClientClose;
+    skt->OnEnd     = OnClientEnd;
+    skt->OnError   = OnClientError;
+    skt->autoRecv  = true;
+    skt->copy      = true;
+    skt->userData  = data;
+
+    //clientData* ddd = (clientData*)skt->userData;
+    //if(ddd){
+    //    data->finishNum = ddd->finishNum;
+    //    delete ddd;
+    //}
+    skt->Send("123456789", 9);
+    skt->Send("987654321", 9);
 }
 
 //从连接池获取socket失败
@@ -147,10 +143,10 @@ static void testTcpPool(){
     std::thread t([&](){
         CNet* net = CNet::Create();
         CTcpConnPool* pool = CTcpConnPool::Create(net, OnPoolSocket);
-        pool->maxConns = 1;
-        pool->maxIdle  = 1;
+        pool->maxConns = 5;
+        pool->maxIdle  = 5;
         pool->timeOut  = 2;
-        pool->maxRequest = 2;
+        pool->maxRequest = 10;
         pool->OnError  = OnPoolError;
         for (int i=0; i<100; i++) {
             Log::debug("new request %d", i);
@@ -274,43 +270,42 @@ static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMessage* 
     }
     delete data;
 }
+static void OnHttpRequest(Http::CHttpRequest *req, void* usr, std::string error) {
+    clientData* data = (clientData*)usr;
+    if(error.empty()) {
+        //Log::debug("new http request %x", req);
+        req->usrData    = usr;
+        req->OnError    = OnHttpError;
+        req->OnResponse = OnHttpResponse;
+        req->host       = "www.baidu.com";
+        //req->host     = "127.0.0.1";
+        req->protocol   = PROTOCOL::HTTP;
+        //req->method   = Http::METHOD::GET;
+        req->method     = Http::METHOD::POST;
+        //req->path     = "/s?wd=http+content+len";
+        req->path       = "/imageServer/image?name=111111.jpg&type=1";
+        req->version    = Http::VERSION::HTTP1_1;
+
+        req->SetHeader("myheader","????????\0");
+        string content = "123456789\0";
+        req->End(content.c_str(), content.length());
+
+    } else {
+        Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
+    }
+}
 
 void testHttpRequest()
 {
     net = CNet::Create();
-    http = new Http::CHttpClientEnv(net, 1, 2, 2, 2);
+    http = new Http::CHttpClientEnv(net, 10, 5, 2, 0);
     for (int i=0; i<100; i++) {
         clientData* data = new clientData();
         data->tid = i;
         data->err = false;
         data->ref = 2;
-         Http::CHttpRequest* req = http->Request();
-         //Log::debug("new http request %x", req);
-         req->OnError    = OnHttpError;
-         req->OnResponse = OnHttpResponse;
-         req->host = "www.baidu.com";
-         //req->host = "127.0.0.1";
-         req->protocol = PROTOCOL::HTTP;
-         //req->method = Http::METHOD::GET;
-         req->method = Http::METHOD::POST;
-         //req->path = "/s?wd=http+content+len";
-         req->path = "/imageServer/image?name=111111.jpg&type=1";
-         req->version = Http::VERSION::HTTP1_1;
-         req->usrData = data;
-
-         req->SetHeader("myheader","????????\0");
-         string content = "123456789\0";
-         //Log::debug("11111111   %x", data);
-         req->End(content.c_str(), content.length());
-         //uv_mutex_lock(&_mutex);
-         //if(data->err){
-         //    //Log::debug("22222222   %x", data);
-         //    req->Delete();
-         //    data->ref--;
-         //    if(!data->ref)
-         //       delete data;
-         //}
-         //uv_mutex_unlock(&_mutex);
+        //http->Request("www.baidu.com", 80, data, OnHttpRequest);
+        http->Request("127.0.0.1", 80, data, OnHttpRequest);
     }
 }
 
@@ -365,9 +360,9 @@ int _tmain(int argc, _TCHAR* argv[])
     Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
 
     //testServer();
-    testTcpPool();
+    //testTcpPool();
     //testHttpServer();
-    //testHttpRequest();
+    testHttpRequest();
 
 	Sleep(INFINITE);
 	return 0;
