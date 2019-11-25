@@ -15,9 +15,10 @@ enum UV_ASYNC_EVENT
     ASYNC_EVENT_TCP_CLTCLOSE,   //tcp客户端关闭
     ASYNC_EVENT_TCP_SVRCLOSE,   //tcp服务端关闭
     ASYNC_EVENT_TCPCONN_INIT,   //tcp连接池初始化定时器
-    ASYNC_EVENT_TCPCONN_REQUEST,//tcp连接池发送请求
+    ASYNC_EVENT_TCPCONN_REQUEST,//tcp连接池中获取socket
     ASYNC_EVENT_TCPCONN_CLOSE,  //tcp连接池关闭
-    ASYNC_EVENT_TCPAGENT_REQUEST, //tcp agent请求
+    ASYNC_EVENT_TCPAGENT_REQUEST, //tcp agent中获取socket
+    ASYNC_EVENT_TCP_CONNCLOSE,  //连接池中的socket返还
 };
 
 struct UV_EVET {

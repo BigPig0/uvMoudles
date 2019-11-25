@@ -18,11 +18,11 @@ public:
 //////////////////////////////////////////////////////////////////////////
 
 /** TCP客户端 */
-class CTcpClient
+class CTcpSocket
 {
-    typedef void (*EventCB)(CTcpClient* skt);
-    typedef void (*RecvCB)(CTcpClient* skt, char *data, int len);
-    typedef void (*ErrorCB)(CTcpClient* skt, std::string error);
+    typedef void (*EventCB)(CTcpSocket* skt);
+    typedef void (*RecvCB)(CTcpSocket* skt, char *data, int len);
+    typedef void (*ErrorCB)(CTcpSocket* skt, std::string error);
 public:
     EventCB      OnReady;     //socket创建完成
     ErrorCB      OnConnect;   //连接完成
@@ -43,7 +43,7 @@ public:
      * @param usr 设定用户自定义数据
      * @param copy 调用发送接口时，是否将数据拷贝到缓存由内部进行管理
      */
-    static CTcpClient* Create(CNet* net, void *usr=nullptr, bool copy=true);
+    static CTcpSocket* Create(CNet* net, void *usr=nullptr, bool copy=true);
 
     /**
      * 异步删除这个实例
@@ -67,15 +67,15 @@ public:
      */
     virtual void Send(const char *pData, uint32_t nLen) = 0;
 protected:
-    CTcpClient();
-    virtual ~CTcpClient() = 0;
+    CTcpSocket();
+    virtual ~CTcpSocket() = 0;
 };
 
 /** TCP服务端 */
 class CTcpServer
 {
     typedef void (*EventCB)(CTcpServer* svr, std::string err);
-    typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpClient* client);
+    typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpSocket* client);
 public:
 
     EventCB          OnListen;       // 开启监听完成回调，错误时上抛错误消息
@@ -113,56 +113,49 @@ protected:
 };
 
 //////////////////////////////////////////////////////////////////////////
+class CTcpConnPool;
 
 /** TCP连接池 请求结构 */
-class CTcpRequest {
-    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
-    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
-public:
+struct CTcpRequest {
     std::string     host;   //请求目标域名或ip
     uint32_t        port;   //请求端口
     std::string     localaddr; //本地ip，表明使用哪一块网卡。默认空，不限制
-    void           *usr;    //用户自定义数据
     bool            copy;   //需要发送的数据是否拷贝到内部维护
     bool            recv;   //tcp请求是否需要接收数据
+    void           *usr;    //用户自定义数据
+    bool            autodel;//回调后自动删除，不需要用户手动删除。默认true。
 
-    ReqCB      OnRequest;
-    ResCB      OnResponse;
-
-    /* 向请求追加发送数据,在发送回调中使用,不能另开线程 */
-    virtual void Request(const char* buff, int length) = 0;
-
-    /**
-     * 一个请求完成，将socket放到空闲池里面去
-     */
-    virtual void Finish() = 0;
-
-protected:
-    CTcpRequest();
-    virtual ~CTcpRequest() = 0;
+    CTcpConnPool   *pool;   //从哪一个连接池获取连接
+    CTcpRequest()
+        : port(80)
+        , copy(true)
+        , recv(true)
+        , usr(NULL)
+        , autodel(true)
+        , pool(NULL)
+    {}
 };
 
-/** TCP连接池，进行请求应答 */
+/** TCP客户端连接池，自动管理多个CTcpAgent */
 class CTcpConnPool
 {
+    typedef void(*ErrorCB)(CTcpRequest *req, std::string error);
+    typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt);
 public:
-    typedef void (*ReqCB)(CTcpRequest* req, std::string error);
-    typedef void (*ResCB)(CTcpRequest* req, std::string error, const char *data, int len);
-
     uint32_t   maxConns;    //最大连接数 默认512(busy+idle)
     uint32_t   maxIdle;     //最大空闲连接数 默认100
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
+    uint32_t   maxRequest;  //连接达到最大时能存放的请求数 默认0 不限制
 
-    ReqCB      OnRequest;
-    ResCB      OnResponse;
+    ErrorCB    OnError;     //获取连接失败回调
+    ReqCB      OnRequest;   //获取TCP客户端连接回调
 
     /**
      * 创建连接池
      * @param net loop实例
-     * @param onReq 发送请求结果回调
-     * @param onRes 应答回调
+     * @param onReq 获取TCP客户端连接回调
      */
-    static CTcpConnPool* Create(CNet* net, ReqCB onReq, ResCB onRes);
+    static CTcpConnPool* Create(CNet* net, ReqCB onReq);
 
     /**
      * 异步删除连接池
@@ -170,7 +163,7 @@ public:
     virtual void Delete() = 0;
 
     /**
-     * 发送一个请求
+     * 从连接池获取一个socket。内部申请的对象，需要用户删除
      * @param host 请求目标域名或端口
      * @param port 请求目标端口
      * @param localaddr 本地ip，指定网卡，为空表示不指定
@@ -179,10 +172,14 @@ public:
      * @param recv 是否需要接收应答
      * @return 返回新的请求实例
      */
-    virtual CTcpRequest* Request(std::string host, uint32_t port
-        , std::string localaddr, void *usr=nullptr
-        , bool copy=true, bool recv=true
-        , ReqCB onReq=NULL, ResCB onRes=NULL) = 0;
+    virtual bool Request(std::string host, uint32_t port, std::string localaddr
+        , void *usr=nullptr, bool copy=true, bool recv=true) = 0;
+
+    /**
+     * 从连接池获取一个socket
+     * @param req 请求参数结构
+     */
+    virtual bool Request(CTcpRequest *req) = 0;
 
 protected:
     CTcpConnPool();
@@ -211,13 +208,13 @@ enum VERSION {
     HTTP3
 };
 
-class CIncomingMessage {
+class CIncomingMsg {
 public:
     bool aborted;   //请求终止时设置为true
     bool complete;  //http消息接收完整时设置为true
 
     METHOD      method;     // 请求方法
-    std::string url;        // 请求路径
+    std::string path;        // 请求路径
 
     int         statusCode;     //应答状态码
     std::string statusMessage;  //应答状态消息
@@ -231,38 +228,41 @@ public:
     bool        chunked;        // Transfer-Encoding: chunked
     uint32_t    contentLen;     // chunked为false时：内容长度；chunked为true时，块长度
     std::string content;        // 一次的接收内容
-protected:
-    CIncomingMessage();
-    virtual ~CIncomingMessage() = 0;
+
+    CIncomingMsg();
+    ~CIncomingMsg();
 };
 
 class CHttpMsg {
 public:
+    CHttpMsg();
+    ~CHttpMsg();
+
     /**
      * 显示填写http头，调用后隐式http头的接口就无效了
      * @param headers http头域完整字符串，包含每一行结尾的"\r\n"
      */
-    virtual void WriteHead(std::string headers) = 0;
+    virtual void WriteHead(std::string headers);
 
     /**
      * 获取已经设定的隐式头
      */
-    virtual std::vector<std::string> GetHeader(std::string name) = 0;
+    virtual std::vector<std::string> GetHeader(std::string name);
 
     /**
      * 获取所有设定的隐式头的key
      */
-    virtual std::vector<std::string> GetHeaderNames() = 0;
+    virtual std::vector<std::string> GetHeaderNames();
 
     /**
      * 隐式头是否已经包含一个名称
      */
-    virtual bool HasHeader(std::string name) = 0;
+    virtual bool HasHeader(std::string name);
 
     /**
      * 移除一个隐式头
      */
-    virtual void RemoveHeader(std::string name) = 0;
+    virtual void RemoveHeader(std::string name);
 
     /**
      * 重新设置一个头的值，或者新增一个隐式头
@@ -270,24 +270,39 @@ public:
      * param value 单个field value
      * param values 以NULL结尾的字符串数组，多个field value
      */
-    virtual void SetHeader(std::string name, std::string value) = 0;
-    virtual void SetHeader(std::string name, char **values) = 0;
+    virtual void SetHeader(std::string name, std::string value);
+    virtual void SetHeader(std::string name, char **values);
 
     /**
      * 设置内容长度。内容分多次发送，且不使用chunked时使用。
      */
-    virtual void SetContentLen(uint32_t len) = 0;
+    virtual void SetContentLen(uint32_t len);
 
     /**
      * 查看是否完成
      */
-    virtual bool Finished() = 0;
+    virtual bool Finished();
+
+public:
+     CTcpSocket        *tcpSocket;
+
+protected:
+    /** 由隐式头组成字符串 */
+    std::string getImHeaderString();
+
+protected:
+    std::string         m_strHeaders;   // 显式的头
+    hash_list           m_Headers;      // 隐式头的内容
+    bool                m_bHeadersSent; // header是否已经发送
+    bool                m_bFinished;    // 发送是否完成
+    uint32_t            m_nContentLen;  // 设置内容的长度
 };
 
 class CHttpRequest : public CHttpMsg {
+    typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
+    typedef void(*ResCB)(CHttpRequest *req, CIncomingMsg* response);
 public:
-    typedef void(*ReqCb)(CHttpRequest *request);
-    typedef void(*ResCB)(CHttpRequest *request, CIncomingMessage* response);
+    typedef void(*DrainCB)(CHttpRequest *req);
 
     PROTOCOL            protocol;  // 协议,http或https
     METHOD              method;    // 方法
@@ -300,6 +315,7 @@ public:
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     bool                chunked;   // Transfer-Encoding: chunked
     void               *usrData;   // 用户自定义数据
+    bool                autodel;   // 接收完成后自动删除，不需要手动释放。
 
 
     /** 客户端收到connect方法的应答时回调 */
@@ -311,8 +327,9 @@ public:
     /** 客户端收到应答时回调，如果是其他指定回调，则不会再次进入这里 */
     ResCB OnResponse;
 
-    /** 创建实例 */
-    static CHttpRequest* Create(CTcpConnPool *pool);
+
+    ErrorCB     OnError;        // 发生错误
+    DrainCB     OnDrain;        // 发送数据完成
 
     /** 删除实例 */
     virtual void Delete() = 0;
@@ -324,7 +341,7 @@ public:
      * @param len 发送的数据长度
      * @param cb 数据写入缓存后调用
      */
-    virtual bool Write(const char* chunk, int len, ReqCb cb = NULL) = 0;
+    virtual bool Write(const char* chunk, int len, DrainCB cb = NULL) = 0;
 
     /**
      * 完成一个发送请求，如果有未发送的部分则将其发送，如果chunked=true，额外发送结束段'0\r\n\r\n'
@@ -335,10 +352,33 @@ public:
     /**
      * 相当于Write(data, len, cb);end();
      */
-    virtual void End(const char* data, int len, ReqCb cb = NULL) = 0;
+    virtual void End(const char* data, int len) = 0;
 protected:
     CHttpRequest();
     virtual ~CHttpRequest() = 0;
+};
+
+class CHttpClientEnv {
+public:
+    typedef void(*ReqCB)(CHttpRequest *req, void* usr, std::string error);
+
+    /**
+     * 创建一个http客户端环境
+     * @param net 环境句柄
+     * @param maxConns 同一个地址最大连接数
+     * @param maxIdle 同一个地址最大空闲连接
+     * @param timeOut 空闲连接超时时间
+     * @param maxRequest 同一个地址请求最大缓存
+     */
+    CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
+    ~CHttpClientEnv();
+    bool Request(std::string host, int port, void* usr = NULL, ReqCB cb = NULL);
+
+    /**
+     * 默认请求获取成功回调函数，如果Request设置了指定回调，则优先使用指定的回调
+     */
+    ReqCB                OnRequest;
+    CTcpConnPool        *connPool;
 };
 
 class CHttpResponse : public CHttpMsg {
@@ -403,7 +443,7 @@ protected:
 };
 
 class CHttpServer {
-    typedef void(*ReqCb)(CHttpServer *server, CIncomingMessage *request, CHttpResponse *response);
+    typedef void(*ReqCb)(CHttpServer *server, CIncomingMsg *request, CHttpResponse *response);
 public:
     /** 接受到一个包含'Expect: 100-continue'的请求时调用，如果没有指定，自动发送'100 Continue' */
     ReqCb OnCheckContinue;
