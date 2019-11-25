@@ -9,13 +9,14 @@ https://gitee.com/ztwlla/uvMoudles.git
 
 * uvNetPlus [c++]
 封装常用的网络接口，已实现tcpserver、tcpclient、tcpconnectpool、httpserver、httpclient。
+计划增加websocket、tls、ftp、rtsp、rtmp等网络协议
 
-#### 尚未实现的模块
-* uvLog [c]
+#### 计划中的模块
+* uvLog
 仿照流行的log4j的api实现一个日志模块
 
-* uvNet [c]
-C版本的网络接口封装
+* uvPM
+进程管理模块
 
 #### 第三方库
 * libUV: https://github.com/libuv/libuv.git
