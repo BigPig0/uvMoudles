@@ -28,11 +28,15 @@ struct UV_EVET {
 
 struct UV_NODE
 {
-    bool            m_bRun;
+    bool            m_bRun;     //默认为true，析构时设置为false
+    bool            m_bStop;    //默认为false，loop结束后设为true
     uv_loop_t       m_uvLoop;
     uv_async_t      m_uvAsync;
     list<UV_EVET>   m_listAsyncEvents;
     uv_mutex_t      m_uvMtxAsEvts;
+
+    UV_NODE();
+    ~UV_NODE();
 };
 
 
@@ -42,7 +46,17 @@ public:
     CUVNetPlus();
     ~CUVNetPlus();
 
+    /**
+     * 添加loop事件
+     * @param e 事件定义
+     * @param param 事件发送者
+     */
     void AddEvent(UV_ASYNC_EVENT e, void* param);
+
+    /**
+     * 移除某个发送者的事件，发送者析构必须调用
+     */
+    void RemoveEvent(void* param);
 
     UV_NODE *pNode;
 };

@@ -2,6 +2,7 @@
 #include "uvnetprivate.h"
 #include "uvnettcp.h"
 #include "uvnettcppool.h"
+#include "utilc.h"
 #include "Log.h"
 
 namespace uvNetPlus {
@@ -55,24 +56,40 @@ static void run_loop_thread(void* arg)
     }
 
     uv_loop_close(&h->m_uvLoop);
-    delete h;
+    h->m_bStop = true;
+}
+
+UV_NODE::UV_NODE()
+    : m_bRun(true)
+    , m_bStop(false)
+{
+    uv_loop_init(&m_uvLoop);
+    m_uvAsync.data = this;
+    uv_async_init(&m_uvLoop, &m_uvAsync, on_uv_async);
+    uv_mutex_init(&m_uvMtxAsEvts);
+    uv_thread_t tid;
+    uv_thread_create(&tid, run_loop_thread, this);
+}
+
+UV_NODE::~UV_NODE() {
+    uv_mutex_lock(&m_uvMtxAsEvts);
+    m_listAsyncEvents.clear();
+    uv_mutex_unlock(&m_uvMtxAsEvts);
+    m_bRun = false;
+    while(!m_bStop) {
+        sleep(10);
+    }
 }
 
 CUVNetPlus::CUVNetPlus()
 {
-    pNode = new UV_NODE;
-    uv_loop_init(&pNode->m_uvLoop);
-    pNode->m_bRun = true;
-    pNode->m_uvAsync.data = pNode;
-    uv_async_init(&pNode->m_uvLoop, &pNode->m_uvAsync, on_uv_async);
-    uv_mutex_init(&pNode->m_uvMtxAsEvts);
-    uv_thread_t tid;
-    uv_thread_create(&tid, run_loop_thread, pNode);
+    pNode = new UV_NODE();
+    
 }
 
 CUVNetPlus::~CUVNetPlus()
 {
-    pNode->m_bRun = false;
+    delete pNode;
 }
 
 void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
@@ -81,6 +98,20 @@ void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
     pNode->m_listAsyncEvents.push_back(ue);
     uv_mutex_unlock(&pNode->m_uvMtxAsEvts);
     uv_async_send(&pNode->m_uvAsync);
+}
+
+void CUVNetPlus::RemoveEvent(void* param) {
+    uv_mutex_lock(&pNode->m_uvMtxAsEvts);
+    auto it = pNode->m_listAsyncEvents.begin();
+    auto end = pNode->m_listAsyncEvents.end();
+    for(; it != end; ) {
+        if(it->param == param) {
+            it = pNode->m_listAsyncEvents.erase(it);
+        } else {
+            it++;
+        }
+    }
+    uv_mutex_unlock(&pNode->m_uvMtxAsEvts);
 }
 
 CNet* CNet::Create() {

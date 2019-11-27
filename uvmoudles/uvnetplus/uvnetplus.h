@@ -13,6 +13,8 @@ class CNet
 public:
     static CNet* Create();
     virtual ~CNet(){};
+protected:
+    CNet(){};
 };
 
 //////////////////////////////////////////////////////////////////////////

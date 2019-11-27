@@ -13,7 +13,7 @@ using namespace std;
 using namespace uvNetPlus;
 
 #ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
-//#include "vld.h"
+#include "vld.h"
 #endif
 
 const int svrport = 8080;
@@ -341,6 +341,9 @@ BOOL CtrlCHandler(DWORD type)
     case CTRL_C_EVENT:
     case CTRL_CLOSE_EVENT:
         delete http;
+        Sleep(5000);
+        //delete net;
+        Sleep(2000);
         if(type == CTRL_C_EVENT)
             exit(0);
         return TRUE;

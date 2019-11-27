@@ -213,7 +213,10 @@ namespace Http {
         , m_nContentLen(0)
         , tcpSocket(NULL){}
 
-    CHttpMsg::~CHttpMsg(){}
+    CHttpMsg::~CHttpMsg(){
+        if(tcpSocket)
+            tcpSocket->Delete();
+    }
 
     void CHttpMsg::WriteHead(std::string headers) {
         m_strHeaders = headers;
@@ -316,9 +319,7 @@ namespace Http {
     }
 
     CUNHttpRequest::~CUNHttpRequest(){
-        Log::debug("~ClientRequest HttpReq:%x USER:%x",this, usrData);
-        if(tcpSocket)
-            tcpSocket->Delete();
+        Log::debug("~CUNHttpRequest");
         SAFE_DELETE(incMsg);
         uv_mutex_destroy(&mutex);
     }
@@ -674,7 +675,9 @@ namespace Http {
         , contentLen(-1)
     {}
 
-    CIncomingMsg::~CIncomingMsg(){}
+    CIncomingMsg::~CIncomingMsg(){
+        Log::debug("~CIncomingMsg");
+    }
 
     //////////////////////////////////////////////////////////////////////////
     /** http·þÎñ */

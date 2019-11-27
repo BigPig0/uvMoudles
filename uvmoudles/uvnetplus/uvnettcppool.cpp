@@ -36,13 +36,16 @@ CUNTcpPoolSocket::CUNTcpPoolSocket(CUVNetPlus* net, bool copy)
 
 CUNTcpPoolSocket::~CUNTcpPoolSocket()
 {
-    Log::debug("~CUNTcpConnect()");
+    Log::debug("~CUNTcpPoolSocket()");
 }
 
 void CUNTcpPoolSocket::syncClose()
 {
     m_pReq = nullptr;
-    m_pAgent->GiveBackSkt(this);
+    if(m_pAgent)
+        m_pAgent->GiveBackSkt(this);
+    else
+        CUNTcpSocket::syncClose();
 }
 
 void CUNTcpPoolSocket::Delete()
@@ -63,7 +66,7 @@ static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo
 
 void CTcpPoolAgent::Delete()
 {
-
+    delete this;
 }
 
 CTcpPoolAgent::CTcpPoolAgent(CUVNetPlus* net, CUNTcpConnPool *p)
@@ -77,6 +80,21 @@ CTcpPoolAgent::CTcpPoolAgent(CUVNetPlus* net, CUNTcpConnPool *p)
 }
 
 CTcpPoolAgent::~CTcpPoolAgent() {
+    for(auto req : m_listReqs) {
+        delete req;
+    }
+    m_listReqs.clear();
+    for(auto skt : m_listIdleConns) {
+        skt->m_pAgent = NULL;
+        skt->Delete();
+    }
+    m_listIdleConns.clear();
+    for(auto skt : m_listBusyConns) {
+        skt->m_pAgent = NULL;
+        skt->Delete();
+    }
+    m_listBusyConns.clear();
+    m_pNet->RemoveEvent(this);
     Log::debug("~CTcpPoolAgent()");
 }
 
@@ -272,7 +290,18 @@ CUNTcpConnPool::CUNTcpConnPool(CUVNetPlus* net)
 
 CUNTcpConnPool::~CUNTcpConnPool()
 {
+    uv_mutex_lock(&m_ReqMtx);
+    for(auto req : m_listReqs) {
+        delete req;
+    }
+    m_listReqs.clear();
+    uv_mutex_unlock(&m_ReqMtx);
+    for(auto pair : m_mapAgents) {
+        pair.second->Delete();
+    }
+    m_mapAgents.clear();
     uv_mutex_destroy(&m_ReqMtx);
+    m_pNet->RemoveEvent(this);
 }
 
 void CUNTcpConnPool::syncInit()

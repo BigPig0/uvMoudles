@@ -117,6 +117,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 /** 数据发送完成 */
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
+    delete req;
     //printf("write finish %d", status);
     if(status != 0) {
         if(skt->OnError)
@@ -181,11 +182,23 @@ CUNTcpSocket::CUNTcpSocket(CUVNetPlus* net, bool copy)
 
 CUNTcpSocket::~CUNTcpSocket()
 {
+    Log::debug("~CUNTcpSocket");
+    if(copy) {
+        for(auto buf : sendList) {
+            free(buf.base);
+        }
+        for(auto buf : sendingList) {
+            free(buf.base);
+        }
+    }
+    sendList.clear();
+    sendingList.clear();
     free(readBuff);
     uv_mutex_destroy(&sendMtx);
     if(m_pSvr) {
         m_pSvr->removeClient(this);
     }
+    m_pNet->RemoveEvent(this);
 }
 
 void CUNTcpSocket::Delete()
