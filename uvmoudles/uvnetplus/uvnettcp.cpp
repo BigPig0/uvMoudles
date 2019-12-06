@@ -33,16 +33,13 @@ int net_is_ip(const char* input) {
 
 //////////////////////////////////////////////////////////////////////////
 
-#define READY_CALLBACK      if(OnReady) OnReady(this);
-#define ERROR_CALLBACK(e)   if(OnError) OnError(this,e);
-#define CONNECT_CALLBACK(e) if(OnConnect) OnConnect(this,e);
-
 static void on_uv_close(uv_handle_t* handle) {
     CUNTcpSocket *skt = (CUNTcpSocket*)handle->data;
-    Log::warning("close client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
-    if(skt->OnCLose) 
-        skt->OnCLose(skt);
+    Log::warning("on close client %llu [%s:%u]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     skt->m_bInit = false;
+
+    if(skt->OnCLose)
+        skt->OnCLose(skt);
 
     if(skt->m_bUserClose)
         delete skt;
@@ -50,7 +47,7 @@ static void on_uv_close(uv_handle_t* handle) {
 
 static void on_uv_shutdown(uv_shutdown_t* req, int status) {
     CUNTcpSocket *skt = (CUNTcpSocket*)req->data;
-     Log::warning("shutdown client %s  %d", skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
+     Log::warning("on shutdown client %llu [%s:%d]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
     delete req;
     uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
 }
@@ -63,18 +60,22 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     CUNTcpSocket *skt = (CUNTcpSocket*)stream->data;
     if(nread < 0) {
-        skt->m_bConnect = false;
+        skt->m_bUserClose = true;   //进入关闭
+        skt->m_bConnect = false;    //连接断开
+        //对方关闭或异常时的回调处理
+        if(skt->OnEnd) 
+            skt->OnEnd(skt);
         if(nread == UV__ECONNRESET || nread == UV_EOF) {
             //对端发送了FIN
-            if(skt->OnEnd) 
-                skt->OnEnd(skt);
+            Log::warning("remote close socket %llu [%s:%u]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
             uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
         } else {
             uv_shutdown_t* req = new uv_shutdown_t;
             req->data = skt;
-            printf("Read error %s", uv_strerror((int)nread));
+            Log::error("Read error %s", uv_strerror((int)nread));
             if(skt->OnError) 
                 skt->OnError(skt, uv_strerror((int)nread));
+            Log::warning("remote shutdown socket %llu [%s:%u]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
             uv_shutdown(req, stream, on_uv_shutdown);
         }
         return;
@@ -86,8 +87,9 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
 
 static void on_uv_connect(uv_connect_t* req, int status){
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
+    skt->fd = skt->uvTcp.socket;
     delete req;
-    //Log::debug("On connect");
+    //Log::debug("On connect %llu %d %s", skt->fd, status, uv_strerror(status));
 
     if(status != 0){
         if(skt->OnConnect)
@@ -118,7 +120,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
     delete req;
-    //printf("write finish %d", status);
+    //Log::debug("%llu write finish %d", skt->fd, status);
     if(status != 0) {
         if(skt->OnError)
             skt->OnError(skt, uv_strerror(status));
@@ -156,18 +158,19 @@ CTcpSocket::CTcpSocket()
     , autoRecv(true)
     , copy(true)
     , userData(NULL)
+    , fd(0)
 {}
 
 CTcpSocket::~CTcpSocket(){}
 
 CTcpSocket* CTcpSocket::Create(CNet* net, void *usr, bool copy){
-    CUNTcpSocket* ret = new CUNTcpSocket((CUVNetPlus*)net, copy);
+    CUNTcpSocket* ret = new CUNTcpSocket((CUVNetPlus*)net);
     ret->userData = usr;
     ret->copy = copy;
     return ret;
 }
 
-CUNTcpSocket::CUNTcpSocket(CUVNetPlus* net, bool copy)
+CUNTcpSocket::CUNTcpSocket(CUVNetPlus* net)
     : m_pNet(net)
     , m_pSvr(nullptr)
     , m_bSetLocal(false)
@@ -217,13 +220,15 @@ void CUNTcpSocket::Delete()
 void CUNTcpSocket::syncInit()
 {
     uvTcp.data = this;
-    int ret = uv_tcp_init(&m_pNet->pNode->m_uvLoop, &uvTcp);
+    int ret = uv_tcp_init(&m_pNet->m_uvLoop, &uvTcp);
     if(ret != 0) {
-        ERROR_CALLBACK(uv_strerror(ret));
+        if(OnError) // 创建tcp句柄失败
+            OnError(this,uv_strerror(ret));
         return;
     }
     m_bInit = true;
-    READY_CALLBACK; // socket 建立完成回调
+    if(OnReady) // 创建tcp句柄完成回调
+        OnReady(this);
 }
 
 void CUNTcpSocket::syncConnect()
@@ -239,7 +244,8 @@ void CUNTcpSocket::syncConnect()
         ret = uv_ip4_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            CONNECT_CALLBACK(uv_strerror(ret));
+            if(OnConnect) // 连接失败
+                OnConnect(this,uv_strerror(ret));
             delete req;
         }
     } else if(t == 6){
@@ -247,12 +253,14 @@ void CUNTcpSocket::syncConnect()
         ret = uv_ip6_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            CONNECT_CALLBACK(uv_strerror(ret));
+            if(OnConnect) // 连接失败
+                OnConnect(this,uv_strerror(ret));
             delete req;
         }
     } else {
         if(ret != 0) {
-            CONNECT_CALLBACK("ip 不合法");
+            if(OnConnect) // 连接失败
+                OnConnect(this, "ip is error");
             delete req;
         }
     }
@@ -265,10 +273,8 @@ void CUNTcpSocket::syncSend()
     uv_buf_t *bufs = NULL;
     if(num > 0) {
         bufs = new uv_buf_t[num];
-        int i =0;
-        for (auto &it:sendList)
-        {
-            //Log::debug(it.base);
+        int i = 0;
+        for (auto &it:sendList) {
             bufs[i++] = it;
             sendingList.push_back(it);
         }
@@ -281,21 +287,27 @@ void CUNTcpSocket::syncSend()
     uv_write_t* req = new uv_write_t;
     req->data = this;
     int ret = uv_write(req, (uv_stream_t*)&uvTcp, bufs, (unsigned int)num, on_uv_write);
-    if(ret != 0){
-        ERROR_CALLBACK(uv_strerror(ret));
+    if(ret != 0 && OnError){
+        OnError(this, uv_strerror(ret));
     }
     delete[] bufs;
 }
 
 void CUNTcpSocket::syncClose()
 {
-    m_bUserClose = true;
+    if(m_bUserClose) {
+        m_bUserClose = true;
+        return;
+    }
     if(m_bInit) { //init为true时表示uv_tcp_t 实例被创建
         if(m_bConnect){
+            Log::warning("local shutdown socket %llu [%s:%u]", fd, m_strRemoteIP.c_str(), m_nRemotePort);
+            m_bConnect = false;
             uv_shutdown_t* req = new uv_shutdown_t;
             req->data = this;
             uv_shutdown(req, (uv_stream_t*)&uvTcp, on_uv_shutdown);
         } else {
+            Log::warning("local close socket %llu [%s:%u]", fd, m_strRemoteIP.c_str(), m_nRemotePort);
             uv_close((uv_handle_t*)&uvTcp, on_uv_close);
         }
     } else {
@@ -416,7 +428,7 @@ bool CUNTcpServer::Listening() {
 void CUNTcpServer::syncListen()
 {
     uvTcp.data = this;
-    uv_tcp_init(&m_pNet->pNode->m_uvLoop, &uvTcp);
+    uv_tcp_init(&m_pNet->m_uvLoop, &uvTcp);
 
     int ret = 0;
     if(m_nFamily == 4) {

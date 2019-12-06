@@ -8,10 +8,90 @@
 namespace uvNetPlus {
 
 static void on_uv_async(uv_async_t* handle) {
-    UV_NODE* h = (UV_NODE*)handle->data;
-    uv_mutex_lock(&h->m_uvMtxAsEvts);
-    for(auto e : h->m_listAsyncEvents) {
-        if(e.event == ASYNC_EVENT_TCP_CONNECT) {
+    CUVNetPlus* h = (CUVNetPlus*)handle->data;
+    h->AsyncEvent();
+}
+
+static void on_uv_close(uv_handle_t* handle) {
+    CUVNetPlus* h = (CUVNetPlus*)handle->data;
+    h->CloseHandle();
+}
+
+static void run_loop_thread(void* arg)
+{
+    CUVNetPlus* h = (CUVNetPlus*)arg;
+    h->LoopThread();
+}
+
+CUVNetPlus::CUVNetPlus()
+    : m_bRun(true)
+    , m_bStop(false)
+{
+    uv_loop_init(&m_uvLoop);
+    m_uvAsync.data = this;
+    uv_async_init(&m_uvLoop, &m_uvAsync, on_uv_async);
+    uv_mutex_init(&m_uvMtxAsEvts);
+    uv_thread_t tid;
+    uv_thread_create(&tid, run_loop_thread, this);
+    
+}
+
+CUVNetPlus::~CUVNetPlus()
+{
+    uv_mutex_lock(&m_uvMtxAsEvts);
+    m_listAsyncEvents.clear();
+    UV_EVET ue = {ASYNC_EVENT_LOOP_CLOSE, this};
+    m_listAsyncEvents.push_back(ue);
+    uv_async_send(&m_uvAsync);
+    uv_mutex_unlock(&m_uvMtxAsEvts);
+    while(!m_bStop) { //等待loop线程结束
+        sleep(10);
+    }
+    uv_mutex_destroy(&m_uvMtxAsEvts);
+    uv_loop_close(&m_uvLoop);
+}
+
+void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
+    if(!m_bRun)
+        return;
+    UV_EVET ue = {e, param};
+    uv_mutex_lock(&m_uvMtxAsEvts);
+    m_listAsyncEvents.push_back(ue);
+    uv_mutex_unlock(&m_uvMtxAsEvts);
+    uv_async_send(&m_uvAsync);
+}
+
+void CUVNetPlus::RemoveEvent(void* param) {
+    if(!m_bRun)
+        return;
+    uv_mutex_lock(&m_uvMtxAsEvts);
+    auto it = m_listAsyncEvents.begin();
+    auto end = m_listAsyncEvents.end();
+    for(; it != end; ) {
+        if(it->param == param) {
+            it = m_listAsyncEvents.erase(it);
+        } else {
+            it++;
+        }
+    }
+    uv_mutex_unlock(&m_uvMtxAsEvts);
+}
+
+void CUVNetPlus::LoopThread() {
+    while (m_bRun) {
+        uv_run(&m_uvLoop, UV_RUN_DEFAULT);
+        Sleep(10);
+    }
+
+    m_bStop = true;
+}
+
+void CUVNetPlus::AsyncEvent() {
+    uv_mutex_lock(&m_uvMtxAsEvts);
+    for(auto e : m_listAsyncEvents) {
+        if(e.event == ASYNC_EVENT_LOOP_CLOSE) {
+            uv_close((uv_handle_t*)&m_uvAsync, on_uv_close);
+        } else if(e.event == ASYNC_EVENT_TCP_CONNECT) {
             CUNTcpSocket *tcp = (CUNTcpSocket*)e.param;
             tcp->syncConnect();
         } else if(e.event == ASYNC_EVENT_TCP_SEND) {
@@ -43,75 +123,15 @@ static void on_uv_async(uv_async_t* handle) {
             pool->syncClose();
         } 
     }
-    h->m_listAsyncEvents.clear();
-    uv_mutex_unlock(&h->m_uvMtxAsEvts);
+    m_listAsyncEvents.clear();
+    uv_mutex_unlock(&m_uvMtxAsEvts);
 }
 
-static void run_loop_thread(void* arg)
-{
-    UV_NODE* h = (UV_NODE*)arg;
-    while (h->m_bRun) {
-        uv_run(&h->m_uvLoop, UV_RUN_DEFAULT);
-        Sleep(100);
-    }
-
-    uv_loop_close(&h->m_uvLoop);
-    h->m_bStop = true;
-}
-
-UV_NODE::UV_NODE()
-    : m_bRun(true)
-    , m_bStop(false)
-{
-    uv_loop_init(&m_uvLoop);
-    m_uvAsync.data = this;
-    uv_async_init(&m_uvLoop, &m_uvAsync, on_uv_async);
-    uv_mutex_init(&m_uvMtxAsEvts);
-    uv_thread_t tid;
-    uv_thread_create(&tid, run_loop_thread, this);
-}
-
-UV_NODE::~UV_NODE() {
+void CUVNetPlus::CloseHandle() {
+    m_bRun = false;
     uv_mutex_lock(&m_uvMtxAsEvts);
     m_listAsyncEvents.clear();
     uv_mutex_unlock(&m_uvMtxAsEvts);
-    m_bRun = false;
-    while(!m_bStop) {
-        sleep(10);
-    }
-}
-
-CUVNetPlus::CUVNetPlus()
-{
-    pNode = new UV_NODE();
-    
-}
-
-CUVNetPlus::~CUVNetPlus()
-{
-    delete pNode;
-}
-
-void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
-    UV_EVET ue = {e, param};
-    uv_mutex_lock(&pNode->m_uvMtxAsEvts);
-    pNode->m_listAsyncEvents.push_back(ue);
-    uv_mutex_unlock(&pNode->m_uvMtxAsEvts);
-    uv_async_send(&pNode->m_uvAsync);
-}
-
-void CUVNetPlus::RemoveEvent(void* param) {
-    uv_mutex_lock(&pNode->m_uvMtxAsEvts);
-    auto it = pNode->m_listAsyncEvents.begin();
-    auto end = pNode->m_listAsyncEvents.end();
-    for(; it != end; ) {
-        if(it->param == param) {
-            it = pNode->m_listAsyncEvents.erase(it);
-        } else {
-            it++;
-        }
-    }
-    uv_mutex_unlock(&pNode->m_uvMtxAsEvts);
 }
 
 CNet* CNet::Create() {

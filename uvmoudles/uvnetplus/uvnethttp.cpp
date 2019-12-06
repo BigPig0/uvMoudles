@@ -106,17 +106,17 @@ namespace Http {
     }
 
     static void OnClientDrain(CTcpSocket* skt){
-        Log::debug("client drain");
+        //Log::debug("client drain");
         CUNHttpRequest* http = (CUNHttpRequest*)skt->userData;
         http->DoDrain();
     }
 
     static void OnClientClose(CTcpSocket* skt){
-        Log::debug("client close");
+        //Log::debug("client close");
     }
 
     static void OnClientEnd(CTcpSocket* skt){
-        Log::debug("client end");
+        //Log::debug("client end");
     }
 
     static void OnClientError(CTcpSocket* skt, string err){
@@ -147,7 +147,7 @@ namespace Http {
         skt->OnRecv     = OnClientRecv;
         skt->OnDrain    = OnClientDrain;
         skt->OnCLose    = OnClientClose;
-        skt->OnEnd      = OnClientEnd;
+        //skt->OnEnd      = OnClientEnd;
         skt->OnError    = OnClientError;
         skt->autoRecv   = true;
         skt->copy       = true;
@@ -157,6 +157,7 @@ namespace Http {
         http->port      = httpconn->port;
         http->usrData   = httpconn->usr;
         http->tcpSocket = skt;
+        http->fd        = skt->fd;
 
         if(httpconn->cb)
             httpconn->cb(http, httpconn->usr, "");
@@ -307,6 +308,7 @@ namespace Http {
         , OnUpgrade(NULL)
         , OnResponse(NULL)
         , OnError(NULL)
+        , fd(0)
     {}
 
     CHttpRequest::~CHttpRequest(){}
@@ -854,18 +856,18 @@ namespace Http {
 
     void CUNHttpServer::OnSvrCltDrain(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
-        Log::debug("server client drain");
+        //Log::debug("server client drain");
     }
 
     void CUNHttpServer::OnSvrCltClose(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
-        Log::debug("server client close");
+        //Log::debug("server client close");
         delete c;
     }
 
     void CUNHttpServer::OnSvrCltEnd(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
-        Log::debug("server client end");
+        //Log::debug("server client end");
     }
 
     void CUNHttpServer::OnSvrCltError(CTcpSocket* skt, string err){

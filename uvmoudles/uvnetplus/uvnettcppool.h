@@ -39,7 +39,7 @@ enum ConnState {
  */
 class CUNTcpPoolSocket : public CUNTcpSocket {
 public:
-    CUNTcpPoolSocket(CUVNetPlus* net, bool copy);
+    CUNTcpPoolSocket(CUVNetPlus* net);
     ~CUNTcpPoolSocket();
 
     void syncClose();
@@ -50,6 +50,7 @@ public:
     CUNTcpConnPool *connPool;     //连接所在的连接池
     CTcpRequest    *m_pReq;       //当前执行的请求
     time_t          m_nLastTime;  //最后通讯时间
+    bool            m_bBusy;      //true:使用中 false:空闲中
 };
 
 /**
@@ -73,7 +74,7 @@ public:
     bool Request(CTcpRequest *req);
 
     /** 返还使用完毕的socket */
-    void GiveBackSkt(CUNTcpPoolSocket *skt);
+    void CloseAgentSkt(CUNTcpPoolSocket *skt);
 
 public:
     string     host;

@@ -8,7 +8,8 @@ namespace uvNetPlus {
 
 enum UV_ASYNC_EVENT
 {
-    ASYNC_EVENT_TCP_CLIENT = 0, //新建一个tcp客户端
+    ASYNC_EVENT_LOOP_CLOSE = 0, //事件循环关闭
+    ASYNC_EVENT_TCP_CLIENT,     //新建一个tcp客户端
     ASYNC_EVENT_TCP_CONNECT,    //tcp客户端连接
     ASYNC_EVENT_TCP_SEND,       //tcp发送数据
     ASYNC_EVENT_TCP_LISTEN,     //tcp服务端监听
@@ -25,20 +26,6 @@ struct UV_EVET {
     UV_ASYNC_EVENT event;
     void* param;
 };
-
-struct UV_NODE
-{
-    bool            m_bRun;     //默认为true，析构时设置为false
-    bool            m_bStop;    //默认为false，loop结束后设为true
-    uv_loop_t       m_uvLoop;
-    uv_async_t      m_uvAsync;
-    list<UV_EVET>   m_listAsyncEvents;
-    uv_mutex_t      m_uvMtxAsEvts;
-
-    UV_NODE();
-    ~UV_NODE();
-};
-
 
 class CUVNetPlus : public CNet
 {
@@ -58,7 +45,28 @@ public:
      */
     void RemoveEvent(void* param);
 
-    UV_NODE *pNode;
+    /**
+     * 事件循环线程
+     */
+    void LoopThread();
+
+    /**
+     * 异步事件处理
+     */
+    void AsyncEvent();
+
+    /**
+     * 事件句柄关闭
+     */
+    void CloseHandle();
+
+    uv_loop_t       m_uvLoop;
+private:
+    bool            m_bRun;     //默认为true，析构时设置为false
+    bool            m_bStop;    //默认为false，loop结束后设为true
+    uv_async_t      m_uvAsync;
+    list<UV_EVET>   m_listAsyncEvents;
+    uv_mutex_t      m_uvMtxAsEvts;
 };
 
 }

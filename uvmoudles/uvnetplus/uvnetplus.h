@@ -38,6 +38,7 @@ public:
     bool         autoRecv;    //连接建立后是否立即自动接收数据。默认true
     bool         copy;        //发送的数据拷贝到临时区域
     void        *userData;    //用户绑定自定义数据
+    uint64_t     fd;          // SOCKET的值(测试用)
 
     /**
      * 创建一个tcp连接客户端实例
@@ -68,6 +69,7 @@ public:
      * 发送数据。将数据放到本地缓存起来
      */
     virtual void Send(const char *pData, uint32_t nLen) = 0;
+
 protected:
     CTcpSocket();
     virtual ~CTcpSocket() = 0;
@@ -318,6 +320,7 @@ public:
     bool                chunked;   // Transfer-Encoding: chunked
     void               *usrData;   // 用户自定义数据
     bool                autodel;   // 接收完成后自动删除，不需要手动释放。
+    uint64_t            fd;        // SOCKET的值(测试用)
 
 
     /** 客户端收到connect方法的应答时回调 */

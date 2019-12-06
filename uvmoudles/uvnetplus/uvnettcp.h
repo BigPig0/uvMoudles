@@ -1,6 +1,7 @@
 #pragma once
 #include "uvnetplus.h"
 #include "uvnetprivate.h"
+#include <stdint.h>
 
 namespace uvNetPlus {
 
@@ -14,7 +15,7 @@ class CUNTcpServer;
 class CUNTcpSocket : public CTcpSocket
 {
 public:
-    CUNTcpSocket(CUVNetPlus* net, bool copy = true);
+    CUNTcpSocket(CUVNetPlus* net);
     ~CUNTcpSocket();
     virtual void Delete();
     virtual void Connect(std::string strIP, uint32_t nPort);
@@ -44,7 +45,7 @@ public:
     list<uv_buf_t>    sendList;         // 发送缓存
     list<uv_buf_t>    sendingList;      // 正在发送
     uv_mutex_t        sendMtx;          // 发送锁
-    bool              m_bUserClose;
+    bool              m_bUserClose;     // 进入关闭流程
 };
 
 //////////////////////////////////////////////////////////////////////////

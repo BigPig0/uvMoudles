@@ -299,13 +299,15 @@ void testHttpRequest()
 {
     net = CNet::Create();
     http = new Http::CHttpClientEnv(net, 10, 5, 2, 0);
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<10000; i++) {
         clientData* data = new clientData();
         data->tid = i;
         data->err = false;
         data->ref = 2;
         http->Request("www.baidu.com", 80, data, OnHttpRequest);
         //http->Request("127.0.0.1", 80, data, OnHttpRequest);
+        if(i%100==99)
+            Sleep(1000);
     }
 }
 
