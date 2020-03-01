@@ -1,16 +1,15 @@
-#include <windows.h>  
 #include "MiniDump.h"
+
+string  g_szDumpFileName = nullptr;
+
+void (*callback)() = nullptr;
+
+#ifdef WIN32
+#include <windows.h>  
 #include <DbgHelp.h>  
 #include <stdlib.h>
 #pragma comment(lib, "dbghelp.lib")  
 
-#ifndef _M_IX86  
-//#error "The following code only works for x86!"  
-#endif
-
-LPTSTR  g_szDumpFileName = nullptr;
-
-void (*callback)() = nullptr;
 
 inline BOOL IsDataSectionNeeded(const WCHAR* pModuleName)  
 {  
@@ -52,9 +51,9 @@ inline BOOL CALLBACK MiniDumpCallback(PVOID                            pParam,
     return FALSE;  
 }  
 
-inline void CreateMiniDump(PEXCEPTION_POINTERS pep, LPCTSTR strFileName)  
+inline void CreateMiniDump(PEXCEPTION_POINTERS pep, string strFileName)  
 {  
-    HANDLE hFile = CreateFile(strFileName, GENERIC_READ | GENERIC_WRITE,  
+    HANDLE hFile = CreateFileA(strFileName.c_str(), GENERIC_READ | GENERIC_WRITE,  
         FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);  
 
     if((hFile != NULL) && (hFile != INVALID_HANDLE_VALUE))  
@@ -116,11 +115,15 @@ void InitMinDump()
     DisableSetUnhandledExceptionFilter();  
 }
 
-CMiniDump::CMiniDump(LPCTSTR szFileName)
+#endif
+
+CMiniDump::CMiniDump(string szFileName)
 {
-    g_szDumpFileName = (LPTSTR)szFileName;
-    //InitMinDump();
+    g_szDumpFileName = szFileName;
+#ifdef WIN32
+    InitMinDump();
     SetErrorMode(SEM_NOGPFAULTERRORBOX);
+#endif
 }
 
 CMiniDump::~CMiniDump()

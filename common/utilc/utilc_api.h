@@ -1,8 +1,9 @@
 #ifndef _UTIL_CAPI_
 #define _UTIL_CAPI_
 #include "utilc_export.h"
+#include <string.h>
 
-#if defined(WIN32) || defined(_WIN32)
+#if defined(WINDOWS_IMPL)
 #if _MSC_VER < 1700
 #include <crtdefs.h>
 #include <crtdbg.h>
@@ -17,19 +18,15 @@ typedef unsigned long long uint64_t;
 #else
 #include <stdint.h>
 #endif
-#include <windows.h>
-#endif
 
-#include <string.h>
-#if defined(WIN32) || defined(_WIN32)
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
-#define sleep(ms)   Sleep(ms)
 #define strtok_r    strtok_s
-#define getpid      GetCurrentProcessId
-#define gettid      GetCurrentThreadId
-#else
-#include <strings.h>
+int  _UTILC_API getpid();
+int  _UTILC_API gettid();
+void _UTILC_API sleep(uint32_t dwMilliseconds);
+
+#elif defined(LINUX_IMPL)
 #include <unistd.h>
 #endif
 

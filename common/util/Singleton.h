@@ -1,7 +1,5 @@
 // µ¥ÀýÄ£°å
-
-#ifndef _SINGLETON_H_
-#define _SINGLETON_H_
+#pragma once
 
 #include "Mutex.h"
 
@@ -45,6 +43,4 @@ void Singleton<T>::ReleaseInstance()
     }
     m_cs.unlock();
 }
-
-#endif
 
