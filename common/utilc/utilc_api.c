@@ -1,5 +1,17 @@
 #include "utilc_api.h"
 
-#if defined(WIN32) || defined(_WIN32)
+#if defined(WINDOWS_IMPL)
+#include <windows.h>
 
+int getpid() {
+    return GetCurrentProcessId();
+}
+
+int gettid() {
+    return GetCurrentThreadId();
+}
+
+void sleep(uint32_t dwMilliseconds) {
+    Sleep(dwMilliseconds);
+}
 #endif

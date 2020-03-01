@@ -1,9 +1,10 @@
 #include "StringHandle.h"
 #include <sstream>
 #include <set>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cstdarg>
 
 #ifdef __QZ_LINUX__
 char* _strupr(char *str)
@@ -788,4 +789,33 @@ bool StringHandle::isSubStr(std::string str1, std::string str2)
 			return false;
 	}
 	return true;
+}
+
+std::string StringFormat(const char* format, ...) {
+    size_t size = 4096;
+    std::string buffer(size, '\0');
+    char* buffer_p = const_cast<char*>(buffer.data());
+    int expected = 0;
+    va_list ap;
+
+    while (true) {
+        va_start(ap, format);
+        expected = vsnprintf(buffer_p, size, format, ap);
+        va_end(ap);
+        if (expected>-1 && expected<=static_cast<int>(size)) {
+            break;
+        } else {
+            /* Else try again with more space. */
+            if (expected > -1)    /* glibc 2.1 */
+                size = static_cast<size_t>(expected + 1); /* precisely what is needed */
+            else           /* glibc 2.0 */
+                size *= 2;  /* twice the old size */
+
+            buffer.resize(size);
+            buffer_p = const_cast<char*>(buffer.data());
+        }
+    }
+
+    // expected不包含字符串结尾符号，其值等于：strlen(buffer_p)
+    return std::string(buffer_p, expected>0?expected:0);
 }
