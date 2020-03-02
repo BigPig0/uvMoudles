@@ -348,9 +348,6 @@ void CUNTcpSocket::Send(const char *pData, uint32_t nLen)
 
 //////////////////////////////////////////////////////////////////////////
 
-#define LISTEN_CALLBACK(e) if(OnListen) OnListen(this, e);
-#define CONNECTION_CALLBACK(e,c) if(OnConnection) OnConnection(this, e, c);
-
 static void on_server_close(uv_handle_t* handle) {
     CUNTcpServer *skt = (CUNTcpServer*)handle->data;
     // printf("close client %s  %d\n", skt->client->m_strRemoteIP.c_str(), skt->remotePort);
@@ -458,7 +455,8 @@ void CUNTcpServer::syncListen()
 void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
 {
     if (status != 0) {
-        CONNECTION_CALLBACK(uv_strerror(status), nullptr);
+        if(OnConnection)
+            OnConnection(this, uv_strerror(status), nullptr);
         return;
     }
     CUNTcpServer *svr = (CUNTcpServer*)server->data;
@@ -468,7 +466,8 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
     client->syncInit();
     int ret = uv_accept(server, (uv_stream_t*)(&client->uvTcp));
     if (ret != 0) {
-        CONNECTION_CALLBACK(uv_strerror(ret), nullptr);
+        if(OnConnection)
+            OnConnection(this, uv_strerror(ret), nullptr);
         return;
     }
 
@@ -509,7 +508,9 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
     }
 
     m_listClients.push_back(client);
-    CONNECTION_CALLBACK("", client);
+
+    if(OnConnection)
+        OnConnection(this, "", client);
 
     uv_read_start((uv_stream_t*)&client->uvTcp, on_uv_alloc, on_uv_read);
 }

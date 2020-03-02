@@ -678,7 +678,7 @@ namespace Http {
     {}
 
     CIncomingMsg::~CIncomingMsg(){
-        Log::debug("~CIncomingMsg");
+        //Log::debug("~CIncomingMsg");
     }
 
     //////////////////////////////////////////////////////////////////////////

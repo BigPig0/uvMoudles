@@ -67,6 +67,9 @@ private:
     uv_async_t      m_uvAsync;
     list<UV_EVET>   m_listAsyncEvents;
     uv_mutex_t      m_uvMtxAsEvts;
+
+    //set<CTcpSocket*> m_pTcpClients;
+    //set<C
 };
 
 }

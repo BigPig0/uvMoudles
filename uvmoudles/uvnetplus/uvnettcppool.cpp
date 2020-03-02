@@ -68,8 +68,7 @@ static void on_uv_getaddrinfo(uv_getaddrinfo_t* req, int status, struct addrinfo
     CTcpPoolAgent *agent = (CTcpPoolAgent*)req->data;
     delete req;
     agent->OnParseHost(status, res);
-    //uv_freeaddrinfo(res);
-    delete res;
+    uv_freeaddrinfo(res);
 }
 
 
@@ -114,13 +113,13 @@ void CTcpPoolAgent::syncHostDns(string host){
     } else {
         //dns½âÎöhost
         uv_getaddrinfo_t *req = new uv_getaddrinfo_t;
-        struct addrinfo *hints = new struct addrinfo;
         req->data = this;
-        hints->ai_family = PF_UNSPEC;
-        hints->ai_socktype = SOCK_STREAM;
-        hints->ai_protocol = IPPROTO_TCP;
-        hints->ai_flags = 0;
-        uv_getaddrinfo(&m_pNet->m_uvLoop, req, on_uv_getaddrinfo, host.c_str(), NULL, hints);
+        struct addrinfo hints;
+        hints.ai_family = PF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+        hints.ai_flags = 0;
+        uv_getaddrinfo(&m_pNet->m_uvLoop, req, on_uv_getaddrinfo, host.c_str(), NULL, &hints);
     }
 }
 
