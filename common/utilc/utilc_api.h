@@ -22,9 +22,16 @@ typedef unsigned long long uint64_t;
 #define strcasecmp  _stricmp
 #define strncasecmp _strnicmp
 #define strtok_r    strtok_s
-int  _UTILC_API getpid();
-int  _UTILC_API gettid();
-void _UTILC_API sleep(uint32_t dwMilliseconds);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+_UTILC_API int  getpid();
+_UTILC_API int  gettid();
+_UTILC_API void sleep(uint32_t dwMilliseconds);
+#ifdef __cplusplus
+}
+#endif
 
 #elif defined(LINUX_IMPL)
 #include <unistd.h>

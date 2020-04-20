@@ -1,14 +1,51 @@
 #include "uvlogconf.h"
 #include "pugixml.hpp"
+#include "cJSON.h"
 #include "utilc_api.h"
 
 namespace uvLogPlus {
-    static Configuration* ConfigParseJsonBuff(char* conf_buff) {
-        Configuration* ret = new Configuration;
+    static Configuration* ConfigParseJsonBuff(const char* conf_buff) {
+        Configuration* ret = NULL;
+        cJSON* root = cJSON_Parse(conf_buff);
+        if(NULL == root)
+            return NULL;
+        cJSON* conf = cJSON_GetObjectItemCaseSensitive(root, "configuration");
+        if(NULL == conf)
+            return NULL;
+        cJSON* apds = cJSON_GetObjectItemCaseSensitive(conf, "appenders");
+        cJSON* logs = cJSON_GetObjectItemCaseSensitive(conf, "loggers");
+        if(NULL == apds || NULL == logs)
+            return NULL;
+
+        ret = new Configuration;
+        int size = cJSON_GetArraySize(apds);
+        for(int i=0; i<size; i++) {
+            cJSON* apd = cJSON_GetArrayItem(apds, i);
+            if(apd->type == cJSON_Object) {
+                cJSON* name = cJSON_GetObjectItemCaseSensitive(apd, "name");
+                if(NULL == name || name->type != cJSON_String)
+                    continue;
+                if(!strcasecmp(apd->string, "console")) {
+                    ConsolAppender *appender = new ConsolAppender();
+                    cJSON* tar = cJSON_GetObjectItemCaseSensitive(apd, "target");
+                    if(tar->type == cJSON_String && !strcasecmp(tar->valuestring, "SYSTEM_ERR"))
+                        appender->target = ConsolTarget::SYSTEM_ERR;
+                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                } else if(!strcasecmp(apd->string, "RollingFile")) {
+                    RollingFileAppender *appender = new RollingFileAppender();
+                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                } else if(!strcasecmp(apd->string, "file")) {
+                    FileAppender *appender = new FileAppender();
+                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                } 
+            }
+        }
+        size = cJSON_GetArraySize(logs);
+
         return ret;
     }
 
-    static Configuration* ConfigParseXmlBuff(char* conf_buff) {
+    static Configuration* ConfigParseXmlBuff(const char* conf_buff) {
         Configuration* ret = NULL;
         pugi::xml_document doc;
         do
@@ -76,7 +113,7 @@ namespace uvLogPlus {
         return ret;
     }
 
-    Configuration* ConfigParse(char *buff) {
+    Configuration* ConfigParse(const char *buff) {
         Configuration* conf = ConfigParseJsonBuff(buff);
         if(NULL == conf)
             conf = ConfigParseXmlBuff(buff);

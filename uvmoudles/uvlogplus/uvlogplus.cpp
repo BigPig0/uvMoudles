@@ -165,7 +165,7 @@ namespace uvLogPlus {
         return new CUVLog(conf);
     }
 
-    CLog* Create(std::string path) {
+    CLog* CLog::Create(std::string path) {
         Configuration* conf = ConfigParse(path);
         if(NULL == conf)
             return NULL;
@@ -173,7 +173,7 @@ namespace uvLogPlus {
         return new CUVLog(conf);
     }
 
-    CLog* Create(const char *buff) {
+    CLog* CLog::Create(const char *buff) {
         Configuration* conf = ConfigParse(buff);
         if(NULL == conf)
             return NULL;

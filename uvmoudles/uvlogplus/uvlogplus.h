@@ -11,7 +11,8 @@ public:
     /** 根据日志配置文件路径创建日志 */
     static CLog* Create(std::string path);
     /** 根据日志配置内容创建日志 */
-    static CLog* CreateBuff(const char *buff);
+    static CLog* Create(const char *buff);
+
     virtual ~CLog(){};
 
     /** 写日志 */
