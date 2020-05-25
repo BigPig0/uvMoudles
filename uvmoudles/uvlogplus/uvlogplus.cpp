@@ -40,7 +40,7 @@ namespace uvLogPlus {
         }
 
         for(auto appender : m_pConfig->appenders) {
-            appender.second->uv_async.data = this;
+            appender.second->uv_async.data = appender.second;
             uv_async_init(&m_uvLoop, &appender.second->uv_async, _uv_async_write_cb);
             appender.second->Init(&m_uvLoop);
         }

@@ -112,12 +112,13 @@ const char* const LOG_CONFIG = "{"
 using namespace uvLogPlus;
 
 #define MODULE_1_LOGDEBUG(msg, ...) log->Write("moudle1", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
-#define MODULE_1_LOGINFO(msg, ...)  log->Write("moudle1", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
-#define MODULE_1_LOGERROR(msg, ...) log->Write("moudle1", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define MODULE_1_LOGINFO(msg, ...)  log->Write("moudle1", Level::Info, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define MODULE_1_LOGERROR(msg, ...) log->Write("moudle1", Level::Error, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define MODULE_1_LOGFATAL(msg, ...) log->Write("moudle1", Level::Fatal, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 
 #define MODULE_2_LOGDEBUG(msg, ...) log->Write("moudle2", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
-#define MODULE_2_LOGINFO(msg, ...)  log->Write("moudle2", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
-#define MODULE_2_LOGERROR(msg, ...) log->Write("moudle2", Level::Debug, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define MODULE_2_LOGINFO(msg, ...)  log->Write("moudle2", Level::Info, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
+#define MODULE_2_LOGERROR(msg, ...) log->Write("moudle2", Level::Error, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -128,6 +129,7 @@ int _tmain(int argc, _TCHAR* argv[])
         MODULE_1_LOGINFO("info 1");
         MODULE_2_LOGINFO("info2");
         MODULE_2_LOGERROR("error2");
+        MODULE_1_LOGFATAL("fatal1");
         sleep(1000);
     }
     delete log;
