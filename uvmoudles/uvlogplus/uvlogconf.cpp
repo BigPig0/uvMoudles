@@ -2,8 +2,28 @@
 #include "pugixml.hpp"
 #include "cJSON.h"
 #include "utilc_api.h"
+#include <string>
 
 namespace uvLogPlus {
+    Level level_parse(const char *lv) {
+        Level level = Level::OFF;
+        if(!strcasecmp(lv, "Trace"))
+            level = Level::Trace;
+        else if(!strcasecmp(lv, "Debug"))
+            level = Level::Debug;
+        else if(!strcasecmp(lv, "Info"))
+            level = Level::Info;
+        else if(!strcasecmp(lv, "Warn"))
+            level = Level::Warn;
+        else if(!strcasecmp(lv, "Error"))
+            level = Level::Error;
+        else if(!strcasecmp(lv, "Fatal"))
+            level = Level::Fatal;
+        else if(!strcasecmp(lv, "All"))
+            level = Level::All;
+        return level;
+    }
+
     static Configuration* ConfigParseJsonBuff(const char* conf_buff) {
         Configuration* ret = NULL;
         cJSON* root = cJSON_Parse(conf_buff);
@@ -18,6 +38,8 @@ namespace uvLogPlus {
             return NULL;
 
         ret = new Configuration;
+
+        // 解析所有appender
         int size = cJSON_GetArraySize(apds);
         for(int i=0; i<size; i++) {
             cJSON* apd = cJSON_GetArrayItem(apds, i);
@@ -27,20 +49,92 @@ namespace uvLogPlus {
                     continue;
                 if(!strcasecmp(apd->string, "console")) {
                     ConsolAppender *appender = new ConsolAppender();
+                    appender->name = name->valuestring;
+                    appender->type = AppenderType::consol;
                     cJSON* tar = cJSON_GetObjectItemCaseSensitive(apd, "target");
                     if(tar->type == cJSON_String && !strcasecmp(tar->valuestring, "SYSTEM_ERR"))
                         appender->target = ConsolTarget::SYSTEM_ERR;
-                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                    ret->appenders.insert(std::make_pair(appender->name, appender));
                 } else if(!strcasecmp(apd->string, "RollingFile")) {
                     RollingFileAppender *appender = new RollingFileAppender();
-                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                    appender->name = name->valuestring;
+                    appender->type = AppenderType::rolling_file;
+                    cJSON* fn = cJSON_GetObjectItemCaseSensitive(apd, "fileName");
+                    if(fn && fn->type == cJSON_String)
+                        appender->file_name = fn->valuestring;
+                    cJSON* pl = cJSON_GetObjectItemCaseSensitive(apd, "Policies");
+                    if(pl && pl->type == cJSON_Object){
+                        cJSON* sz = cJSON_GetObjectItemCaseSensitive(pl, "size");
+                        if(sz && sz->type == cJSON_String) {
+                            std::string num,type,value(sz->valuestring);
+                            for(auto c:value) {
+                                if(c>='0' && c<='9') {
+                                    num += c;
+                                } else if(c == 'K' || c == 'k') {
+                                    appender->policies.size_policy.size = stoi(num) * 1024;
+                                    break;
+                                } else if(c == 'M' || c == 'm') {
+                                    appender->policies.size_policy.size = stoi(num) * 1024 * 1024;
+                                    break;
+                                } else if(c == 'G' || c == 'g') {
+                                    appender->policies.size_policy.size = stoi(num) * 1024 * 1024 * 1024;
+                                    break;
+                                }
+                            }
+                        } else if(sz && sz->type == cJSON_Number){
+                            appender->policies.size_policy.size = sz->valueint;
+                        }
+                        cJSON* mx = cJSON_GetObjectItemCaseSensitive(pl, "max");
+                        if(mx && mx->type == cJSON_Number)
+                            appender->max = mx->valueint;
+                    }
+                    ret->appenders.insert(std::make_pair(appender->name, appender));
                 } else if(!strcasecmp(apd->string, "file")) {
                     FileAppender *appender = new FileAppender();
-                    ret->appenders.insert(std::make_pair(name->valuestring, appender));
+                    appender->name = name->valuestring;
+                    appender->type = AppenderType::file;
+                    cJSON* fn = cJSON_GetObjectItemCaseSensitive(apd, "fileName");
+                    if(fn && fn->type == cJSON_String)
+                        appender->file_name = fn->valuestring;
+                    cJSON* ad = cJSON_GetObjectItemCaseSensitive(apd, "append");
+                    if(ad && ((ad->type == cJSON_Number && ad->valueint > 0) || 
+                        (ad->type == cJSON_String && (!strcasecmp(ad->valuestring, "yes") || !strcasecmp(ad->valuestring, "true")))))
+                        appender->append = true;
+                    ret->appenders.insert(std::make_pair(appender->name, appender));
                 } 
             }
         }
+
+        //解析所有logger
         size = cJSON_GetArraySize(logs);
+        for(int i=0; i<size; i++) {
+            cJSON* log = cJSON_GetArrayItem(logs, i);
+            if(log->type == cJSON_Object) {
+                Logger *logger = new Logger;
+                logger->name = log->string;
+                logger->additivity = false;
+                logger->level = Level::OFF;
+                int attr_size = cJSON_GetArraySize(log);
+                for(int j=0; j<attr_size; j++) {
+                    cJSON* attr = cJSON_GetArrayItem(log, j);
+                    if(attr->type == cJSON_String && !strcasecmp(attr->string, "level")) {
+                        logger->level = level_parse(attr->valuestring);
+                    } else if(attr->type == cJSON_Object && !strcasecmp(attr->string, "appender-ref")) {
+                        cJSON* ref = cJSON_GetObjectItemCaseSensitive(attr, "ref");
+                        if(ref && ref->type == cJSON_String)
+                            logger->appender_ref.push_back(ref->valuestring);
+                    }
+                }
+                if(!strcasecmp(log->string, "root")) {
+                    ret->root = logger;
+                } else {
+                    if(ret->loggers.count(logger->name) == 0)
+                        ret->loggers.insert(make_pair(logger->name, logger));
+                    else
+                        delete logger;
+                }
+            }
+        }
 
         return ret;
     }

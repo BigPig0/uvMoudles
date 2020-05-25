@@ -13,6 +13,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\demo\uvLogPlusTest.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\uvmoudles\uvlogplus.vcxproj">
+      <Project>{053c306c-2522-47df-a4ca-4910086670c8}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1E32AD75-DCFF-4DFE-AABC-30B8A2F03190}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

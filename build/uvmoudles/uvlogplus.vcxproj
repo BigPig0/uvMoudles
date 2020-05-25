@@ -23,6 +23,23 @@
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogplus.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogrollingfileappender.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\common\util.vcxproj">
+      <Project>{642077f6-2ca8-4e04-9b0d-9cfa1e5efa49}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\common\utilc.vcxproj">
+      <Project>{c00f783b-0e57-400d-a1b7-9fe3985a1b1d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\thirdparty\cjson.vcxproj">
+      <Project>{63cd9ce1-6d07-43d5-8795-b9909fa8d05e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\thirdparty\libuv.vcxproj">
+      <Project>{6197738f-bb03-47b6-8685-677bc2c346bc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\thirdparty\pugixml.vcxproj">
+      <Project>{bdf57317-f779-4b3b-8cc4-e908e729c9d5}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{053C306C-2522-47DF-A4CA-4910086670C8}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
