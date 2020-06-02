@@ -55,8 +55,8 @@ const char* const LOG_CONFIG = "{"
 "\"configuration\":{"
     "\"appenders\":{"
         "\"console\":{\"name\":\"ConsoleAppd\",\"target\":\"SYSTEM_OUT\"},"
-        "\"RollingFile\":{\"name\":\"RollingFileAppd\",\"fileName\":\"./logs/rollappd.log\", \"Policies\":{\"size\":\"10MB\",\"max\":100}},"
-        "\"File\":{\"name\":\"FileAppd\", \"fileName\":\"./logs/fileappd.txt\", \"append\":\"yes\"}"
+        "\"RollingFile\":{\"name\":\"RollingFileAppd\",\"fileName\":\"./logs/rollappd.log\", \"Policies\":{\"size\":\"1MB\",\"max\":20}},"
+        "\"File\":{\"name\":\"FileAppd\", \"fileName\":\"./logs/fileappd.txt\", \"append\":\"no\"}"
     "},\"loggers\":{"
         "\"root\":{\"level\":\"DEBUG\","
             "\"appender-ref\":{\"ref\":\"ConsoleAppd\"},"
@@ -130,7 +130,7 @@ int _tmain(int argc, _TCHAR* argv[])
         MODULE_2_LOGINFO("info2");
         MODULE_2_LOGERROR("error2");
         MODULE_1_LOGFATAL("fatal1");
-        sleep(1000);
+        sleep(1);
     }
     delete log;
 	sleep(INFINITE);

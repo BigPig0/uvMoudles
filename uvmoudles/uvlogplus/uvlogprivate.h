@@ -9,13 +9,13 @@
 
 namespace uvLogPlus {
 
-    enum class AppenderType {
+    enum AppenderType {
         consol = 0,         //控制台
         file,               //文件
         rolling_file,       //文件大小到达指定尺寸的时候产生一个新的文件
     };
 
-    enum class ConsolTarget {
+    enum ConsolTarget {
         SYSTEM_OUT = 0,
         SYSTEM_ERR
     };
@@ -29,12 +29,12 @@ namespace uvLogPlus {
     /** 一条日志内容 */
     struct LogMsg {
         uint32_t    tid;            //线程ID
-        Level       level;
-        const char        *file_name;
-        const char        *func_name;
-        int         line;
-        time_t      msg_time;
-        std::string msg;
+        Level       level;          //日志等级
+        const char *file_name;      //所在文件名称
+        const char *func_name;      //所在函数名称
+        int         line;           //行号
+        time_t      msg_time;       //产生时间
+        std::string msg;            //内容
         LogMsg(uint32_t _tid, Level _level, const char *_file, const char *_func, int _line, time_t _t, std::string &_msg)
             : tid(_tid)
             , level(_level)
@@ -45,6 +45,14 @@ namespace uvLogPlus {
             , msg(_msg){};
     };
 
+    /**
+     * OnMatch = "ACCEPT" 匹配该级别及以上
+     * OnMatch = "DENY" 不匹配该级别及以上
+     * OnMatch = "NEUTRAL" 该级别及以上的，由下一个filter处理；如果当前是最后一个，则匹配
+     * OnMismatch = "ACCEPT" 匹配该级别及以下
+     * OnMismatch = "DENY" 不匹配该级别及以下
+     * OnMismatch = "NEUTRAL" 该级别及以下的，由下一个filter处理；如果当前是最后一个，则匹配
+     */
     struct Filter {
         Level        level;
         FilterMatch  on_match;
@@ -57,7 +65,7 @@ namespace uvLogPlus {
     };
 
     struct SizeBasedTriggeringPolicy {
-        int          size;               //定义每个日志文件的大小
+        uint64_t          size;               //定义每个日志文件的大小
     };
 
     struct Policies {
@@ -71,7 +79,7 @@ namespace uvLogPlus {
         AppenderType   type;    // 指定appender的类型
         std::string    name;    // 指定Appender的名字
         std::string    pattern_layout;  // 输出格式，不设置默认为:%m%n
-        std::list<Filter>  filter;      //
+        std::list<Filter>  filter;      // 对不同等级的日志的处理方式
         moodycamel::ConcurrentQueue<std::shared_ptr<LogMsg>> 
                        msg_queue;
         uv_loop_t     *uv_loop;
@@ -104,34 +112,36 @@ namespace uvLogPlus {
         bool            append;            //是否追加，默认false
         bool            opening;           //正在打开文件
         bool            opened;            //文件已经打开
+        bool            writing;           //正在写入数据
         uv_file         file_handle;       //打开的文件句柄
 
         FileAppender();
         virtual ~FileAppender();
         virtual void Init(uv_loop_t *uv);
         virtual void Write();
+        virtual void WriteCB();
     };
 
     /** 动态文件输出appender */
-    class RollingFileAppender : public Appender {
+    class RollingFileAppender : public FileAppender {
     public:
-        std::string     file_name;         //指定输出日志的目的文件带全路径的文件名
         std::string     filePattern;       //指定新建日志文件的名称格式.
         Policies        policies;          //指定滚动日志的策略，就是什么时候进行新建日志文件输出日志.
         int             max;               //用来指定同一个文件夹下最多有几个日志文件时开始删除最旧的，创建新的
-        bool            opening;           //正在打开文件
-        bool            opened;            //文件已经打开
-        uv_file         file_handle;       //打开的文件句柄
 
         RollingFileAppender();
         virtual ~RollingFileAppender();
         virtual void Init(uv_loop_t *uv);
-        virtual void Write();
+        virtual void CheckFile(bool append);
+        virtual void WriteCB();
+        virtual void StatCB(uint64_t size);
+    protected:
+        virtual bool RenameFile(int apd);
     };
 
     struct Logger {
-        Level                     level;
-        std::string               name;
+        Level                     level;              //该级或以上的日志才提交给appender
+        std::string               name;               //日志名称
         std::list<std::string>    appender_ref;       //写到哪些appender
         bool                      additivity;         //appender_ref不为空时，是否仍然输出到root
     };
@@ -150,6 +160,8 @@ namespace uvLogPlus {
     struct LogMsgReq {
         Appender        *appender;
         std::shared_ptr<LogMsg> item;
-        uv_buf_t         buff;
+        char            *buff;
     };
+
+    extern char* levelNote[];
 };

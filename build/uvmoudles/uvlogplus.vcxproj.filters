@@ -40,5 +40,8 @@
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogrollingfileappender.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogutil.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

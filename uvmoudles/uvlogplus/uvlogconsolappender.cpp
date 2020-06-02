@@ -60,7 +60,7 @@ void ConsolAppender::Write() {
         LogMsgReq *msg_req = new LogMsgReq;
         msg_req->appender = this;
         msg_req->item = item;
-        msg_req->buff = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
+        msg_req->buff = NULL;
 
         uv_write_t *req = new uv_write_t;
         req->data = msg_req;
@@ -74,13 +74,13 @@ void ConsolAppender::Write() {
                 buff[0] = uv_buf_init((char*)color_warn, 10);
             else if(msg_req->item->level == Level::Info)
                 buff[0] = uv_buf_init((char*)color_info, 10);
-            buff[1] = msg_req->buff;
+            buff[1] = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
             buff[2] = uv_buf_init((char*)color_end, 4);
             buff[3] = uv_buf_init("\n", 1);
             uv_write(req, (uv_stream_t*)&tty_handle, buff, 4, _write_task_cb);
         } else {
             uv_buf_t buff[2];
-            buff[0] = msg_req->buff;
+            buff[0] = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
             buff[1] = uv_buf_init("\n", 1);
             uv_write(req, (uv_stream_t*)&tty_handle, buff, 2, _write_task_cb);
         }

@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogfileappender.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogplus.cpp" />
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogrollingfileappender.cpp" />
+    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogutil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\util.vcxproj">
