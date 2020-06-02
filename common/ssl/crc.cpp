@@ -72,7 +72,7 @@ uint32_t CRC::Zwg_ntohl(uint32_t s)
     a.i = 0x01;
     if(a.buf)
     {
-        // Ð¡¶Ë
+        // Ð¡ï¿½ï¿½
         s = BSWAP32C(s);
     }
     return s;
@@ -82,7 +82,7 @@ uint32_t CRC::Zwg_ntohl(uint32_t s)
 
 /** 
  * Name:    InvertUint8 
- * Note: 	°Ñ×Ö½Úµßµ¹¹ýÀ´£¬Èç0x12±ä³É0x48
+ * Note: 	ï¿½ï¿½ï¿½Ö½Úµßµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0x12ï¿½ï¿½ï¿½0x48
 			0x12: 0001 0010
 			0x48: 0100 1000
  */
@@ -126,7 +126,7 @@ static void InvertUint32(uint32_t *dBuf, uint32_t *srcBuf) {
 uint16_t CRC::CRC16_CCITT(uint8_t *data, uint32_t datalen) {
     uint16_t wCRCin = 0x0000;
     uint16_t wCPoly = 0x1021;
-    uint8_t wChar = 0;
+    //uint8_t wChar = 0;
     
     InvertUint16(&wCPoly,&wCPoly);
     while (datalen--) {
