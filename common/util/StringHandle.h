@@ -223,6 +223,8 @@ public:
 	 */
 	static bool isSubStr(std::string str1, std::string str2);
 
+    static std::string StringFormat(const char* format, ...);
+
 private:
 	static char *utf8_find_prev_char(const char *str, const char *p);
 

@@ -47,12 +47,12 @@
     <ClInclude Include="..\..\common\utilc\utilc_memfile.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\common\utilc\utilc_file_sys.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\utilc\netstream.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\utilc\utilc_api.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\utilc\ring_buff.c">
@@ -71,6 +71,12 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\utilc\utilc_memfile.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\utilc\utilc_api.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\utilc\utilc_file_sys.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
