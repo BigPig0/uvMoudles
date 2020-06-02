@@ -1,6 +1,6 @@
-#include"md5.h"
-
-#include<iostream>
+#include "md5.h"
+#include <string.h>
+#include <iostream>
 using namespace std;
 
 const int S[4][4] = {7, 12, 17, 22,

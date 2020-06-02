@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include <io.h>
+//#include <io.h>
 #include <direct.h>
 
 
@@ -17,7 +17,7 @@ int file_sys_check_path(const char *path) {
             str[i] = '\0';
             if (access(str, 0) != 0){
                 if(0 != mkdir(str)) {
-                    //´´½¨Ä¿Â¼Ê§°Ü
+                    //ï¿½ï¿½ï¿½ï¿½Ä¿Â¼Ê§ï¿½ï¿½
                     free(str);
                     return -1;
                 }

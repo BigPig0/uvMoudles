@@ -45,9 +45,10 @@ endif
 #创建输出目录
 $(shell mkdir -p $(OUT_DIR))
 $(shell mkdir -p $(TMP_DIR)utilc/)
+$(shell mkdir -p $(TMP_DIR)ssl/)
 
 
-UVMODULES:ssl$(BITS)
+UVMODULES:ssl$(BITS) utilc$(BITS)
 
 #common/utilc
 SRC_DIR = common/utilc/
