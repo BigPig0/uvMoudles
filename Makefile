@@ -46,57 +46,95 @@ endif
 $(shell mkdir -p $(OUT_DIR))
 $(shell mkdir -p $(TMP_DIR)utilc/)
 $(shell mkdir -p $(TMP_DIR)ssl/)
+$(shell mkdir -p $(TMP_DIR)cjson/)
+$(shell mkdir -p $(TMP_DIR)pugixml/)
+$(shell mkdir -p $(TMP_DIR)libuv/)
 
 
-UVMODULES:ssl$(BITS) utilc$(BITS)
+UVMODULES:cjson$(BITS) ssl$(BITS) utilc$(BITS)
+
+#thirdparty/cjson
+CJSON_SRC_DIR = thirdparty/cjson/
+CJSON_SOURCES = $(wildcard thirdparty/cjson/*.c)
+CJSON_OBJS = $(patsubst %.c,%.o,$(notdir $(CJSON_SOURCES)))
+CJSON_OBJSD = $(addprefix $(TMP_DIR)cjson/,$(CJSON_OBJS))
+
+cjson_static:$(CJSON_OBJS)
+	$(AR) $(OUT_DIR)cjson.a $(CJSON_OBJSD)
+
+cjson_shared:$(CJSON_OBJS)
+	$(CC) -shared -fPIC $(CJSON_OBJSD) -o $(OUT_DIR)cjson.so
+
+$(CJSON_OBJS):%.o:$(CJSON_SRC_DIR)%.c
+	$(CC) $(CFLAGS) -c $< -o $(TMP_DIR)cjson/$@
+
+UVMODULES:cjson$(BITS) ssl$(BITS) utilc$(BITS)
+
+#thirdparty/pugixml
+PUGIXML_SRC_DIR = thirdparty/pugixml/
+PUGIXML_SOURCES = $(wildcard thirdparty/pugixml/*.cpp)
+PUGIXML_OBJS = $(patsubst %.cpp,%.o,$(notdir $(PUGIXML_SOURCES)))
+PUGIXML_OBJSD = $(addprefix $(TMP_DIR)pugixml/,$(PUGIXML_OBJS))
+
+pugixml_static:$(PUGIXML_OBJS)
+	$(AR) $(OUT_DIR)pugixml.a $(PUGIXML_OBJSD)
+
+pugixml_shared:$(PUGIXML_OBJS)
+	$(GG) -shared -fPIC $(PUGIXML_OBJSD) -o $(OUT_DIR)pugixml.so
+
+$(PUGIXML_OBJS):%.o:$(PUGIXML_SRC_DIR)%.cpp
+	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)pugixml/$@
 
 #common/utilc
-SRC_DIR = common/utilc/
-SOURCES = $(wildcard common/utilc/*.c)
-OBJS = $(patsubst %.c,%.o,$(notdir $(SOURCES)))
-OBJSD = $(addprefix $(TMP_DIR)utilc/,$(OBJS))
+UTILC_SRC_DIR = common/utilc/
+UTILC_SOURCES = $(wildcard common/utilc/*.c)
+UTILC_OBJS = $(patsubst %.c,%.o,$(notdir $(UTILC_SOURCES)))
+UTILC_OBJSD = $(addprefix $(TMP_DIR)utilc/,$(UTILC_OBJS))
 
-utilc_static:$(OBJS)
-	$(AR) $(OUT_DIR)utilc.a $(OBJSD)
+utilc_static:$(UTILC_OBJS)
+	$(AR) $(OUT_DIR)utilc.a $(UTILC_OBJSD)
 
-utilc_shared:$(OBJS)
-	$(CC) -shared -fPIC $(OBJSD) -o $(OUT_DIR)utilc.so
+utilc_shared:$(UTILC_OBJS)
+	$(CC) -shared -fPIC $(UTILC_OBJSD) -o $(OUT_DIR)utilc.so
 
-$(OBJS):%.o:$(SRC_DIR)%.c
+$(UTILC_OBJS):%.o:$(UTILC_SRC_DIR)%.c
 	$(CC) $(CFLAGS) -c $< -o $(TMP_DIR)utilc/$@
 
 #common/util
-SRC_DIR = common/util/
-SOURCES = $(wildcard common/util/*.cpp)
-OBJS = $(patsubst %.cpp,%.o,$(notdir $(SOURCES)))
-OBJSD = $(addprefix $(TMP_DIR)util/,$(OBJS))
+UTIL_SRC_DIR = common/util/
+UTIL_SOURCES = $(wildcard common/util/*.cpp)
+UTIL_OBJS = $(patsubst %.cpp,%.o,$(notdir $(UTIL_SOURCES)))
+UTIL_OBJSD = $(addprefix $(TMP_DIR)util/,$(UTIL_OBJS))
 
-util_static:$(OBJS)
-	$(AR) $(OUT_DIR)util.a $(OBJSD)
+util_static:$(UTIL_OBJS)
+	$(AR) $(OUT_DIR)util.a $(UTIL_OBJSD)
 
-util_shared:$(OBJS)
-	$(GG) -shared -fPIC $(OBJSD) -o $(OUT_DIR)util.so
+util_shared:$(UTIL_OBJS)
+	$(GG) -shared -fPIC $(UTIL_OBJSD) -o $(OUT_DIR)util.so
 
-$(OBJS):%.o:$(SRC_DIR)%.cpp
+$(UTIL_OBJS):%.o:$(UTIL_SRC_DIR)%.cpp
 	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)util/$@
 
 #common/ssl
-SRC_DIR = common/ssl/
-SOURCES = $(wildcard common/ssl/*.cpp)
-OBJS = $(patsubst %.cpp,%.o,$(notdir $(SOURCES)))
-OBJSD = $(addprefix $(TMP_DIR)ssl/,$(OBJS))
+SSL_SRC_DIR = common/ssl/
+SSL_SOURCES = $(wildcard common/ssl/*.cpp)
+SSL_OBJS = $(patsubst %.cpp,%.o,$(notdir $(SSL_SOURCES)))
+SSL_OBJSD = $(addprefix $(TMP_DIR)ssl/,$(SSL_OBJS))
 
-ssl_static:$(OBJS)
-	$(AR) $(OUT_DIR)ssl.a $(OBJSD)
+ssl_static:$(SSL_OBJS)
+	$(AR) $(OUT_DIR)ssl.a $(SSL_OBJSD)
 
-ssl_shared:$(OBJS)
-	$(GG) -shared -fPIC $(OBJSD) -o $(OUT_DIR)ssl.so
+ssl_shared:$(SSL_OBJS)
+	$(GG) -shared -fPIC $(SSL_OBJSD) -o $(OUT_DIR)ssl.so
 
-$(OBJS):%.o:$(SRC_DIR)%.cpp
+$(SSL_OBJS):%.o:$(SSL_SRC_DIR)%.cpp
 	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)ssl/$@
 
 clean:
 	rm -rf $(TMP_DIR)utilc/*.o
 	rm -rf $(TMP_DIR)util/*.o
 	rm -rf $(TMP_DIR)ssl/*.o
+	rm -rf $(TMP_DIR)cjson/*.o
+	rm -rf $(TMP_DIR)pugixml/*.o
+	rm -rf $(TMP_DIR)libuv/*.o
 
