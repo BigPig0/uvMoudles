@@ -23,6 +23,9 @@
     <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogconf.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogutil.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogplus.cpp">

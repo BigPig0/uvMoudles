@@ -15,6 +15,7 @@
     <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogplus.h" />
     <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogprivate.h" />
     <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogpublic.h" />
+    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogutil.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogconf.cpp" />
