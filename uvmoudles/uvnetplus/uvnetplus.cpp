@@ -80,7 +80,7 @@ void CUVNetPlus::RemoveEvent(void* param) {
 void CUVNetPlus::LoopThread() {
     while (m_bRun) {
         uv_run(&m_uvLoop, UV_RUN_DEFAULT);
-        Sleep(10);
+        sleep(10);
     }
 
     m_bStop = true;

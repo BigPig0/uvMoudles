@@ -1,6 +1,7 @@
 #include "Settings.h"
 #include "Mutex.h"
 #include <unordered_map>
+#include <string.h>
 using namespace std;
 
 namespace Settings
@@ -91,7 +92,7 @@ static int GetPrivateProfileIntA( char* lpAppName, char* lpKeyName, int nDefault
 {
     char strValue[STRVALUE_MAX_LEN];
     memset(strValue, '\0', STRVALUE_MAX_LEN);
-    if(GetPrivateProfileStringA(lpAppName, lpKeyName, to_string(nDefault).c_str(), strValue, STRVALUE_MAX_LEN, lpFileName) != 0)
+    if(GetPrivateProfileStringA(lpAppName, lpKeyName, (char*)to_string(nDefault).c_str(), strValue, STRVALUE_MAX_LEN, lpFileName) != 0)
     {
         printf("%s: error", __func__);
         return nDefault;
@@ -117,7 +118,7 @@ string getValue(const string &section,const string &key)
     return getValue(section, key, "");
 }
 
-string getValue(const string &section,const string &key,const string &default)
+string getValue(const string &section,const string &key,const string &default_value)
 {
     string mapkey = section + "\\" + key;
 
@@ -129,13 +130,13 @@ string getValue(const string &section,const string &key,const string &default)
         return it->second;
 
     char strVal[1024] = {0};
-    GetPrivateProfileStringA(section.c_str(), key.c_str(), default.c_str(), strVal, 1024, g_strProfile.c_str());
+    GetPrivateProfileStringA((char*)section.c_str(), (char*)key.c_str(), (char*)default_value.c_str(), strVal, 1024, (char*)g_strProfile.c_str());
     MutexLock lock(&g_rwLock);
     g_settings.insert(make_pair(mapkey, strVal));
     return strVal;
 }
 
-int getValue(const string &section,const string &key,const int &default)
+int getValue(const string &section,const string &key,const int &default_value)
 {
     string mapkey = section + "\\" + key;
 
@@ -146,7 +147,7 @@ int getValue(const string &section,const string &key,const int &default)
     if (it != itEnd)
         return stoi(it->second);
 
-    int value = GetPrivateProfileIntA(section.c_str(), key.c_str(), default, g_strProfile.c_str());
+    int value = GetPrivateProfileIntA((char*)section.c_str(), (char*)key.c_str(), default_value, (char*)g_strProfile.c_str());
     MutexLock lock(&g_rwLock);
     g_settings.insert(make_pair(mapkey, to_string(value)));
     return value;
