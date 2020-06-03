@@ -57,7 +57,7 @@ namespace uvLogPlus {
         bool useroot = true;
         std::set<Appender*> apds;
 
-        //¸ù¾ÝÈÕÖ¾Ãû³Æ
+        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½
         auto fit = m_pConfig->loggers.find(name);
         if(fit != m_pConfig->loggers.end()) {
             bool hasapd = false;
@@ -72,7 +72,7 @@ namespace uvLogPlus {
                 useroot = false;
         }
 
-        //ÈÕÖ¾ÄÚÈÝÐèÒªÐ´µ½rootÄ¬ÈÏµÄappenderÀïÃæ
+        //ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒªÐ´ï¿½ï¿½rootÄ¬ï¿½Ïµï¿½appenderï¿½ï¿½ï¿½ï¿½
         if(useroot) {
             for(auto appenderName : m_pConfig->root->appender_ref) {
                 auto fitapd = m_pConfig->appenders.find(appenderName);
@@ -82,7 +82,7 @@ namespace uvLogPlus {
             }
         }
 
-        //¸ñÊ½»¯ÈÕÖ¾ÄÚÈÝ
+        //ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½
         std::string format_msg;
         {
             size_t size = 4096;
@@ -109,12 +109,12 @@ namespace uvLogPlus {
                 }
             }
 
-            // expected²»°üº¬×Ö·û´®½áÎ²·ûºÅ£¬ÆäÖµµÈÓÚ£ºstrlen(buffer_p)
+            // expectedï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Î²ï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½Ú£ï¿½strlen(buffer_p)
             format_msg = std::string(buffer_p, expected>0?expected:0);
         }
 
-        //ÄÚÈÝÐ´µ½Ã¿¸öappender
-        //µÍ°æ±¾vsµÄmake_shared²»Ö§³Ö²ÎÊýÕâÃ´¶àµÄ¹¹Ôìº¯Êý
+        //ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ã¿ï¿½ï¿½appender
+        //ï¿½Í°æ±¾vsï¿½ï¿½make_sharedï¿½ï¿½Ö§ï¿½Ö²ï¿½ï¿½ï¿½ï¿½ï¿½Ã´ï¿½ï¿½Ä¹ï¿½ï¿½ìº¯ï¿½ï¿½
         std::shared_ptr<LogMsg> msg(new LogMsg(
             gettid(),
             level,
@@ -136,15 +136,15 @@ namespace uvLogPlus {
     void CUVLog::OnUVThread() {
         while (true) {
             uv_run(&m_uvLoop, UV_RUN_DEFAULT);
-            Sleep(100);
+            sleep(100);
         }
     }
 
     //////////////////////////////////////////////////////////////////////////
 
     CLog* CLog::Create() {
-        int ret=-1,i=0;
-        char *fname[] = {"uvLog_test.json","uvLog_test.jsn","uvLog_test.xml","uvLog.json","uvLog.jsn","uvLog.xml"};
+        int ret=-1;
+        const char *fname[] = {"uvLog_test.json","uvLog_test.jsn","uvLog_test.xml","uvLog.json","uvLog.jsn","uvLog.xml"};
 
         Configuration* conf = NULL;
         for (int i=0; ret < 6; i++) {
@@ -156,7 +156,7 @@ namespace uvLogPlus {
                 if(conf)
                     break;
             }
-            // ÎÄ¼þ´ò¿ªÊ§°Ü
+            // ï¿½Ä¼ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
             printf("uv fs open %s failed:%s\n", fname[i], uv_strerror(ret));
         }
         if(NULL == conf)

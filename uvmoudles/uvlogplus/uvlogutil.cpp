@@ -3,7 +3,7 @@
 #include "uv.h"
 
 namespace uvLogPlus {
-    char* levelNote[] = {
+    const char* levelNote[] = {
         "ALL", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF"
     };
 

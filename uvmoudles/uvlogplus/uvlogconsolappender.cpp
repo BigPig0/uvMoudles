@@ -3,13 +3,13 @@
 
 namespace uvLogPlus {
 
-//×Ö·ûÑÕÉ«µÄ¸ñÊ½Îª£º\e[F;Bm
-//ÆäÖÐ"F"Îª×ÖÌåÑÕÉ«, ±àºÅÎª30-37, "B"Îª±³¾°ÑÕÉ«, ±àºÅÎª40-47, ÒÀ´ÎÎª ºÚ¡¢ºì¡¢ÂÌ¡¢»Æ¡¢À¶¡¢×Ïºì¡¢ÇàÀ¶¡¢°×¡£
-//ÓÃ \e[m ½áÊøÑÕÉ«ÉèÖÃ
-const char *color_fatal = "\033[35;40;1m"; //×ÏÉ«
-const char *color_error = "\033[31;40;1m"; //ºìÉ«
-const char *color_warn  = "\033[33;40;1m"; //»ÆÉ«
-const char *color_info  = "\033[32;40;1m"; //ÂÌÉ«
+//ï¿½Ö·ï¿½ï¿½ï¿½É«ï¿½Ä¸ï¿½Ê½Îªï¿½ï¿½\e[F;Bm
+//ï¿½ï¿½ï¿½ï¿½"F"Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«, ï¿½ï¿½ï¿½Îª30-37, "B"Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«, ï¿½ï¿½ï¿½Îª40-47, ï¿½ï¿½ï¿½ï¿½Îª ï¿½Ú¡ï¿½ï¿½ì¡¢ï¿½Ì¡ï¿½ï¿½Æ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïºì¡¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¡ï¿½
+//ï¿½ï¿½ \e[m ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½ï¿½ï¿½
+const char *color_fatal = "\033[35;40;1m"; //ï¿½ï¿½É«
+const char *color_error = "\033[31;40;1m"; //ï¿½ï¿½É«
+const char *color_warn  = "\033[33;40;1m"; //ï¿½ï¿½É«
+const char *color_info  = "\033[32;40;1m"; //ï¿½ï¿½É«
 const char *color_end   = "\033[0m";
 
 static void _write_task_cb(uv_write_t* req, int status) {
@@ -18,7 +18,7 @@ static void _write_task_cb(uv_write_t* req, int status) {
     delete msg_req;
     delete req;
 
-    //Ð´ÏÂÒ»ÌõÈÕÖ¾
+    //Ð´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ö¾
     apd->Write();
 }
 
@@ -76,12 +76,12 @@ void ConsolAppender::Write() {
                 buff[0] = uv_buf_init((char*)color_info, 10);
             buff[1] = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
             buff[2] = uv_buf_init((char*)color_end, 4);
-            buff[3] = uv_buf_init("\n", 1);
+            buff[3] = uv_buf_init((char*)"\n", 1);
             uv_write(req, (uv_stream_t*)&tty_handle, buff, 4, _write_task_cb);
         } else {
             uv_buf_t buff[2];
             buff[0] = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
-            buff[1] = uv_buf_init("\n", 1);
+            buff[1] = uv_buf_init((char*)"\n", 1);
             uv_write(req, (uv_stream_t*)&tty_handle, buff, 2, _write_task_cb);
         }
     }

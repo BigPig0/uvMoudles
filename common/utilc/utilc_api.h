@@ -35,6 +35,13 @@ _UTILC_API void sleep(uint32_t dwMilliseconds);
 
 #elif defined(LINUX_IMPL)
 #include <unistd.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+_UTILC_API int  gettid();
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #endif
