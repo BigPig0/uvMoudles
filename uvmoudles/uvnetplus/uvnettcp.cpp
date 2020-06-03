@@ -368,11 +368,11 @@ static void on_connection(uv_stream_t* server, int status) {
 }
 
 CTcpServer::CTcpServer()
-    : userData(nullptr)
-    , OnListen(nullptr)
+    : OnListen(nullptr)
     , OnConnection(nullptr)
     , OnClose(nullptr)
     , OnError(nullptr)
+    , userData(nullptr)
 {}
 
 CTcpServer::~CTcpServer(){}
