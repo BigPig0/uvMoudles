@@ -51,10 +51,13 @@ $(shell mkdir -p $(TMP_DIR)pugixml/)
 $(shell mkdir -p $(TMP_DIR)libuv/)
 $(shell mkdir -p $(TMP_DIR)uvipc/)
 $(shell mkdir -p $(TMP_DIR)uvlogplus/)
+$(shell mkdir -p $(TMP_DIR)uvnetplus/)
 
 thirdparty:libuv$(BITS) cjson$(BITS) pugixml$(BITS)
-uvmoudles:uvipc$(BITS)
-common:ssl$(BITS) utilc$(BITS)
+uvmoudles:uvipc$(BITS) uvlogplus$(BITS) uvnetplus$(BITS)
+common:ssl$(BITS) utilc$(BITS) util$(BITS)
+
+################################################
 
 #thirdparty/libuv
 LIBUV_SRC_DIR = thirdparty/libuv/
@@ -92,7 +95,7 @@ LIBUV_SRC_FILE =   src/fs-poll.c \
 LIBUV_SOURCES = $(addprefix $(LIBUV_SRC_DIR),$(LIBUV_SRC_FILE))
 LIBUV_OBJS = $(patsubst %.c,%.o,$(notdir $(LIBUV_SOURCES)))
 LIBUV_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_OBJS))
-LIBUV_FLAGS = -I ./thirdparty/libuv/include -I ./thirdparty/libuv/src -I ./thirdparty/libuv/src/unix
+LIBUV_INCLUDE = -I ./thirdparty/libuv/include -I ./thirdparty/libuv/src -I ./thirdparty/libuv/src/unix
 
 libuv_static:$(LIBUV_OBJS)
 	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD)
@@ -101,7 +104,7 @@ libuv_shared:$(LIBUV_OBJS)
 	$(CC) -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
 
 $(LIBUV_OBJS):%.o:$(LIBUV_SOURCES)
-	$(CC) $(LIBUV_FLAGS) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
+	$(CC) $(LIBUV_INCLUDE) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
 
 
 #thirdparty/cjson
@@ -167,11 +170,30 @@ uvlogplus_static:$(UVLOGPLUS_OBJS)
 	$(AR) $(OUT_DIR)uvlogplus.a $(UVLOGPLUS_OBJSD)
 
 uvlogplus_shared:$(UVLOGPLUS_OBJS)
-	$(GG) -shared -fPIC $(UTIL_OBJSD) -o $(OUT_DIR)uvlogplus.so
+	$(GG) -shared -fPIC $(UVLOGPLUS_OBJSD) -o $(OUT_DIR)uvlogplus.so
 
 $(UVLOGPLUS_OBJS):%.o:$(UVLOGPLUS_SRC_DIR)%.cpp
 	$(GG) $(UVLOGPLUS_INCLUDE) $(GFLAGS) -c $< -o $(TMP_DIR)uvlogplus/$@
 
+#uvmoudles/uvnetplus
+UVNETPLUS_SRC_DIR = uvmoudles/uvnetplus/
+UVNETPLUS_SOURCES = $(wildcard uvmoudles/uvnetplus/*.cpp)
+UVNETPLUS_OBJS = $(patsubst %.cpp,%.o,$(notdir $(UVNETPLUS_SOURCES)))
+UVNETPLUS_OBJSD = $(addprefix $(TMP_DIR)uvnetplus/,$(UVNETPLUS_OBJS))
+UVNETPLUS_INCLUDE = -I ./thirdparty/libuv/include
+UVNETPLUS_INCLUDE += -I ./thirdparty/cjson
+UVNETPLUS_INCLUDE += -I ./thirdparty/pugixml
+UVNETPLUS_INCLUDE += -I ./common/utilc
+UVNETPLUS_INCLUDE += -I ./common/util
+
+uvnetplus_static:$(UVNETPLUS_OBJS)
+	$(AR) $(OUT_DIR)uvnetplus.a $(UVNETPLUS_OBJSD)
+
+uvnetplus_shared:$(UVNETPLUS_OBJS)
+	$(GG) -shared -fPIC $(UVNETPLUS_OBJSD) -o $(OUT_DIR)uvnetplus.so
+
+$(UVNETPLUS_OBJS):%.o:$(UVNETPLUS_SRC_DIR)%.cpp
+	$(GG) $(UVNETPLUS_INCLUDE) $(GFLAGS) -c $< -o $(TMP_DIR)uvnetplus/$@
 
 ######################################################################
 
