@@ -3,13 +3,13 @@
 
 namespace uvLogPlus {
 
-//�ַ���ɫ�ĸ�ʽΪ��\e[F;Bm
-//����"F"Ϊ������ɫ, ���Ϊ30-37, "B"Ϊ������ɫ, ���Ϊ40-47, ����Ϊ �ڡ��졢�̡��ơ������Ϻ졢�������ס�
-//�� \e[m ������ɫ����
-const char *color_fatal = "\033[35;40;1m"; //��ɫ
-const char *color_error = "\033[31;40;1m"; //��ɫ
-const char *color_warn  = "\033[33;40;1m"; //��ɫ
-const char *color_info  = "\033[32;40;1m"; //��ɫ
+//字符颜色的格式为：\e[F;Bm
+//其中"F"为字体颜色, 编号为30-37, "B"为背景颜色, 编号为40-47, 依次为 黑、红、绿、黄、蓝、紫红、青蓝、白。
+//用 \e[m 结束颜色设置
+const char *color_fatal = "\033[35;40;1m"; //紫色
+const char *color_error = "\033[31;40;1m"; //红色
+const char *color_warn  = "\033[33;40;1m"; //黄色
+const char *color_info  = "\033[32;40;1m"; //绿色
 const char *color_end   = "\033[0m";
 
 static void _write_task_cb(uv_write_t* req, int status) {
@@ -18,7 +18,7 @@ static void _write_task_cb(uv_write_t* req, int status) {
     delete msg_req;
     delete req;
 
-    //д��һ����־
+    //写下一条日志
     apd->Write();
 }
 

@@ -33,7 +33,7 @@ namespace uvLogPlus {
 
     void RollingFileAppender::CheckFile(bool append) {
         opening = true;
-        //确锟斤拷锟较硷拷目录锟窖憋拷锟斤拷锟斤拷
+        //确定上级目录已被创建
         if(file_sys_check_path(file_name.c_str())){
             printf("create log file dir failed");
             opening = false;
@@ -41,7 +41,7 @@ namespace uvLogPlus {
             return;
         }
         if(!append){
-            //锟叫讹拷锟侥硷拷锟角凤拷锟斤拷冢锟斤拷锟斤拷锟斤拷锟节撅拷锟斤拷锟斤拷锟斤拷
+            //判断文件是否存在，如果存在就重命名
             if(file_sys_exist(file_name.c_str()) == 0) {
                 RenameFile(1);
                 std::string newName = file_name + ".1";
@@ -72,7 +72,7 @@ namespace uvLogPlus {
         } else if(policies.time_policy.interval > 0){
 
         } else {
-            //写锟斤拷一锟斤拷锟斤拷志
+            //写下一条日志
             Write();
         }
     }
@@ -83,17 +83,17 @@ namespace uvLogPlus {
             uv_fs_close(NULL, &req, file_handle, NULL);
             uv_fs_req_cleanup(&req);
             opened = false;
-            //锟斤拷锟铰达拷锟斤拷锟侥硷拷
+            //重新打开新文件
             CheckFile(false);
         }
-        //写锟斤拷一锟斤拷锟斤拷志
+        //写下一条日志
         writing = false;
         Write();
     }
 
     /**
-     * 锟斤拷锟斤拷apd锟斤拷锟侥硷拷锟斤拷锟斤拷锟斤拷为apd+1锟斤拷
-     * apd锟斤拷锟缴癸拷锟斤拷锟斤拷锟津返伙拷true锟斤拷锟斤拷锟斤拷为false
+     * 将第apd个文件重命名为apd+1。
+     * apd被成功清理则返回true，否则为false
      */
     bool RollingFileAppender::RenameFile(int apd) {
         std::string name = file_name + "." + std::to_string(apd);

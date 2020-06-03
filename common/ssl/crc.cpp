@@ -72,7 +72,7 @@ uint32_t CRC::Zwg_ntohl(uint32_t s)
     a.i = 0x01;
     if(a.buf)
     {
-        // С��
+        // 小端
         s = BSWAP32C(s);
     }
     return s;
@@ -82,7 +82,7 @@ uint32_t CRC::Zwg_ntohl(uint32_t s)
 
 /** 
  * Name:    InvertUint8 
- * Note: 	���ֽڵߵ���������0x12���0x48
+ * Note: 	把字节颠倒过来，如0x12变成0x48
 			0x12: 0001 0010
 			0x48: 0100 1000
  */

@@ -8,7 +8,7 @@
 
 namespace uvNetPlus {
 
-/** ï¿½Â¼ï¿½Ñ­ï¿½ï¿½eventloopÖ´ï¿½ï¿½ï¿½ß³Ì£ï¿½ï¿½ï¿½×°uv_loop */
+/** ÊÂ¼þÑ­»·eventloopÖ´ÐÐÏß³Ì£¬·â×°uv_loop */
 class CNet
 {
 public:
@@ -20,54 +20,54 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 
-/** TCPï¿½Í»ï¿½ï¿½ï¿½ */
+/** TCP¿Í»§¶Ë */
 class CTcpSocket
 {
     typedef void (*EventCB)(CTcpSocket* skt);
     typedef void (*RecvCB)(CTcpSocket* skt, char *data, int len);
     typedef void (*ErrorCB)(CTcpSocket* skt, std::string error);
 public:
-    EventCB      OnReady;     //socketï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    ErrorCB      OnConnect;   //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    RecvCB       OnRecv;      //ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½
-    EventCB      OnDrain;     //ï¿½ï¿½ï¿½Í¶ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½
-    EventCB      OnCLose;     //socketï¿½Ø±ï¿½
-    EventCB      OnEnd;       //ï¿½Õµï¿½ï¿½Ô·ï¿½fin,ï¿½ï¿½ï¿½ï¿½eof
-    EventCB      OnTimeout;   //ï¿½ï¿½Ê±ï¿½Øµï¿½
-    ErrorCB      OnError;     //ï¿½ï¿½ï¿½ï¿½Øµï¿½
+    EventCB      OnReady;     //socket´´½¨Íê³É
+    ErrorCB      OnConnect;   //Á¬½ÓÍê³É
+    RecvCB       OnRecv;      //ÊÕµ½Êý¾Ý
+    EventCB      OnDrain;     //·¢ËÍ¶ÓÁÐÈ«²¿Íê³É
+    EventCB      OnCLose;     //socket¹Ø±Õ
+    EventCB      OnEnd;       //ÊÕµ½¶Ô·½fin,¶Áµ½eof
+    EventCB      OnTimeout;   //³¬Ê±»Øµ÷
+    ErrorCB      OnError;     //´íÎó»Øµ÷
 
-    bool         autoRecv;    //ï¿½ï¿½ï¿½Ó½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¡ï¿½Ä¬ï¿½ï¿½true
-    bool         copy;        //ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½
-    void        *userData;    //ï¿½Ã»ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    uint64_t     fd;          // SOCKETï¿½ï¿½Öµ(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    bool         autoRecv;    //Á¬½Ó½¨Á¢ºóÊÇ·ñÁ¢¼´×Ô¶¯½ÓÊÕÊý¾Ý¡£Ä¬ÈÏtrue
+    bool         copy;        //·¢ËÍµÄÊý¾Ý¿½±´µ½ÁÙÊ±ÇøÓò
+    void        *userData;    //ÓÃ»§°ó¶¨×Ô¶¨ÒåÊý¾Ý
+    uint64_t     fd;          // SOCKETµÄÖµ(²âÊÔÓÃ)
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½tcpï¿½ï¿½ï¿½Ó¿Í»ï¿½ï¿½ï¿½Êµï¿½ï¿½
-     * @param net ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param usr ï¿½è¶¨ï¿½Ã»ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param copy ï¿½ï¿½ï¿½Ã·ï¿½ï¿½Í½Ó¿ï¿½Ê±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½Ð¹ï¿½ï¿½ï¿½
+     * ´´½¨Ò»¸ötcpÁ¬½Ó¿Í»§¶ËÊµÀý
+     * @param net »·¾³¾ä±ú
+     * @param usr Éè¶¨ÓÃ»§×Ô¶¨ÒåÊý¾Ý
+     * @param copy µ÷ÓÃ·¢ËÍ½Ó¿ÚÊ±£¬ÊÇ·ñ½«Êý¾Ý¿½±´µ½»º´æÓÉÄÚ²¿½øÐÐ¹ÜÀí
      */
     static CTcpSocket* Create(CNet* net, void *usr=nullptr, bool copy=true);
 
     /**
-     * ï¿½ì²½É¾ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
+     * Òì²½É¾³ýÕâ¸öÊµÀý
      */
     virtual void Delete() = 0;
 
     /**
-     * ï¿½ï¿½ï¿½Ó·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ï¿½ï¿½ï¿½OnConnectï¿½Øµï¿½
+     * Á¬½Ó·þÎñÆ÷£¬Á¬½ÓÍê³Éºóµ÷ÓÃOnConnect»Øµ÷
      */
     virtual void Connect(std::string strIP, uint32_t nPort) = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½socketï¿½Ä±ï¿½ï¿½Ø¶Ë¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param strIP ï¿½ï¿½ï¿½ï¿½IPï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ±ï¿½Ê¾ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½
-     * @param nPort ï¿½ï¿½ï¿½ï¿½ï¿½Ë¿Ú£ï¿½0ï¿½ï¿½Ê¾ï¿½ï¿½Ö¸ï¿½ï¿½
+     * ÉèÖÃsocketµÄ±¾µØ¶Ë¿Ú£¬Èç¹û²»Ö¸¶¨£¬½«ÓÐÏµÍ³×Ô¶¯·ÖÅä
+     * @param strIP ±¾µØIP£¬ÓÃÀ´Ö¸¶¨±¾¶¨Ê¹ÓÃÄÄÒ»¸öÍø¿¨¡£¿Õ±íÊ¾²»Ö¸¶¨¡£
+     * @param nPort ±¾¶¨¶Ë¿Ú£¬0±íÊ¾²»Ö¸¶¨
      */
     virtual void SetLocal(std::string strIP, uint32_t nPort) = 0; 
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý·Åµï¿½ï¿½ï¿½ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * ·¢ËÍÊý¾Ý¡£½«Êý¾Ý·Åµ½±¾µØ»º´æÆðÀ´
      */
     virtual void Send(const char *pData, uint32_t nLen) = 0;
 
@@ -76,41 +76,41 @@ protected:
     virtual ~CTcpSocket() = 0;
 };
 
-/** TCPï¿½ï¿½ï¿½ï¿½ï¿½ */
+/** TCP·þÎñ¶Ë */
 class CTcpServer
 {
     typedef void (*EventCB)(CTcpServer* svr, std::string err);
     typedef void (*ConnCB)(CTcpServer* svr, std::string err, CTcpSocket* client);
 public:
 
-    EventCB          OnListen;       // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É»Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½×´ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
-    ConnCB           OnConnection;   // ï¿½ï¿½ï¿½ï¿½ï¿½Ó»Øµï¿½
-    EventCB          OnClose;        // ï¿½ï¿½ï¿½ï¿½socketï¿½Ø±ï¿½ï¿½ï¿½É»Øµï¿½
-    EventCB          OnError;        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Øµï¿½
+    EventCB          OnListen;       // ¿ªÆô¼àÌýÍê³É»Øµ÷£¬´íÎóÊ±ÉÏÅ×´íÎóÏûÏ¢
+    ConnCB           OnConnection;   // ÐÂÁ¬½Ó»Øµ÷
+    EventCB          OnClose;        // ¼àÌýsocket¹Ø±ÕÍê³É»Øµ÷
+    EventCB          OnError;        // ·¢Éú´íÎó»Øµ÷
 
     void            *userData;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½tcpï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
-     * @param net ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param onConnection Ö¸ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Ä»Øµï¿½
-     * @param usr ï¿½è¶¨ï¿½Ã»ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * ´´½¨Ò»¸ötcp·þÎñ¶ËÊµÀý
+     * @param net »·¾³¾ä±ú
+     * @param onConnection Ö¸¶¨ÊÕµ½ÐÂÁ¬½ÓÊ±µÄ»Øµ÷
+     * @param usr Éè¶¨ÓÃ»§×Ô¶¨ÒåÊý¾Ý
      */
     static CTcpServer* Create(CNet* net, ConnCB onConnection, void *usr=nullptr);
 
     /**
-     * ï¿½ì²½É¾ï¿½ï¿½ï¿½ï¿½Ç°Êµï¿½ï¿½
+     * Òì²½É¾³ýµ±Ç°ÊµÀý
      */
     virtual void Delete() = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param strIP ï¿½ï¿½ï¿½ï¿½IPï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param nPort ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½Ë¿ï¿½
+     * Æô¶¯¼àÌý
+     * @param strIP ±¾µØIP£¬ÓÃÀ´Ö¸¶¨±¾¶¨Ê¹ÓÃÄÄÒ»¸öÍø¿¨
+     * @param nPort ±¾µØ¼àÌý¶Ë¿Ú
      */
     virtual bool Listen(std::string strIP, uint32_t nPort) = 0;
 
-    /** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Ú¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** ·þÎñÆ÷ÊÇ·ñÔÚ¼àÌýÁ¬½Ó */
     virtual bool Listening() = 0;
 protected:
     CTcpServer();
@@ -120,17 +120,17 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 class CTcpConnPool;
 
-/** TCPï¿½ï¿½ï¿½Ó³ï¿½ ï¿½ï¿½ï¿½ï¿½á¹¹ */
+/** TCPÁ¬½Ó³Ø ÇëÇó½á¹¹ */
 struct CTcpRequest {
-    std::string     host;   //ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ip
-    uint32_t        port;   //ï¿½ï¿½ï¿½ï¿½Ë¿ï¿½
-    std::string     localaddr; //ï¿½ï¿½ï¿½ï¿½ipï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½Ï¿Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    bool            copy;   //ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ñ¿½±ï¿½ï¿½ï¿½ï¿½Ú²ï¿½Î¬ï¿½ï¿½
-    bool            recv;   //tcpï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    void           *usr;    //ï¿½Ã»ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    bool            autodel;//ï¿½Øµï¿½ï¿½ï¿½ï¿½Ô¶ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ã»ï¿½ï¿½Ö¶ï¿½É¾ï¿½ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½trueï¿½ï¿½
+    std::string     host;   //ÇëÇóÄ¿±êÓòÃû»òip
+    uint32_t        port;   //ÇëÇó¶Ë¿Ú
+    std::string     localaddr; //±¾µØip£¬±íÃ÷Ê¹ÓÃÄÄÒ»¿éÍø¿¨¡£Ä¬ÈÏ¿Õ£¬²»ÏÞÖÆ
+    bool            copy;   //ÐèÒª·¢ËÍµÄÊý¾ÝÊÇ·ñ¿½±´µ½ÄÚ²¿Î¬»¤
+    bool            recv;   //tcpÇëÇóÊÇ·ñÐèÒª½ÓÊÕÊý¾Ý
+    void           *usr;    //ÓÃ»§×Ô¶¨ÒåÊý¾Ý
+    bool            autodel;//»Øµ÷ºó×Ô¶¯É¾³ý£¬²»ÐèÒªÓÃ»§ÊÖ¶¯É¾³ý¡£Ä¬ÈÏtrue¡£
 
-    CTcpConnPool   *pool;   //ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ø»ï¿½È¡ï¿½ï¿½ï¿½ï¿½
+    CTcpConnPool   *pool;   //´ÓÄÄÒ»¸öÁ¬½Ó³Ø»ñÈ¡Á¬½Ó
     CTcpRequest()
         : port(80)
         , copy(true)
@@ -141,48 +141,48 @@ struct CTcpRequest {
     {}
 };
 
-/** TCPï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ø£ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CTcpAgent */
+/** TCP¿Í»§¶ËÁ¬½Ó³Ø£¬×Ô¶¯¹ÜÀí¶à¸öCTcpAgent */
 class CTcpConnPool
 {
     typedef void(*ErrorCB)(CTcpRequest *req, std::string error);
     typedef void (*ReqCB)(CTcpRequest* req, CTcpSocket* skt);
 public:
-    uint32_t   maxConns;    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ä¬ï¿½ï¿½512(busy+idle)
-    uint32_t   maxIdle;     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ä¬ï¿½ï¿½100
-    uint32_t   timeOut;     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½Ê±Ê±ï¿½ï¿½ ï¿½ï¿½ Ä¬ï¿½ï¿½20s 0Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±
-    uint32_t   maxRequest;  //ï¿½ï¿½ï¿½Ó´ïµ½ï¿½ï¿½ï¿½Ê±ï¿½Ü´ï¿½Åµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ä¬ï¿½ï¿½0 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    uint32_t   maxConns;    //×î´óÁ¬½ÓÊý Ä¬ÈÏ512(busy+idle)
+    uint32_t   maxIdle;     //×î´ó¿ÕÏÐÁ¬½ÓÊý Ä¬ÈÏ100
+    uint32_t   timeOut;     //¿ÕÏÐÁ¬½Ó³¬Ê±Ê±¼ä Ãë Ä¬ÈÏ20s 0ÎªÓÀ²»³¬Ê±
+    uint32_t   maxRequest;  //Á¬½Ó´ïµ½×î´óÊ±ÄÜ´æ·ÅµÄÇëÇóÊý Ä¬ÈÏ0 ²»ÏÞÖÆ
 
-    ErrorCB    OnError;     //ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü»Øµï¿½
-    ReqCB      OnRequest;   //ï¿½ï¿½È¡TCPï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó»Øµï¿½
+    ErrorCB    OnError;     //»ñÈ¡Á¬½ÓÊ§°Ü»Øµ÷
+    ReqCB      OnRequest;   //»ñÈ¡TCP¿Í»§¶ËÁ¬½Ó»Øµ÷
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½
-     * @param net loopÊµï¿½ï¿½
-     * @param onReq ï¿½ï¿½È¡TCPï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó»Øµï¿½
+     * ´´½¨Á¬½Ó³Ø
+     * @param net loopÊµÀý
+     * @param onReq »ñÈ¡TCP¿Í»§¶ËÁ¬½Ó»Øµ÷
      */
     static CTcpConnPool* Create(CNet* net, ReqCB onReq);
 
     /**
-     * ï¿½ì²½É¾ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½
+     * Òì²½É¾³ýÁ¬½Ó³Ø
      */
     virtual void Delete() = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ø»ï¿½È¡Ò»ï¿½ï¿½socketï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ã»ï¿½É¾ï¿½ï¿½
-     * @param host ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¿ï¿½
-     * @param port ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½Ë¿ï¿½
-     * @param localaddr ï¿½ï¿½ï¿½ï¿½ipï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½Õ±ï¿½Ê¾ï¿½ï¿½Ö¸ï¿½ï¿½
-     * @param usr ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½Øµï¿½Ê±ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param copy ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ñ¿½±ï¿½ï¿½ï¿½ï¿½Ú²ï¿½
-     * @param recv ï¿½Ç·ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½
-     * @return ï¿½ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½
+     * ´ÓÁ¬½Ó³Ø»ñÈ¡Ò»¸ösocket¡£ÄÚ²¿ÉêÇëµÄ¶ÔÏó£¬ÐèÒªÓÃ»§É¾³ý
+     * @param host ÇëÇóÄ¿±êÓòÃû»ò¶Ë¿Ú
+     * @param port ÇëÇóÄ¿±ê¶Ë¿Ú
+     * @param localaddr ±¾µØip£¬Ö¸¶¨Íø¿¨£¬Îª¿Õ±íÊ¾²»Ö¸¶¨
+     * @param usr °ó¶¨Ò»¸öÓÃ»§Êý¾Ý£¬»Øµ÷Ê±×÷Îª²ÎÊýÊä³ö
+     * @param copy ·¢ËÍµÄÊý¾ÝÊÇ·ñ¿½±´µ½ÄÚ²¿
+     * @param recv ÊÇ·ñÐèÒª½ÓÊÕÓ¦´ð
+     * @return ·µ»ØÐÂµÄÇëÇóÊµÀý
      */
     virtual bool Request(std::string host, uint32_t port, std::string localaddr
         , void *usr=nullptr, bool copy=true, bool recv=true) = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½Ó³Ø»ï¿½È¡Ò»ï¿½ï¿½socket
-     * @param req ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹¹
+     * ´ÓÁ¬½Ó³Ø»ñÈ¡Ò»¸ösocket
+     * @param req ÇëÇó²ÎÊý½á¹¹
      */
     virtual bool Request(CTcpRequest *req) = 0;
 
@@ -215,24 +215,24 @@ enum VERSION {
 
 class CIncomingMsg {
 public:
-    bool aborted;   //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹Ê±ï¿½ï¿½ï¿½ï¿½Îªtrue
-    bool complete;  //httpï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Îªtrue
+    bool aborted;   //ÇëÇóÖÕÖ¹Ê±ÉèÖÃÎªtrue
+    bool complete;  //httpÏûÏ¢½ÓÊÕÍêÕûÊ±ÉèÖÃÎªtrue
 
-    METHOD      method;     // ï¿½ï¿½ï¿½ó·½·ï¿½
-    std::string path;        // ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
+    METHOD      method;     // ÇëÇó·½·¨
+    std::string path;        // ÇëÇóÂ·¾¶
 
-    int         statusCode;     //Ó¦ï¿½ï¿½×´Ì¬ï¿½ï¿½
-    std::string statusMessage;  //Ó¦ï¿½ï¿½×´Ì¬ï¿½ï¿½Ï¢
+    int         statusCode;     //Ó¦´ð×´Ì¬Âë
+    std::string statusMessage;  //Ó¦´ð×´Ì¬ÏûÏ¢
 
-    VERSION     version;        //httpï¿½æ±¾ï¿½ï¿½ 1.1ï¿½ï¿½1.0
-    std::string rawHeaders;     //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
-    std::string rawTrailers;    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î²ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
-    hash_list   headers;        //ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½httpÍ·ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½
-    hash_list   trailers;       //ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½httpÎ²ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½
-    bool        keepAlive;      // ï¿½Ç·ï¿½Ê¹ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½, trueÊ±ï¿½ï¿½Ê¹ï¿½ï¿½CTcpConnPoolï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    VERSION     version;        //http°æ±¾ºÅ 1.1»ò1.0
+    std::string rawHeaders;     //ÍêÕûµÄÍ·²¿×Ö·û´®
+    std::string rawTrailers;    //ÍêÕûµÄÎ²²¿×Ö·û´®
+    hash_list   headers;        //½âÎöºÃµÄhttpÍ·²¿¼üÖµ¶Ô
+    hash_list   trailers;       //½âÎöºÃµÄhttpÎ²²¿¼üÖµ¶Ô
+    bool        keepAlive;      // ÊÇ·ñÊ¹ÓÃ³¤Á¬½Ó, trueÊ±£¬Ê¹ÓÃCTcpConnPool¹ÜÀíÁ¬½Ó
     bool        chunked;        // Transfer-Encoding: chunked
-    uint32_t    contentLen;     // chunkedÎªfalseÊ±ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È£ï¿½chunkedÎªtrueÊ±ï¿½ï¿½ï¿½é³¤ï¿½ï¿½
-    std::string content;        // Ò»ï¿½ÎµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    uint32_t    contentLen;     // chunkedÎªfalseÊ±£ºÄÚÈÝ³¤¶È£»chunkedÎªtrueÊ±£¬¿é³¤¶È
+    std::string content;        // Ò»´ÎµÄ½ÓÊÕÄÚÈÝ
 
     CIncomingMsg();
     ~CIncomingMsg();
@@ -244,47 +244,47 @@ public:
     ~CHttpMsg();
 
     /**
-     * ï¿½ï¿½Ê¾ï¿½ï¿½Ð´httpÍ·ï¿½ï¿½ï¿½ï¿½ï¿½Ãºï¿½ï¿½ï¿½Ê½httpÍ·ï¿½Ä½Ó¿Ú¾ï¿½ï¿½ï¿½Ð§ï¿½ï¿½
-     * @param headers httpÍ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿Ò»ï¿½Ð½ï¿½Î²ï¿½ï¿½"\r\n"
+     * ÏÔÊ¾ÌîÐ´httpÍ·£¬µ÷ÓÃºóÒþÊ½httpÍ·µÄ½Ó¿Ú¾ÍÎÞÐ§ÁË
+     * @param headers httpÍ·ÓòÍêÕû×Ö·û´®£¬°üº¬Ã¿Ò»ÐÐ½áÎ²µÄ"\r\n"
      */
     virtual void WriteHead(std::string headers);
 
     /**
-     * ï¿½ï¿½È¡ï¿½Ñ¾ï¿½ï¿½è¶¨ï¿½ï¿½ï¿½ï¿½Ê½Í·
+     * »ñÈ¡ÒÑ¾­Éè¶¨µÄÒþÊ½Í·
      */
     virtual std::vector<std::string> GetHeader(std::string name);
 
     /**
-     * ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½è¶¨ï¿½ï¿½ï¿½ï¿½Ê½Í·ï¿½ï¿½key
+     * »ñÈ¡ËùÓÐÉè¶¨µÄÒþÊ½Í·µÄkey
      */
     virtual std::vector<std::string> GetHeaderNames();
 
     /**
-     * ï¿½ï¿½Ê½Í·ï¿½Ç·ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * ÒþÊ½Í·ÊÇ·ñÒÑ¾­°üº¬Ò»¸öÃû³Æ
      */
     virtual bool HasHeader(std::string name);
 
     /**
-     * ï¿½Æ³ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ê½Í·
+     * ÒÆ³ýÒ»¸öÒþÊ½Í·
      */
     virtual void RemoveHeader(std::string name);
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Í·ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ê½Í·
+     * ÖØÐÂÉèÖÃÒ»¸öÍ·µÄÖµ£¬»òÕßÐÂÔöÒ»¸öÒþÊ½Í·
      * param name field name
-     * param value ï¿½ï¿½ï¿½ï¿½field value
-     * param values ï¿½ï¿½NULLï¿½ï¿½Î²ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½field value
+     * param value µ¥¸öfield value
+     * param values ÒÔNULL½áÎ²µÄ×Ö·û´®Êý×é£¬¶à¸öfield value
      */
     virtual void SetHeader(std::string name, std::string value);
     virtual void SetHeader(std::string name, char **values);
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ý·Ö¶ï¿½Î·ï¿½ï¿½Í£ï¿½ï¿½Ò²ï¿½Ê¹ï¿½ï¿½chunkedÊ±Ê¹ï¿½Ã¡ï¿½
+     * ÉèÖÃÄÚÈÝ³¤¶È¡£ÄÚÈÝ·Ö¶à´Î·¢ËÍ£¬ÇÒ²»Ê¹ÓÃchunkedÊ±Ê¹ÓÃ¡£
      */
     virtual void SetContentLen(uint32_t len);
 
     /**
-     * ï¿½é¿´ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
+     * ²é¿´ÊÇ·ñÍê³É
      */
     virtual bool Finished();
 
@@ -292,15 +292,15 @@ public:
      CTcpSocket        *tcpSocket;
 
 protected:
-    /** ï¿½ï¿½ï¿½ï¿½Ê½Í·ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ */
+    /** ÓÉÒþÊ½Í·×é³É×Ö·û´® */
     std::string getImHeaderString();
 
 protected:
-    std::string         m_strHeaders;   // ï¿½ï¿½Ê½ï¿½ï¿½Í·
-    hash_list           m_Headers;      // ï¿½ï¿½Ê½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    bool                m_bHeadersSent; // headerï¿½Ç·ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½
-    bool                m_bFinished;    // ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
-    uint32_t            m_nContentLen;  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+    std::string         m_strHeaders;   // ÏÔÊ½µÄÍ·
+    hash_list           m_Headers;      // ÒþÊ½Í·µÄÄÚÈÝ
+    bool                m_bHeadersSent; // headerÊÇ·ñÒÑ¾­·¢ËÍ
+    bool                m_bFinished;    // ·¢ËÍÊÇ·ñÍê³É
+    uint32_t            m_nContentLen;  // ÉèÖÃÄÚÈÝµÄ³¤¶È
 };
 
 class CHttpRequest : public CHttpMsg {
@@ -309,54 +309,54 @@ class CHttpRequest : public CHttpMsg {
 public:
     typedef void(*DrainCB)(CHttpRequest *req);
 
-    PROTOCOL            protocol;  // Ð­ï¿½ï¿½,httpï¿½ï¿½https
-    METHOD              method;    // ï¿½ï¿½ï¿½ï¿½
-    std::string         path;      // ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½
-    VERSION             version;   // httpï¿½æ±¾ï¿½ï¿½ 1.0ï¿½ï¿½1.1
-    std::string         host;      // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IP
-    int                 port;      // ï¿½Ë¿ï¿½
-    std::string         localaddr; // Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IPï¿½ï¿½Ä¬ï¿½ï¿½Îªï¿½ï¿½
-    int                 localport; // Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ø¶Ë¿Ú£ï¿½ Ä¬ï¿½ï¿½Îª0ï¿½ï¿½Ö»ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òª
-    bool                keepAlive; // ï¿½Ç·ï¿½Ê¹ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½, trueÊ±ï¿½ï¿½Ê¹ï¿½ï¿½CTcpConnPoolï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    PROTOCOL            protocol;  // Ð­Òé,http»òhttps
+    METHOD              method;    // ·½·¨
+    std::string         path;      // ÇëÇóÂ·¾¶
+    VERSION             version;   // http°æ±¾ºÅ 1.0»ò1.1
+    std::string         host;      // ÓòÃû»òIP
+    int                 port;      // ¶Ë¿Ú
+    std::string         localaddr; // Ö¸¶¨±¾µØIP£¬Ä¬ÈÏÎª¿Õ
+    int                 localport; // Ö¸¶¨±¾µØ¶Ë¿Ú£¬ Ä¬ÈÏÎª0¡£Ö»ÓÐºÜÌØÊâµÄÇéÐÎÐèÒªÉèÖÃ£¬Õý³£¶¼²»ÐèÒª
+    bool                keepAlive; // ÊÇ·ñÊ¹ÓÃ³¤Á¬½Ó, trueÊ±£¬Ê¹ÓÃCTcpConnPool¹ÜÀíÁ¬½Ó
     bool                chunked;   // Transfer-Encoding: chunked
-    void               *usrData;   // ï¿½Ã»ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    bool                autodel;   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ï¿½Ô¶ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ö¶ï¿½ï¿½Í·Å¡ï¿½
-    uint64_t            fd;        // SOCKETï¿½ï¿½Öµ(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    void               *usrData;   // ÓÃ»§×Ô¶¨ÒåÊý¾Ý
+    bool                autodel;   // ½ÓÊÕÍê³Éºó×Ô¶¯É¾³ý£¬²»ÐèÒªÊÖ¶¯ÊÍ·Å¡£
+    uint64_t            fd;        // SOCKETµÄÖµ(²âÊÔÓÃ)
 
 
-    /** ï¿½Í»ï¿½ï¿½ï¿½ï¿½Õµï¿½connectï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½Ê±ï¿½Øµï¿½ */
+    /** ¿Í»§¶ËÊÕµ½connect·½·¨µÄÓ¦´ðÊ±»Øµ÷ */
     ResCB OnConnect;
-    /** ï¿½Í»ï¿½ï¿½ï¿½ï¿½Õµï¿½1xxÓ¦ï¿½ï¿½(101ï¿½ï¿½ï¿½ï¿½)Ê±ï¿½Øµï¿½ */
+    /** ¿Í»§¶ËÊÕµ½1xxÓ¦´ð(101³ýÍâ)Ê±»Øµ÷ */
     ResCB OnInformation;
-    /** ï¿½Í»ï¿½ï¿½ï¿½ï¿½Õµï¿½101 upgrade Ê±ï¿½Øµï¿½ */
+    /** ¿Í»§¶ËÊÕµ½101 upgrade Ê±»Øµ÷ */
     ResCB OnUpgrade;
-    /** ï¿½Í»ï¿½ï¿½ï¿½ï¿½Õµï¿½Ó¦ï¿½ï¿½Ê±ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ò²»»ï¿½ï¿½Ù´Î½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** ¿Í»§¶ËÊÕµ½Ó¦´ðÊ±»Øµ÷£¬Èç¹ûÊÇÆäËûÖ¸¶¨»Øµ÷£¬Ôò²»»áÔÙ´Î½øÈëÕâÀï */
     ResCB OnResponse;
 
 
-    ErrorCB     OnError;        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-    DrainCB     OnDrain;        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    ErrorCB     OnError;        // ·¢Éú´íÎó
+    DrainCB     OnDrain;        // ·¢ËÍÊý¾ÝÍê³É
 
-    /** É¾ï¿½ï¿½Êµï¿½ï¿½ */
+    /** É¾³ýÊµÀý */
     virtual void Delete() = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½chunked=trueï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½chunkï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * ï¿½ï¿½ï¿½chunked=falseï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½length
-     * @param chunk ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param len ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½
-     * @param cb ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ë»ºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+     * ÓÃÀ´·¢ËÍÒ»¿éÊý¾Ý£¬Èç¹ûchunked=true£¬·¢ËÍÒ»¸öchunkµÄÊý¾Ý
+     * Èç¹ûchunked=false£¬Ê¹ÓÃÕâ¸ö·½·¨¶à´Î·¢ËÍÊý¾Ý£¬±ØÐë×Ô¼ºÔÚÉèÖÃÍ·ÀïÉèÖÃlength
+     * @param chunk ÐèÒª·¢ËÍµÄÊý¾Ý
+     * @param len ·¢ËÍµÄÊý¾Ý³¤¶È
+     * @param cb Êý¾ÝÐ´Èë»º´æºóµ÷ÓÃ
      */
     virtual bool Write(const char* chunk, int len, DrainCB cb = NULL) = 0;
 
     /**
-     * ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ÍµÄ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ä·¢ï¿½Í£ï¿½ï¿½ï¿½ï¿½chunked=trueï¿½ï¿½ï¿½ï¿½ï¿½â·¢ï¿½Í½ï¿½ï¿½ï¿½ï¿½ï¿½'0\r\n\r\n'
-     * ï¿½ï¿½ï¿½chunked=false,Ð­ï¿½ï¿½Í·Ã»ï¿½Ð·ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½length
+     * Íê³ÉÒ»¸ö·¢ËÍÇëÇó£¬Èç¹ûÓÐÎ´·¢ËÍµÄ²¿·ÖÔò½«Æä·¢ËÍ£¬Èç¹ûchunked=true£¬¶îÍâ·¢ËÍ½áÊø¶Î'0\r\n\r\n'
+     * Èç¹ûchunked=false,Ð­ÒéÍ·Ã»ÓÐ·¢ËÍ£¬Ôò×Ô¶¯Ìí¼Ólength
      */
     virtual bool End() = 0;
 
     /**
-     * ï¿½àµ±ï¿½ï¿½Write(data, len, cb);end();
+     * Ïàµ±ÓÚWrite(data, len, cb);end();
      */
     virtual void End(const char* data, int len) = 0;
 protected:
@@ -369,19 +369,19 @@ public:
     typedef void(*ReqCB)(CHttpRequest *req, void* usr, std::string error);
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½httpï¿½Í»ï¿½ï¿½Ë»ï¿½ï¿½ï¿½
-     * @param net ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param maxConns Í¬Ò»ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param maxIdle Í¬Ò»ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param timeOut ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½Ê±Ê±ï¿½ï¿½
-     * @param maxRequest Í¬Ò»ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ó»º´ï¿½
+     * ´´½¨Ò»¸öhttp¿Í»§¶Ë»·¾³
+     * @param net »·¾³¾ä±ú
+     * @param maxConns Í¬Ò»¸öµØÖ·×î´óÁ¬½ÓÊý
+     * @param maxIdle Í¬Ò»¸öµØÖ·×î´ó¿ÕÏÐÁ¬½Ó
+     * @param timeOut ¿ÕÏÐÁ¬½Ó³¬Ê±Ê±¼ä
+     * @param maxRequest Í¬Ò»¸öµØÖ·ÇëÇó×î´ó»º´æ
      */
     CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
     ~CHttpClientEnv();
     bool Request(std::string host, int port, void* usr = NULL, ReqCB cb = NULL);
 
     /**
-     * Ä¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½É¹ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Requestï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä»Øµï¿½
+     * Ä¬ÈÏÇëÇó»ñÈ¡³É¹¦»Øµ÷º¯Êý£¬Èç¹ûRequestÉèÖÃÁËÖ¸¶¨»Øµ÷£¬ÔòÓÅÏÈÊ¹ÓÃÖ¸¶¨µÄ»Øµ÷
      */
     ReqCB                OnRequest;
     CTcpConnPool        *connPool;
@@ -391,27 +391,27 @@ class CHttpResponse : public CHttpMsg {
 public:
     typedef void(*ResCb)(CHttpResponse *response);
 
-    bool                sendDate;      // Ä¬ï¿½ï¿½trueï¿½ï¿½ï¿½Ú·ï¿½ï¿½ï¿½Í·Ê±ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½DateÍ·(ï¿½Ñ´ï¿½ï¿½ï¿½ï¿½ò²»»ï¿½ï¿½ï¿½ï¿½ï¿½)
-    int                 statusCode;    // ×´Ì¬ï¿½ï¿½
-    std::string         statusMessage; //ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½È¡ï¿½ï¿½×¼ï¿½ï¿½Ï¢
-    VERSION             version;       // httpï¿½æ±¾ï¿½ï¿½ 1.0ï¿½ï¿½1.1
-    bool                keepAlive; // ï¿½Ç·ï¿½Ê¹ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½, trueÊ±ï¿½ï¿½Ê¹ï¿½ï¿½CTcpConnPoolï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    bool                sendDate;      // Ä¬ÈÏtrue£¬ÔÚ·¢ËÍÍ·Ê±×Ô¶¯Ìí¼ÓDateÍ·(ÒÑ´æÔÚÔò²»»áÌí¼Ó)
+    int                 statusCode;    // ×´Ì¬Âë
+    std::string         statusMessage; //×Ô¶¨ÒåµÄ×´Ì¬ÏûÏ¢£¬Èç¹ûÎª¿Õ£¬·¢ËÍÊ±»áÈ¡±ê×¼ÏûÏ¢
+    VERSION             version;       // http°æ±¾ºÅ 1.0»ò1.1
+    bool                keepAlive; // ÊÇ·ñÊ¹ÓÃ³¤Á¬½Ó, trueÊ±£¬Ê¹ÓÃCTcpConnPool¹ÜÀíÁ¬½Ó
     bool                chunked;   // Transfer-Encoding: chunked
 
-    /** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°,socketï¿½Ð¶ï¿½ï¿½Ë»ï¿½Øµï¿½ï¿½Ã·ï¿½ï¿½ï¿½ */
+    /** ·¢ËÍÍê³ÉÇ°,socketÖÐ¶ÏÁË»á»Øµ÷¸Ã·½·¨ */
     ResCb OnClose;
-    /** Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** Ó¦´ð·¢ËÍÍê³ÉÊ±»Øµ÷£¬ËùÓÐÊý¾Ý¶¼ÒÑ¾­·¢ËÍ */
     ResCb OnFinish;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Î²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
-     * @param key Î²ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½field nameï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½Ñ¾ï¿½ï¿½ï¿½headerï¿½Ðµï¿½Trailerï¿½ï¶¨ï¿½ï¿½ï¿½ï¿½
-     * @param value Î²ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½field value
+     * Ìí¼ÓÒ»¸öÎ²²¿Êý¾Ý
+     * @param key Î²²¿Êý¾ÝµÄfield name£¬Õâ¸öÖµÒÑ¾­ÔÚheaderÖÐµÄTrailerÀï¶¨ÒåÁË
+     * @param value Î²²¿Êý¾ÝµÄfield value
      */
     virtual void AddTrailers(std::string key, std::string value) = 0;
 
     /**
-     * Sends a HTTP/1.1 100 Continue messageï¿½ï¿½ï¿½ï¿½ï¿½ï¿½writeï¿½ï¿½endï¿½Ä¹ï¿½ï¿½ï¿½
+     * Sends a HTTP/1.1 100 Continue message¡£°üÀ¨writeºÍendµÄ¹¦ÄÜ
      */
     virtual void WriteContinue() = 0;
 
@@ -421,25 +421,25 @@ public:
     virtual void WriteProcessing() = 0;
 
     /**
-     * ï¿½ï¿½Ê¾ï¿½ï¿½Ð´httpÍ·ï¿½ï¿½ï¿½ï¿½ï¿½Ãºï¿½ï¿½ï¿½Ê½httpÍ·ï¿½Ä½Ó¿Ú¾ï¿½ï¿½ï¿½Ð§ï¿½ï¿½
-     * @param statusCode ï¿½ï¿½Ó¦×´Ì¬ï¿½ï¿½
-     * @param statusMessage ï¿½Ô¶ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½Õ£ï¿½ï¿½ï¿½Ê¹ï¿½Ã±ï¿½×¼ï¿½ï¿½Ï¢
-     * @param headers httpÍ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½Ð¶ï¿½Òªï¿½ï¿½ï¿½ï¿½"\r\n"
+     * ÏÔÊ¾ÌîÐ´httpÍ·£¬µ÷ÓÃºóÒþÊ½httpÍ·µÄ½Ó¿Ú¾ÍÎÞÐ§ÁË
+     * @param statusCode ÏìÓ¦×´Ì¬Âë
+     * @param statusMessage ×Ô¶¨Òå×´Ì¬ÏûÏ¢£¬¿ÉÒÔÎª¿Õ£¬ÔòÊ¹ÓÃ±ê×¼ÏûÏ¢
+     * @param headers httpÍ·ÓòÍêÕû×Ö·û´®£¬Ã¿ÐÐ¶¼Òª°üº¬"\r\n"
      */
     virtual void WriteHead(int statusCode, std::string statusMessage, std::string headers) = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë´Ë·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Ðµï¿½ï¿½ï¿½writeHead()ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½Ê½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·
+     * Èç¹ûµ÷ÓÃÁË´Ë·½·¨£¬µ«Ã»ÓÐµ÷ÓÃwriteHead()£¬ÔòÊ¹ÓÃÒþÊ½Í·²¢Á¢¼´·¢ËÍÍ·
      */
     virtual void Write(const char* chunk, int len, ResCb cb = NULL) = 0;
 
     /**
-     * ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¶ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½Í¡ï¿½Ã¿ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½endï¿½ï¿½Ö´ï¿½Ðºï¿½á´¥ï¿½ï¿½OnFinish
+     * ±íÃ÷Ó¦´ðµÄËùÓÐÊý¾Ý¶¼ÒÑ¾­·¢ËÍ¡£Ã¿¸öÊµÀý¶¼ÐèÒªµ÷ÓÃÒ»´Îend¡£Ö´ÐÐºó»á´¥·¢OnFinish
      */
     virtual void End() = 0;
 
     /**
-     * ï¿½àµ±ï¿½Úµï¿½ï¿½ï¿½write(data, len, cb) ; end()
+     * Ïàµ±ÓÚµ÷ÓÃwrite(data, len, cb) ; end()
      */
     virtual void End(const char* data, int len, ResCb cb = NULL) = 0;
 
@@ -451,23 +451,23 @@ protected:
 class CHttpServer {
     typedef void(*ReqCb)(CHttpServer *server, CIncomingMsg *request, CHttpResponse *response);
 public:
-    /** ï¿½ï¿½ï¿½Üµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½'Expect: 100-continue'ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½'100 Continue' */
+    /** ½ÓÊÜµ½Ò»¸ö°üº¬'Expect: 100-continue'µÄÇëÇóÊ±µ÷ÓÃ£¬Èç¹ûÃ»ÓÐÖ¸¶¨£¬×Ô¶¯·¢ËÍ'100 Continue' */
     ReqCb OnCheckContinue;
-    /** ï¿½ï¿½ï¿½Õµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ExpectÍ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½100ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½'417 Expectation Failed' */
+    /** ½ÓÊÕµ½Ò»¸ö°üº¬ExpectÍ·£¬µ«²»ÊÇ100µÄÇëÇóÊ±µ÷ÓÃ£¬Èç¹ûÃ»ÓÐÖ¸¶¨£¬×Ô¶¯·¢ËÍ'417 Expectation Failed' */
     ReqCb OnCheckExpectation;
-    /** ï¿½Õµï¿½upgradeï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ */
+    /** ÊÕµ½upgradeÇëÇóÊ±µ÷ÓÃ */
     ReqCb OnUpgrade;
-    /** ï¿½ï¿½ï¿½Õµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** ½ÓÊÕµ½Ò»¸öÇëÇó£¬Èç¹ûÊÇÆäËûÖ¸¶¨µÄ»Øµ÷£¬¾Í²»»á½øÈëÕâÀï */
     ReqCb OnRequest;
 
-    /** ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Êµï¿½ï¿½ */
+    /** ´´½¨Ò»¸öÊµÀý */
     static CHttpServer* Create(CNet* net);
 
-    /** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** ·þÎñÆ÷Æô¶¯¼àÌý */
     virtual bool Listen(std::string strIP, uint32_t nPort) = 0;
-    /** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½ */
+    /** ·þÎñÆ÷¹Ø±Õ */
     virtual void Close() = 0;
-    /** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½Ú¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    /** ·þÎñÆ÷ÊÇ·ñÔÚ¼àÌýÁ¬½Ó */
     virtual bool Listening() = 0;
 protected:
     CHttpServer();

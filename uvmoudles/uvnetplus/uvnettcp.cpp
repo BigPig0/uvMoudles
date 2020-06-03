@@ -61,13 +61,13 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     CUNTcpSocket *skt = (CUNTcpSocket*)stream->data;
     if(nread < 0) {
-        skt->m_bUserClose = true;   //ï¿½ï¿½ï¿½ï¿½Ø±ï¿½
-        skt->m_bConnect = false;    //ï¿½ï¿½ï¿½Ó¶Ï¿ï¿½
-        //ï¿½Ô·ï¿½ï¿½Ø±Õ»ï¿½ï¿½ì³£Ê±ï¿½Ä»Øµï¿½ï¿½ï¿½ï¿½ï¿½
+        skt->m_bUserClose = true;   //½øÈë¹Ø±Õ
+        skt->m_bConnect = false;    //Á¬½Ó¶Ï¿ª
+        //¶Ô·½¹Ø±Õ»òÒì³£Ê±µÄ»Øµ÷´¦Àí
         if(skt->OnEnd) 
             skt->OnEnd(skt);
         if(nread == UV__ECONNRESET || nread == UV_EOF) {
-            //ï¿½Ô¶Ë·ï¿½ï¿½ï¿½ï¿½ï¿½FIN
+            //¶Ô¶Ë·¢ËÍÁËFIN
             Log::warning("remote close socket %llu [%s:%u]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
             uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);
         } else {
@@ -82,13 +82,13 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
         return;
     }
     skt->bytesRead += (uint32_t)nread;
-    if (skt->OnRecv)   //ï¿½ï¿½ï¿½Ý½ï¿½ï¿½Õ»Øµï¿½
+    if (skt->OnRecv)   //Êý¾Ý½ÓÊÕ»Øµ÷
         skt->OnRecv(skt, buf->base, (int)nread);
 }
 
 static void on_uv_connect(uv_connect_t* req, int status){
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
-#ifdef WINDOWS_IMPL
+#ifdef WIN32
     skt->fd = skt->uvTcp.socket;
 #else
     skt->fd = skt->uvTcp.io_watcher.fd;
@@ -104,7 +104,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 
     skt->m_bConnect = true;
 
-    // ï¿½Ô¶ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ×Ô¶¯¿ªÊ¼½ÓÊÕÊý¾Ý
     if(skt->autoRecv){
         int ret = uv_read_start((uv_stream_t*)&skt->uvTcp, on_uv_alloc, on_uv_read);
         if(ret != 0){
@@ -113,15 +113,15 @@ static void on_uv_connect(uv_connect_t* req, int status){
         }
     }
 
-    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É»Øµï¿½
+    // Á¬½ÓÍê³É»Øµ÷
     if(skt->OnConnect)
         skt->OnConnect(skt, "");
 
-    // ï¿½ï¿½ï¿½Ó³É¹ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ä·¢ï¿½ï¿½
+    // Á¬½Ó³É¹¦Ç°»º´æµÄÐèÒª·¢ËÍµÄÊý¾Ý£¬½«Æä·¢ËÍ
     skt->syncSend();
 }
 
-/** ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+/** Êý¾Ý·¢ËÍÍê³É */
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
     delete req;
@@ -227,12 +227,12 @@ void CUNTcpSocket::syncInit()
     uvTcp.data = this;
     int ret = uv_tcp_init(&m_pNet->m_uvLoop, &uvTcp);
     if(ret != 0) {
-        if(OnError) // ï¿½ï¿½ï¿½ï¿½tcpï¿½ï¿½ï¿½Ê§ï¿½ï¿½
+        if(OnError) // ´´½¨tcp¾ä±úÊ§°Ü
             OnError(this,uv_strerror(ret));
         return;
     }
     m_bInit = true;
-    if(OnReady) // ï¿½ï¿½ï¿½ï¿½tcpï¿½ï¿½ï¿½ï¿½ï¿½É»Øµï¿½
+    if(OnReady) // ´´½¨tcp¾ä±úÍê³É»Øµ÷
         OnReady(this);
 }
 
@@ -249,7 +249,7 @@ void CUNTcpSocket::syncConnect()
         ret = uv_ip4_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            if(OnConnect) // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
+            if(OnConnect) // Á¬½ÓÊ§°Ü
                 OnConnect(this,uv_strerror(ret));
             delete req;
         }
@@ -258,13 +258,13 @@ void CUNTcpSocket::syncConnect()
         ret = uv_ip6_addr(m_strRemoteIP.c_str(), m_nRemotePort, &addr);
         ret = uv_tcp_connect(req, &uvTcp, (struct sockaddr*)&addr, on_uv_connect);
         if(ret != 0) {
-            if(OnConnect) // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
+            if(OnConnect) // Á¬½ÓÊ§°Ü
                 OnConnect(this,uv_strerror(ret));
             delete req;
         }
     } else {
         if(ret != 0) {
-            if(OnConnect) // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
+            if(OnConnect) // Á¬½ÓÊ§°Ü
                 OnConnect(this, "ip is error");
             delete req;
         }
@@ -286,7 +286,7 @@ void CUNTcpSocket::syncSend()
         sendList.clear();
     }
     uv_mutex_unlock(&sendMtx);
-    if(num == 0)    //Ã»ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½
+    if(num == 0)    //Ã»ÓÐÐèÒª·¢ËÍµÄÊý¾Ý
         return;
 
     uv_write_t* req = new uv_write_t;
@@ -304,7 +304,7 @@ void CUNTcpSocket::syncClose()
         m_bUserClose = true;
         return;
     }
-    if(m_bInit) { //initÎªtrueÊ±ï¿½ï¿½Ê¾uv_tcp_t Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    if(m_bInit) { //initÎªtrueÊ±±íÊ¾uv_tcp_t ÊµÀý±»´´½¨
         if(m_bConnect){
             Log::warning("local shutdown socket %llu [%s:%u]", fd, m_strRemoteIP.c_str(), m_nRemotePort);
             m_bConnect = false;
@@ -347,7 +347,7 @@ void CUNTcpSocket::Send(const char *pData, uint32_t nLen)
     sendList.push_back(uv_buf_init(tmp, nLen));
     uv_mutex_unlock(&sendMtx);
 
-    if(m_bConnect || m_pSvr) //ï¿½Í»ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É²ï¿½ï¿½Ü·ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó¾ï¿½ï¿½Ü·ï¿½ï¿½ï¿½
+    if(m_bConnect || m_pSvr) //¿Í»§¶ËÐèÒª½¨Á¢Á¬½ÓÍê³É²ÅÄÜ·¢ËÍ£¬·þÎñ¶ËÖ±½Ó¾ÍÄÜ·¢ËÍ
         m_pNet->AddEvent(ASYNC_EVENT_TCP_SEND, this);
 }
 
@@ -476,7 +476,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
         return;
     }
 
-    // socketï¿½ï¿½ï¿½ï¿½ipï¿½Í¶Ë¿ï¿½
+    // socket±¾µØipºÍ¶Ë¿Ú
     struct sockaddr sockname;
     int namelen = sizeof(struct sockaddr);
     ret = uv_tcp_getsockname(&client->uvTcp, &sockname, &namelen);
@@ -494,7 +494,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
         client->m_nLocalPort = sin6->sin6_port;
     }
 
-    //socketÔ¶ï¿½ï¿½ipï¿½Í¶Ë¿ï¿½
+    //socketÔ¶¶ËipºÍ¶Ë¿Ú
     struct sockaddr peername;
     namelen = sizeof(struct sockaddr);
     ret = uv_tcp_getpeername(&client->uvTcp, &peername, &namelen);

@@ -34,7 +34,7 @@ void FileAppender::Init(uv_loop_t *uv) {
     uv_loop = uv;
     if(!opened && !opening){
         opening = true;
-        //确锟斤拷锟较硷拷目录锟窖憋拷锟斤拷锟斤拷
+        //确定上级目录已被创建
         if(file_sys_check_path(file_name.c_str())){
             printf("create log file dir failed");
             opening = false;
@@ -62,41 +62,41 @@ void FileAppender::Write() {
         return;
     }
 
-    //锟接讹拷锟斤拷锟斤拷取锟斤拷一锟斤拷锟斤拷锟斤拷
+    //从队列中取出一条数据
     std::shared_ptr<LogMsg> item;
     bool found = msg_queue.try_dequeue(item);
     if(!found)
         return;
     writing = true;
 
-    //锟斤拷锟斤拷锟斤拷志锟斤拷锟斤拷
+    //生成日志请求
     LogMsgReq *msg_req = new LogMsgReq;
     msg_req->appender = this;
     msg_req->item = item;
     msg_req->buff = (char *)calloc(1, 100);
     char *pos = msg_req->buff;
-    //锟竭筹拷ID
+    //线程ID
     char *szThread = pos;
     sprintf(szThread, "[%08d]", item->tid);
     pos += 20;
-    //时锟斤拷
+    //时间
     char *szTime = pos;
     CTimeFormat::printTime(item->msg_time, "%Y%m%d%H%M%S ", szTime);
     pos += 32;
-    //锟饺硷拷
+    //等级
     char *szLevel = levelNote[(int)item->level];
-    //锟侥硷拷锟斤拷
+    //文件名
     char *szFile = (char*)item->file_name;
     int nNameLen = strlen(item->file_name);
     if(nNameLen > 50) {
         szFile = (char*)item->file_name + (nNameLen - 50);
         nNameLen = 50;
     }
-    //锟叫猴拷
+    //行号
     char *szLine = pos;
     sprintf(szLine, ":%08d\t", item->line);
     pos += 15;
-    //锟斤拷锟斤拷锟斤拷
+    //函数名
     int nFuncLen = strlen(item->func_name);
     if(nFuncLen > 50)
         nFuncLen = 50;
@@ -118,7 +118,7 @@ void FileAppender::Write() {
 }
 
 void FileAppender::WriteCB(){
-    //写锟斤拷一锟斤拷锟斤拷志
+    //写下一条日志
     writing = false;
     Write();
 }

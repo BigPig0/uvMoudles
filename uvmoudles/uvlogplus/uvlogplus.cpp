@@ -57,7 +57,7 @@ namespace uvLogPlus {
         bool useroot = true;
         std::set<Appender*> apds;
 
-        //������־����
+        //根据日志名称
         auto fit = m_pConfig->loggers.find(name);
         if(fit != m_pConfig->loggers.end()) {
             bool hasapd = false;
@@ -72,7 +72,7 @@ namespace uvLogPlus {
                 useroot = false;
         }
 
-        //��־������Ҫд��rootĬ�ϵ�appender����
+        //日志内容需要写到root默认的appender里面
         if(useroot) {
             for(auto appenderName : m_pConfig->root->appender_ref) {
                 auto fitapd = m_pConfig->appenders.find(appenderName);
@@ -82,7 +82,7 @@ namespace uvLogPlus {
             }
         }
 
-        //��ʽ����־����
+        //格式化日志内容
         std::string format_msg;
         {
             size_t size = 4096;
@@ -109,12 +109,12 @@ namespace uvLogPlus {
                 }
             }
 
-            // expected�������ַ�����β���ţ���ֵ���ڣ�strlen(buffer_p)
+            // expected不包含字符串结尾符号，其值等于：strlen(buffer_p)
             format_msg = std::string(buffer_p, expected>0?expected:0);
         }
 
-        //����д��ÿ��appender
-        //�Ͱ汾vs��make_shared��֧�ֲ�����ô��Ĺ��캯��
+        //内容写到每个appender
+        //低版本vs的make_shared不支持参数这么多的构造函数
         std::shared_ptr<LogMsg> msg(new LogMsg(
             gettid(),
             level,
@@ -156,7 +156,7 @@ namespace uvLogPlus {
                 if(conf)
                     break;
             }
-            // �ļ���ʧ��
+            // 文件打开失败
             printf("uv fs open %s failed:%s\n", fname[i], uv_strerror(ret));
         }
         if(NULL == conf)
