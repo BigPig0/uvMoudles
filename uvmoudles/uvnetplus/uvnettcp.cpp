@@ -66,7 +66,7 @@ static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) 
         //对方关闭或异常时的回调处理
         if(skt->OnEnd) 
             skt->OnEnd(skt);
-        if(nread == UV__ECONNRESET || nread == UV_EOF) {
+        if(nread == UV_ECONNRESET || nread == UV_EOF) {
             //对端发送了FIN
             Log::warning("remote close socket %llu [%s:%u]", skt->fd, skt->m_strRemoteIP.c_str(), skt->m_nRemotePort);
             uv_close((uv_handle_t*)&skt->uvTcp, on_uv_close);

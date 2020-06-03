@@ -3,7 +3,7 @@
 #include <string>
 #include <list>
 #include <vector>
-#include <unordered_map>
+#include <map>
 #include <stdint.h>
 
 namespace uvNetPlus {
@@ -193,7 +193,7 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 namespace Http {
-typedef std::unordered_multimap<std::string, std::string> hash_list;
+typedef std::multimap<std::string, std::string> hash_list;
 
 enum METHOD {
     OPTIONS = 0,
