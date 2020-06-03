@@ -53,6 +53,59 @@ $(shell mkdir -p $(TMP_DIR)libuv/)
 
 UVMODULES:cjson$(BITS) ssl$(BITS) utilc$(BITS)
 
+#thirdparty/libuv
+LIBUV_SRC_DIR = thirdparty/libuv/
+LIBUV_SOURCES =    src/fs-poll.c \
+                   src/heap-inl.h \
+                   src/inet.c \
+                   src/queue.h \
+                   src/threadpool.c \
+                   src/uv-data-getter-setters.c \
+                   src/uv-common.c \
+                   src/uv-common.h \
+                   src/version.c \
+				   src/unix/async.c \
+                   src/unix/atomic-ops.h \
+                   src/unix/core.c \
+                   src/unix/dl.c \
+                   src/unix/fs.c \
+                   src/unix/getaddrinfo.c \
+                   src/unix/getnameinfo.c \
+                   src/unix/internal.h \
+                   src/unix/loop-watcher.c \
+                   src/unix/loop.c \
+                   src/unix/pipe.c \
+                   src/unix/poll.c \
+                   src/unix/process.c \
+                   src/unix/signal.c \
+                   src/unix/spinlock.h \
+                   src/unix/stream.c \
+                   src/unix/tcp.c \
+                   src/unix/thread.c \
+                   src/unix/timer.c \
+                   src/unix/tty.c \
+                   src/unix/udp.c \
+				   src/unix/linux-core.c \
+                   src/unix/linux-inotify.c \
+                   src/unix/linux-syscalls.c \
+                   src/unix/linux-syscalls.h \
+                   src/unix/procfs-exepath.c \
+                   src/unix/proctitle.c \
+                   src/unix/sysinfo-loadavg.c \
+                   src/unix/sysinfo-memory.c
+LIBUV_OBJS = $(patsubst %.c,%.o,$(notdir $(LIBUV_SOURCES)))
+LIBUV_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_OBJS))
+
+libuv_static:$(LIBUV_OBJS)
+	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD)
+
+libuv_shared:$(LIBUV_OBJS)
+	$(CC) -I ./thirdparty/libuv/include -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
+
+$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES):%.c
+	$(CC) -I ./thirdparty/libuv/include $(CFLAGS) -c $< -o $(TMP_DIR)libuv/$@
+
+
 #thirdparty/cjson
 CJSON_SRC_DIR = thirdparty/cjson/
 CJSON_SOURCES = $(wildcard thirdparty/cjson/*.c)
