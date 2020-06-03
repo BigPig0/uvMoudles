@@ -172,8 +172,11 @@ private:
 private:
     int           m_nPort;      //服务监听端口
     CTcpServer   *m_pTcpSvr;    //tcp监听服务
-
+#ifdef WIN32
     std::unordered_multimap<std::string,CSvrConn*> m_pConns;   //所有连接的客户端请求
+#else
+    std::multimap<std::string,CSvrConn*> m_pConns;   //所有连接的客户端请求
+#endif
 };
 
 };

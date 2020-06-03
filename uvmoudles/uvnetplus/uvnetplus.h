@@ -3,6 +3,7 @@
 #include <string>
 #include <list>
 #include <vector>
+#include <unordered_map>
 #include <map>
 #include <stdint.h>
 
@@ -193,7 +194,11 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 namespace Http {
+#ifdef WIN32
+typedef std::unordered_multimap<std::string, std::string> hash_list;
+#else
 typedef std::multimap<std::string, std::string> hash_list;
+#endif
 
 enum METHOD {
     OPTIONS = 0,
