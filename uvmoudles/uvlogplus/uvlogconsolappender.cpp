@@ -23,9 +23,9 @@ static void _write_task_cb(uv_write_t* req, int status) {
 }
 
 ConsolAppender::ConsolAppender()
-    : opened(false)
+    : target(ConsolTarget::SYSTEM_OUT)
     , opening(false)
-    , target(ConsolTarget::SYSTEM_OUT)
+    , opened(false)
 {
     type = AppenderType::consol;
 }
@@ -44,7 +44,7 @@ void ConsolAppender::Init(uv_loop_t *uv) {
         opening = true;
         ret = uv_tty_init(uv, &tty_handle, fd, 0);
         if(ret < 0) {
-            printf("tty init failed: %s\r\n", strerror(ret));
+            printf("tty init failed: %s\r\n", uv_strerror(ret));
         }
         opened = true;
     }

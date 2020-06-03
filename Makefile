@@ -49,36 +49,33 @@ $(shell mkdir -p $(TMP_DIR)ssl/)
 $(shell mkdir -p $(TMP_DIR)cjson/)
 $(shell mkdir -p $(TMP_DIR)pugixml/)
 $(shell mkdir -p $(TMP_DIR)libuv/)
+$(shell mkdir -p $(TMP_DIR)uvipc/)
+$(shell mkdir -p $(TMP_DIR)uvlogplus/)
 
-
-UVMODULES:cjson$(BITS) ssl$(BITS) utilc$(BITS)
+thirdparty:libuv$(BITS) cjson$(BITS) pugixml$(BITS)
+uvmoudles:uvipc$(BITS)
+common:ssl$(BITS) utilc$(BITS)
 
 #thirdparty/libuv
 LIBUV_SRC_DIR = thirdparty/libuv/
-LIBUV_SOURCES =    src/fs-poll.c \
-                   src/heap-inl.h \
+LIBUV_SRC_FILE =   src/fs-poll.c \
                    src/inet.c \
-                   src/queue.h \
                    src/threadpool.c \
                    src/uv-data-getter-setters.c \
                    src/uv-common.c \
-                   src/uv-common.h \
                    src/version.c \
 				   src/unix/async.c \
-                   src/unix/atomic-ops.h \
                    src/unix/core.c \
                    src/unix/dl.c \
                    src/unix/fs.c \
                    src/unix/getaddrinfo.c \
                    src/unix/getnameinfo.c \
-                   src/unix/internal.h \
                    src/unix/loop-watcher.c \
                    src/unix/loop.c \
                    src/unix/pipe.c \
                    src/unix/poll.c \
                    src/unix/process.c \
                    src/unix/signal.c \
-                   src/unix/spinlock.h \
                    src/unix/stream.c \
                    src/unix/tcp.c \
                    src/unix/thread.c \
@@ -88,22 +85,23 @@ LIBUV_SOURCES =    src/fs-poll.c \
 				   src/unix/linux-core.c \
                    src/unix/linux-inotify.c \
                    src/unix/linux-syscalls.c \
-                   src/unix/linux-syscalls.h \
                    src/unix/procfs-exepath.c \
                    src/unix/proctitle.c \
                    src/unix/sysinfo-loadavg.c \
                    src/unix/sysinfo-memory.c
+LIBUV_SOURCES = $(addprefix $(LIBUV_SRC_DIR),$(LIBUV_SRC_FILE))
 LIBUV_OBJS = $(patsubst %.c,%.o,$(notdir $(LIBUV_SOURCES)))
 LIBUV_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_OBJS))
+LIBUV_FLAGS = -I ./thirdparty/libuv/include -I ./thirdparty/libuv/src -I ./thirdparty/libuv/src/unix
 
 libuv_static:$(LIBUV_OBJS)
 	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD)
 
 libuv_shared:$(LIBUV_OBJS)
-	$(CC) -I ./thirdparty/libuv/include -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
+	$(CC) -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
 
-$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES):%.c
-	$(CC) -I ./thirdparty/libuv/include $(CFLAGS) -c $< -o $(TMP_DIR)libuv/$@
+$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES)
+	$(CC) $(LIBUV_FLAGS) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
 
 
 #thirdparty/cjson
@@ -136,7 +134,46 @@ pugixml_shared:$(PUGIXML_OBJS)
 	$(GG) -shared -fPIC $(PUGIXML_OBJSD) -o $(OUT_DIR)pugixml.so
 
 $(PUGIXML_OBJS):%.o:$(PUGIXML_SRC_DIR)%.cpp
-	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)pugixml/$@
+	$(GG) $(GFLAGS) -c $< -o ccpugixml/$@
+
+#################################################################
+
+#uvmoudles/uvipc
+UVIPC_SRC_DIR = uvmoudles/uvipc/
+UVIPC_INCLUDE = -I ./thirdparty/libuv/include -I ./common/utilc
+
+uvipc_static:uvipc.o
+	$(AR) $(OUT_DIR)uvipc.a $(TMP_DIR)uvipc/uvipc.o
+
+uvipc_shared:uvipc.o
+	$(CC) -shared -fPIC $(TMP_DIR)uvipc/uvipc.o -o $(OUT_DIR)uvipc.so
+
+uvipc.o:$(UVIPC_SRC_DIR)uvIpc.c $(UVIPC_SRC_DIR)uvIpc.h
+	$(CC) $(UVIPC_INCLUDE) -fPIC -Wall -c $(UVIPC_SRC_DIR)uvIpc.c -o $(TMP_DIR)uvipc/uvipc.o
+
+#uvmoudles/uvlogplus
+UVLOGPLUS_SRC_DIR = uvmoudles/uvlogplus/
+UVLOGPLUS_SOURCES = $(wildcard uvmoudles/uvlogplus/*.cpp)
+UVLOGPLUS_OBJS = $(patsubst %.cpp,%.o,$(notdir $(UVLOGPLUS_SOURCES)))
+UVLOGPLUS_OBJSD = $(addprefix $(TMP_DIR)uvlogplus/,$(UVLOGPLUS_OBJS))
+UVLOGPLUS_INCLUDE = -I ./thirdparty/libuv/include
+UVLOGPLUS_INCLUDE += -I ./thirdparty/cjson
+UVLOGPLUS_INCLUDE += -I ./thirdparty/pugixml
+UVLOGPLUS_INCLUDE += -I ./common/utilc
+UVLOGPLUS_INCLUDE += -I ./common/util
+UVLOGPLUS_INCLUDE += -I ./common/util/lock_free
+
+uvlogplus_static:$(UVLOGPLUS_OBJS)
+	$(AR) $(OUT_DIR)uvlogplus.a $(UVLOGPLUS_OBJSD)
+
+uvlogplus_shared:$(UVLOGPLUS_OBJS)
+	$(GG) -shared -fPIC $(UTIL_OBJSD) -o $(OUT_DIR)uvlogplus.so
+
+$(UVLOGPLUS_OBJS):%.o:$(UVLOGPLUS_SRC_DIR)%.cpp
+	$(GG) $(UVLOGPLUS_INCLUDE) $(GFLAGS) -c $< -o $(TMP_DIR)uvlogplus/$@
+
+
+######################################################################
 
 #common/utilc
 UTILC_SRC_DIR = common/utilc/
@@ -190,4 +227,6 @@ clean:
 	rm -rf $(TMP_DIR)cjson/*.o
 	rm -rf $(TMP_DIR)pugixml/*.o
 	rm -rf $(TMP_DIR)libuv/*.o
+	rm -rf $(TMP_DIR)uvipc/*.o
+	rm -rf $(TMP_DIR)uvlogplus/*.o
 
