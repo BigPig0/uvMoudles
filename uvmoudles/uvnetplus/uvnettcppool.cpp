@@ -78,12 +78,12 @@ void CTcpPoolAgent::Delete()
 }
 
 CTcpPoolAgent::CTcpPoolAgent(CUVNetPlus* net, CUNTcpConnPool *p)
-    : m_pNet(net)
-    , m_pTcpConnPool(p)
-    , maxConns(512)
+    : maxConns(512)
     , maxIdle(100)
     , timeOut(20)
     , maxRequest(0)
+    , m_pNet(net)
+    , m_pTcpConnPool(p)
 {
 }
 

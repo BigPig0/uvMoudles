@@ -464,7 +464,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
             OnConnection(this, uv_strerror(status), nullptr);
         return;
     }
-    CUNTcpServer *svr = (CUNTcpServer*)server->data;
+    //CUNTcpServer *svr = (CUNTcpServer*)server->data;
 
     CUNTcpSocket *client = new CUNTcpSocket(m_pNet);
     client->m_pSvr = this;

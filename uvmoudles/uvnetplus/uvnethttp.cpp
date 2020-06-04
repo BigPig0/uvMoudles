@@ -115,9 +115,9 @@ namespace Http {
         //Log::debug("client close");
     }
 
-    static void OnClientEnd(CTcpSocket* skt){
+    //static void OnClientEnd(CTcpSocket* skt){
         //Log::debug("client end");
-    }
+    //}
 
     static void OnClientError(CTcpSocket* skt, string err){
         Log::error("client error: %s ", err.c_str());
@@ -209,10 +209,10 @@ namespace Http {
     /** 基础发送消息 */
 
     CHttpMsg::CHttpMsg()
-        : m_bHeadersSent(false)
+        : tcpSocket(NULL)
+        , m_bHeadersSent(false)
         , m_bFinished(false)
-        , m_nContentLen(0)
-        , tcpSocket(NULL){}
+        , m_nContentLen(0){}
 
     CHttpMsg::~CHttpMsg(){
         if(tcpSocket)
@@ -303,12 +303,13 @@ namespace Http {
         , chunked(false)
         , usrData(NULL)
         , autodel(true)
+        , fd(0)
         , OnConnect(NULL)
         , OnInformation(NULL)
         , OnUpgrade(NULL)
         , OnResponse(NULL)
         , OnError(NULL)
-        , fd(0)
+        , OnDrain(NULL)
     {}
 
     CHttpRequest::~CHttpRequest(){}
@@ -338,7 +339,7 @@ namespace Http {
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
-            if(chunked && method == HTTP1_1) {
+            if(chunked && version == HTTP1_1) {
                 ss << std::hex << len << "\r\n";
                 ss.write(chunk, len);
                 ss << "\r\n";
@@ -373,7 +374,7 @@ namespace Http {
             tcpSocket->Send(buff.c_str(), (int)buff.size());
             m_bHeadersSent = true;
         } else {
-            if(chunked && method == HTTP1_1) {
+            if(chunked && version == HTTP1_1) {
                 string buff = "0\r\n\r\n";
                 tcpSocket->Send(buff.c_str(), (int)buff.size());
             }
@@ -393,7 +394,7 @@ namespace Http {
         if(!m_bHeadersSent) {
             stringstream ss;
             ss << GetHeadersString() << "\r\n";
-            if(chunked && method == HTTP1_1) {
+            if(chunked && version == HTTP1_1) {
                 ss << std::hex << len << "\r\n";
                 ss.write(chunk, len);
                 ss << "\r\n0\r\n\r\n"; //chunk结束
@@ -532,7 +533,7 @@ namespace Http {
     bool CUNHttpRequest::ParseContent() {
         if(incMsg->chunked) {
             size_t pos = recvBuff.find("\r\n");
-            int len = htoi(recvBuff.substr(0, pos).c_str());
+            size_t len = (size_t)htoi(recvBuff.substr(0, pos).c_str());
             if(recvBuff.size() - pos - 4 >= len) {
                 // 接收完整块
                 if(len==0)
@@ -764,7 +765,7 @@ namespace Http {
     bool CSvrConn::ParseContent() {
         if(inc->chunked) {
             size_t pos = buff.find("\r\n");
-            int len = htoi(buff.substr(0, pos).c_str());
+            size_t len = (size_t)htoi(buff.substr(0, pos).c_str());
             if(buff.size() - pos - 4 >= len) {
                 // 接收完整块
                 if(len==0)
@@ -855,7 +856,7 @@ namespace Http {
     }
 
     void CUNHttpServer::OnSvrCltDrain(CTcpSocket* skt){
-        CSvrConn *c = (CSvrConn*)skt->userData;
+        //CSvrConn *c = (CSvrConn*)skt->userData;
         //Log::debug("server client drain");
     }
 
@@ -866,19 +867,19 @@ namespace Http {
     }
 
     void CUNHttpServer::OnSvrCltEnd(CTcpSocket* skt){
-        CSvrConn *c = (CSvrConn*)skt->userData;
+        //CSvrConn *c = (CSvrConn*)skt->userData;
         //Log::debug("server client end");
     }
 
     void CUNHttpServer::OnSvrCltError(CTcpSocket* skt, string err){
-        CSvrConn *c = (CSvrConn*)skt->userData;
+        //CSvrConn *c = (CSvrConn*)skt->userData;
         Log::error("server client error:%s ", err.c_str());
     }
 
     void CUNHttpServer::OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
         Log::debug("Http server accept new connection");
         CUNHttpServer *http = (CUNHttpServer*)svr->userData;
-        static int sid = 1;
+        //static int sid = 1;
         CSvrConn *c = new CSvrConn();
         c->http   = http;
         c->server = svr;
