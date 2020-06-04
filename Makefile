@@ -63,50 +63,56 @@ demo:uvlogplustest$(BITS) uvnetplustest$(BITS)
 ################################################
 
 #thirdparty/libuv
-LIBUV_SRC_DIR = thirdparty/libuv/
-LIBUV_SRC_FILE =   src/fs-poll.c \
-                   src/inet.c \
-                   src/threadpool.c \
-                   src/uv-data-getter-setters.c \
-                   src/uv-common.c \
-                   src/version.c \
-				   src/unix/async.c \
-                   src/unix/core.c \
-                   src/unix/dl.c \
-                   src/unix/fs.c \
-                   src/unix/getaddrinfo.c \
-                   src/unix/getnameinfo.c \
-                   src/unix/loop-watcher.c \
-                   src/unix/loop.c \
-                   src/unix/pipe.c \
-                   src/unix/poll.c \
-                   src/unix/process.c \
-                   src/unix/signal.c \
-                   src/unix/stream.c \
-                   src/unix/tcp.c \
-                   src/unix/thread.c \
-                   src/unix/timer.c \
-                   src/unix/tty.c \
-                   src/unix/udp.c \
-				   src/unix/linux-core.c \
-                   src/unix/linux-inotify.c \
-                   src/unix/linux-syscalls.c \
-                   src/unix/procfs-exepath.c \
-                   src/unix/proctitle.c \
-                   src/unix/sysinfo-loadavg.c \
-                   src/unix/sysinfo-memory.c
-LIBUV_SOURCES = $(addprefix $(LIBUV_SRC_DIR),$(LIBUV_SRC_FILE))
-LIBUV_OBJS = $(patsubst %.c,%.o,$(notdir $(LIBUV_SOURCES)))
+LIBUV_SRC_DIR = thirdparty/libuv/src/
+LIBUV_SOURCES =   fs-poll.c \
+                   inet.c \
+                   threadpool.c \
+                   uv-data-getter-setters.c \
+                   uv-common.c \
+                   version.c
+LIBUV_OBJS = $(patsubst %.c,%.o,$(LIBUV_SOURCES))
 LIBUV_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_OBJS))
+
+LIBUV_SRC_UNIX_DIR = thirdparty/libuv/src/unix/
+LIBUV_UNIX_SOURCES	= async.c \
+                   core.c \
+                   dl.c \
+                   fs.c \
+                   getaddrinfo.c \
+                   getnameinfo.c \
+                   loop-watcher.c \
+                   loop.c \
+                   pipe.c \
+                   poll.c \
+                   process.c \
+                   signal.c \
+                   stream.c \
+                   tcp.c \
+                   thread.c \
+                   timer.c \
+                   tty.c \
+                   udp.c \
+				   linux-core.c \
+                   linux-inotify.c \
+                   linux-syscalls.c \
+                   procfs-exepath.c \
+                   proctitle.c \
+                   sysinfo-loadavg.c \
+                   sysinfo-memory.c
+LIBUV_UNIX_OBJS = $(patsubst %.c,%.o,$(LIBUV_UNIX_SOURCES))
+LIBUV_UNIX_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_UNIX_OBJS))
+
 LIBUV_INCLUDE = -I ./thirdparty/libuv/include -I ./thirdparty/libuv/src -I ./thirdparty/libuv/src/unix
 
-libuv_static:$(LIBUV_OBJS)
-	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD)
+libuv_static:$(LIBUV_OBJS) $(LIBUV_UNIX_OBJS)
+	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD) $(LIBUV_UNIX_OBJSD)
 
-libuv_shared:$(LIBUV_OBJS)
-	$(CC) -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
+libuv_shared:$(LIBUV_OBJS) $(LIBUV_UNIX_OBJS)
+	$(CC) -shared -fPIC $(LIBUV_OBJSD) $(LIBUV_UNIX_OBJSD) -o $(OUT_DIR)libuv.so
 
-$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES):%.c
+$(LIBUV_OBJS):%.o:$(LIBUV_SRC_DIR)%.c
+	$(CC) $(LIBUV_INCLUDE) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
+$(LIBUV_UNIX_OBJS):%.o:$(LIBUV_SRC_UNIX_DIR)%.c
 	$(CC) $(LIBUV_INCLUDE) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
 
 
@@ -251,24 +257,38 @@ DEMO_INC += -I ./uvmoudles/uvlogplus
 DEMO_INC += -I ./uvmoudles/uvnetplus
 DEMO_INC += -I ./common/utilc
 DEMO_INC += -I ./common/util
-DEMO_LIB += -L $(OUT_DIR)
-DEMO_LIB += -l:libuv.a -l:cjson.a -l:pugixml.a
-DEMO_LIB += -l:ssl.a -l:utilc.a -l:utilc.a
-DEMO_LIB += -l:uvipc.a -l:uvlogplus.a -l:uvnetplus.a
 
 #demo/uvipctest
-uvipctest:uvipctest.o
-	$(CC) $(TMP_DIR)demo/uvipctest.o -o $(OUT_DIR)uvipctest $(DEMO_LIB)
+uvipctest_static:uvipctest.o
+	$(CC) $(TMP_DIR)demo/uvipctest.o -o $(OUT_DIR)uvipctests -L $(OUT_DIR) -l:uvipc.a -l:libuv.a -l:utilc.a -pthread -ldl
+
+uvipctest_shared:uvipctest.o
+	$(CC) $(TMP_DIR)demo/uvipctest.o -o $(OUT_DIR)uvipctest -L $(OUT_DIR) -l:uvipc.so -l:libuv.so -l:utilc.so -pthread -ldl
 
 uvipctest.o:demo/uvIpcTest.c
 	$(CC) $(CFLAGS) $(DEMO_INC) -c demo/uvIpcTest.c -o $(TMP_DIR)demo/uvipctest.o
 
 #demo/uvlogplustest
-uvlogplustest:uvlogplustest.o
-	$(GG) $(DEMO_LIB) $(TMP_DIR)demo/uvlogplustest.o -o $(OUT_DIR)uvlogplustest
+uvlogplustest_static:uvlogplustest.o
+	$(GG) $(TMP_DIR)demo/uvlogplustest.o -o $(OUT_DIR)uvlogplustests -L $(OUT_DIR) -l:uvlogplus.a -l:libuv.a -l:utilc.a -l:util.a -l:cjson.a -l:pugixml.a -pthread -ldl
+
+uvlogplustest_shared:uvlogplustest.o
+	$(GG) $(TMP_DIR)demo/uvlogplustest.o -o $(OUT_DIR)uvlogplustests -L $(OUT_DIR) -l:uvlogplus.so -l:libuv.so -l:utilc.so -l:util.so -l:cjson.so -l:pugixml.so -pthread -ldl
 
 uvlogplustest.o:demo/uvLogPlusTest.cpp
 	$(GG) $(GFLAGS) $(DEMO_INC) -c demo/uvLogPlusTest.cpp -o $(TMP_DIR)demo/uvlogplustest.o
+
+#demo/uvnetplustest
+uvnetplustest_static:uvnetplustest.o
+	$(GG) $(TMP_DIR)demo/uvnetplustest.o -o $(OUT_DIR)uvnetplustests -L $(OUT_DIR) -l:uvnetplus.a -l:uvlogplus.a -l:libuv.a -l:utilc.a -l:util.a -l:cjson.a -l:pugixml.a -pthread -ldl
+
+uvnetplustest_shared:uvnetplustest.o
+	$(GG) $(TMP_DIR)demo/uvnetplustest.o -o $(OUT_DIR)uvnetplustest -L $(OUT_DIR) -l:uvnetplus.so -l:uvlogplus.so -l:libuv.so -l:utilc.so -l:util.so -l:cjson.so -l:pugixml.so -pthread -ldl
+
+uvnetplustest.o:demo/uvNetPlusTest.cpp
+	$(GG) $(GFLAGS) $(DEMO_INC) -c demo/uvNetPlusTest.cpp -o $(TMP_DIR)demo/uvnetplustest.o
+
+#############################################################
 
 clean:
 	rm -rf $(TMP_DIR)utilc/*.o

@@ -4,9 +4,11 @@
 #include "uvnetplus.h"
 #include "Log.h"
 #include "uv.h"
+#include "utilc_api.h"
 #include <stdio.h>
-#include <tchar.h>
-#include <windows.h>
+//#include <tchar.h>
+//#include <windows.h>
+#include <string.h>
 #include <string>
 #include <thread>
 using namespace std;
@@ -14,6 +16,10 @@ using namespace uvNetPlus;
 
 #ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
 #include "vld.h"
+#endif
+
+#ifndef INFINITE
+#define INFINITE 0XFFFFFFFF
 #endif
 
 const int svrport = 8080;
@@ -307,7 +313,7 @@ void testHttpRequest()
         http->Request("www.baidu.com", 80, data, OnHttpRequest);
         //http->Request("127.0.0.1", 80, data, OnHttpRequest);
         if(i%100==99)
-            Sleep(1000);
+            sleep(1);
     }
 }
 
@@ -336,6 +342,7 @@ void testHttpServer()
 }
 
 //////////////////////////////////////////////////////////////////////////
+#ifdef WINDOWS_IMPL
 BOOL CtrlCHandler(DWORD type)
 {
     switch(type)
@@ -354,22 +361,28 @@ BOOL CtrlCHandler(DWORD type)
     }
     return FALSE;
 }
+#else
+void CtrlCHandler(int sig) {
+    delete http;
+}
+#endif
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
+    printf("000");
     /** 设置控制台消息回调 */
     //SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlCHandler, TRUE); 
-
+printf("111");
     uv_mutex_init(&_mutex);
-
-    Log::open(Log::Print::both, Log::Level::debug, "./log.txt");
-
+printf("222");
+    Log::open(Log::Print::both, Log::Level::debug, "./log/log.txt");
+printf("333");
     //testServer();
     //testTcpPool();
     //testHttpServer();
     testHttpRequest();
 
-	Sleep(INFINITE);
+	sleep(INFINITE);
 	return 0;
 }
 
