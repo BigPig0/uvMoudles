@@ -162,6 +162,4 @@ namespace uvLogPlus {
         std::shared_ptr<LogMsg> item;
         char            *buff;
     };
-
-    extern char* levelNote[];
 };

@@ -77,14 +77,14 @@ void FileAppender::Write() {
     char *pos = msg_req->buff;
     //线程ID
     char *szThread = pos;
-    sprintf(szThread, "[%08d]", item->tid);
+    sprintf(szThread, "%08d ", item->tid);
     pos += 20;
     //时间
     char *szTime = pos;
     CTimeFormat::printTime(item->msg_time, "%Y%m%d%H%M%S ", szTime);
     pos += 32;
     //等级
-    char *szLevel = levelNote[(int)item->level];
+    char *szLevel = (char*)levelNote[(int)item->level];
     //文件名
     char *szFile = (char*)item->file_name;
     int nNameLen = strlen(item->file_name);

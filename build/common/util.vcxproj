@@ -16,7 +16,6 @@
     <ClInclude Include="..\..\common\util\lock_free\blockingconcurrentqueue.h" />
     <ClInclude Include="..\..\common\util\lock_free\concurrentqueue.h" />
     <ClInclude Include="..\..\common\util\lock_free\readerwriterqueue.h" />
-    <ClInclude Include="..\..\common\util\Log.h" />
     <ClInclude Include="..\..\common\util\util_def.h" />
     <ClInclude Include="..\..\common\util\EncodeConvert.h" />
     <ClInclude Include="..\..\common\util\Endian.h" />
@@ -37,7 +36,6 @@
     <ClCompile Include="..\..\common\util\Clock.cpp" />
     <ClCompile Include="..\..\common\util\EncodeConvert.cpp" />
     <ClCompile Include="..\..\common\util\guid.cpp" />
-    <ClCompile Include="..\..\common\util\Log.cpp" />
     <ClCompile Include="..\..\common\util\MailSlot.cpp" />
     <ClCompile Include="..\..\common\util\memfile.cpp" />
     <ClCompile Include="..\..\common\util\MiniDump.cpp" />

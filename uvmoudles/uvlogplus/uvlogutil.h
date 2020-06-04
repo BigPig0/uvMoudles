@@ -9,7 +9,7 @@ namespace uvLogPlus {
 #define LINE_SEPARATOR "\n"
 #endif
 
-    extern char* levelNote[];
+    extern const char* levelNote[];
 
     extern int file_sys_check_path(const char *path);
 

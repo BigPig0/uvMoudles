@@ -74,9 +74,6 @@
     <ClInclude Include="..\..\common\util\lock_free\readerwriterqueue.h">
       <Filter>lock_free</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\common\util\Log.h">
-      <Filter>include</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\util\EncodeConvert.cpp">
@@ -110,9 +107,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\util\TimeFormat.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\common\util\Log.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

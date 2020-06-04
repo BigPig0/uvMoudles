@@ -13,7 +13,7 @@ static CLog *log = NULL;
 
 bool open(Print print, Level level, const char *pathFileName) {
     stringstream ss;
-    ss << "\"configuration\":{"
+    ss << "{\"configuration\":{"
         "\"appenders\":{";
     bool apd = false;
     if ((int)print & (int)Print::file) {
@@ -40,8 +40,7 @@ bool open(Print print, Level level, const char *pathFileName) {
             ss << ",";
         ss << "\"appender-ref\":{\"ref\":\"RollingFileAppd\"}";
     }
-    ss <<"}"   
-        "}";
+    ss <<"}}}}";
 
     log = CLog::Create(ss.str().c_str());
     return log!=NULL;
@@ -66,10 +65,14 @@ void print(Level level, const char *file, int line, const char *func, const char
         else if(level == Level::error)
             lv = uvLogPlus::Level::Error;
 
+        size_t size = 4096;
+        std::string buffer(size, '\0');
+        char* buffer_p = const_cast<char*>(buffer.data());
         va_list arg;
         va_start(arg, fmt);
-        log->Write("commonLog", lv, file, line, file, fmt, arg);
+        vsnprintf(buffer_p, size, fmt, arg);
         va_end(arg);
+        log->Write("commonLog", lv, file, line, file, buffer_p);
     }
 }
 

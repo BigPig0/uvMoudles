@@ -279,7 +279,7 @@ static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMsg* resp
 static void OnHttpRequest(Http::CHttpRequest *req, void* usr, std::string error) {
     clientData* data = (clientData*)usr;
     if(error.empty()) {
-        //Log::debug("new http request %x", req);
+        Log::debug("new http request %x", req);
         req->usrData    = usr;
         req->OnError    = OnHttpError;
         req->OnResponse = OnHttpResponse;
