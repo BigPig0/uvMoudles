@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <tchar.h>
+//#include <tchar.h>
 #include "uvIpc.h"
 #include "uv.h"
 #include "utilc_api.h"
@@ -177,6 +177,6 @@ int main(int argc, char* argv[])
         sleep(1000);
     }
     
-    sleep(INFINITE);
+    //sleep(INFINITE);
     return 0;
 }

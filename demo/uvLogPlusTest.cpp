@@ -2,11 +2,11 @@
 //
 
 #include <stdio.h>
-#include <tchar.h>
+//#include <tchar.h>
 #include "utilc_api.h"
 #include "uvlogplus.h"
 #include <stdarg.h>
-#include <windows.h>
+//#include <windows.h>
 
 
 //class CLog
@@ -120,7 +120,7 @@ using namespace uvLogPlus;
 #define MODULE_2_LOGINFO(msg, ...)  log->Write("moudle2", Level::Info, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 #define MODULE_2_LOGERROR(msg, ...) log->Write("moudle2", Level::Error, __FILE__, __LINE__, __FUNCTION__, msg, ##__VA_ARGS__)
 
-int _tmain(int argc, _TCHAR* argv[])
+int main(int argc, char* argv[])
 {
     CLog *log = CLog::Create(LOG_CONFIG);
     for(;;){
@@ -133,7 +133,7 @@ int _tmain(int argc, _TCHAR* argv[])
         sleep(1);
     }
     delete log;
-	sleep(INFINITE);
+	//sleep(INFINITE);
 	return 0;
 }
 

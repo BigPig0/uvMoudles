@@ -6,7 +6,7 @@ BITS64 = 1
 CC = gcc
 GG = g++
 AR = ar rc
-CFLAGS = -fPIC -Wall -std=c11
+CFLAGS = -fPIC -Wall -std=gnu11
 GFLAGS = -fPIC -Wall -std=c++11
 LFLAGS = 
 OUT_DIR = ./out/
@@ -53,10 +53,12 @@ $(shell mkdir -p $(TMP_DIR)libuv/)
 $(shell mkdir -p $(TMP_DIR)uvipc/)
 $(shell mkdir -p $(TMP_DIR)uvlogplus/)
 $(shell mkdir -p $(TMP_DIR)uvnetplus/)
+$(shell mkdir -p $(TMP_DIR)demo/)
 
 thirdparty:libuv$(BITS) cjson$(BITS) pugixml$(BITS)
 uvmoudles:uvipc$(BITS) uvlogplus$(BITS) uvnetplus$(BITS)
 common:ssl$(BITS) utilc$(BITS) util$(BITS)
+demo:uvlogplustest$(BITS) uvnetplustest$(BITS)
 
 ################################################
 
@@ -104,7 +106,7 @@ libuv_static:$(LIBUV_OBJS)
 libuv_shared:$(LIBUV_OBJS)
 	$(CC) -shared -fPIC $(LIBUV_OBJSD) -o $(OUT_DIR)libuv.so
 
-$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES)
+$(LIBUV_OBJS):%.o:$(LIBUV_SOURCES):%.c
 	$(CC) $(LIBUV_INCLUDE) -fPIC -Wall -c $< -o $(TMP_DIR)libuv/$@
 
 
@@ -123,8 +125,6 @@ cjson_shared:$(CJSON_OBJS)
 $(CJSON_OBJS):%.o:$(CJSON_SRC_DIR)%.c
 	$(CC) $(CFLAGS) -c $< -o $(TMP_DIR)cjson/$@
 
-UVMODULES:cjson$(BITS) ssl$(BITS) utilc$(BITS)
-
 #thirdparty/pugixml
 PUGIXML_SRC_DIR = thirdparty/pugixml/
 PUGIXML_SOURCES = $(wildcard thirdparty/pugixml/*.cpp)
@@ -138,7 +138,7 @@ pugixml_shared:$(PUGIXML_OBJS)
 	$(GG) -shared -fPIC $(PUGIXML_OBJSD) -o $(OUT_DIR)pugixml.so
 
 $(PUGIXML_OBJS):%.o:$(PUGIXML_SRC_DIR)%.cpp
-	$(GG) $(GFLAGS) -c $< -o ccpugixml/$@
+	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)pugixml/$@
 
 #################################################################
 
@@ -244,6 +244,32 @@ ssl_shared:$(SSL_OBJS)
 $(SSL_OBJS):%.o:$(SSL_SRC_DIR)%.cpp
 	$(GG) $(GFLAGS) -c $< -o $(TMP_DIR)ssl/$@
 
+##############################################################
+DEMO_INC = -I ./thirdparty/libuv/include
+DEMO_INC += -I ./uvmoudles/uvipc
+DEMO_INC += -I ./uvmoudles/uvlogplus
+DEMO_INC += -I ./uvmoudles/uvnetplus
+DEMO_INC += -I ./common/utilc
+DEMO_INC += -I ./common/util
+DEMO_LIB += -L $(OUT_DIR)
+DEMO_LIB += -l:libuv.a -l:cjson.a -l:pugixml.a
+DEMO_LIB += -l:ssl.a -l:utilc.a -l:utilc.a
+DEMO_LIB += -l:uvipc.a -l:uvlogplus.a -l:uvnetplus.a
+
+#demo/uvipctest
+uvipctest:uvipctest.o
+	$(CC) $(TMP_DIR)demo/uvipctest.o -o $(OUT_DIR)uvipctest $(DEMO_LIB)
+
+uvipctest.o:demo/uvIpcTest.c
+	$(CC) $(CFLAGS) $(DEMO_INC) -c demo/uvIpcTest.c -o $(TMP_DIR)demo/uvipctest.o
+
+#demo/uvlogplustest
+uvlogplustest:uvlogplustest.o
+	$(GG) $(DEMO_LIB) $(TMP_DIR)demo/uvlogplustest.o -o $(OUT_DIR)uvlogplustest
+
+uvlogplustest.o:demo/uvLogPlusTest.cpp
+	$(GG) $(GFLAGS) $(DEMO_INC) -c demo/uvLogPlusTest.cpp -o $(TMP_DIR)demo/uvlogplustest.o
+
 clean:
 	rm -rf $(TMP_DIR)utilc/*.o
 	rm -rf $(TMP_DIR)util/*.o
@@ -254,4 +280,5 @@ clean:
 	rm -rf $(TMP_DIR)uvipc/*.o
 	rm -rf $(TMP_DIR)uvlogplus/*.o
 	rm -rf $(TMP_DIR)uvnetplus/*.o
+	rm -rf $(TMP_DIR)demo/*.o
 
