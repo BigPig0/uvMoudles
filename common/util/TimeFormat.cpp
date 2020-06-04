@@ -57,9 +57,7 @@ char *CTimeFormat::printTime(time_t time, const char *fmt, char buf[32])
     localtime_r(&time, &tm);
 #endif
 
-    char stamp[32];
-    strftime(stamp, 32, fmt, &tm);
-    sprintf_s(buf, 32, "%s", stamp);
+    strftime(buf, 32, fmt, &tm);
     return buf;
 }
 

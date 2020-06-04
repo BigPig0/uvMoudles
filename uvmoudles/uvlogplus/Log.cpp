@@ -60,11 +60,11 @@ void print(Level level, const char *file, int line, const char *func, const char
     if(log != NULL) {
         uvLogPlus::Level lv = uvLogPlus::Level::Debug;
         if(level == Level::info)
-            lv == uvLogPlus::Level::Info;
+            lv = uvLogPlus::Level::Info;
         else if(level == Level::warning)
-            lv == uvLogPlus::Level::Warn;
+            lv = uvLogPlus::Level::Warn;
         else if(level == Level::error)
-            lv == uvLogPlus::Level::Error;
+            lv = uvLogPlus::Level::Error;
 
         va_list arg;
         va_start(arg, fmt);

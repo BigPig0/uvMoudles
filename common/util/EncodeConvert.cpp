@@ -4,6 +4,7 @@
 #elif defined(LINUX_IMPL)        /**Linux*/
 #include <stdlib.h>
 #endif
+#include <string.h>
 
 #if defined(WINDOWS_IMPL)
 static std::string __ws2s(const wchar_t *pwszText, UINT uCodePage)
@@ -67,10 +68,10 @@ static std::wstring __s2ws(const char* pszText, const char *szCode)
 {
     if (NULL == pszText || strlen(pszText))
         return L"";
-    unsigned len = str.size() + 1;
+    unsigned len = strlen(pszText) + 1;
     setlocale(LC_CTYPE, szCode);
     wchar_t *p = new wchar_t[len];
-    mbstowcs(p, str.c_str(), len);
+    mbstowcs(p, pszText, len);
     std::wstring w_str(p);
     delete[] p;
     return w_str;
@@ -91,7 +92,7 @@ std::string EncodeConvert::WtoA(const wchar_t *pwszText)
 #if defined(WINDOWS_IMPL)
 	return __ws2s(pwszText, CP_ACP);
 #elif defined(LINUX_IMPL)
-    return __ws2s(pwszText.c_str(), "");
+    return __ws2s(pwszText, "");
 #endif
 }
 

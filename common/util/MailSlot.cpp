@@ -1,7 +1,7 @@
 #include "MailSlot.h"
+#ifdef WINDOWS_IMPL
 #include <windows.h>
 
-#ifdef WINDOWS_IMPL
 CMailSlotSever::CMailSlotSever(std::string strName)
     :m_bStop(false)
     ,m_strName(strName)

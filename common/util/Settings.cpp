@@ -1,5 +1,5 @@
 #include "Settings.h"
-#include "Mutex.h"
+#include "mutex.h"
 #include <unordered_map>
 #include <string.h>
 using namespace std;

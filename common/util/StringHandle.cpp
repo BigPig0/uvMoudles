@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstdarg>
 
-#ifdef __QZ_LINUX__
+#ifdef LINUX_IMPL
 char* _strupr(char *str)
 {
 	char *ptr = str;
@@ -56,8 +56,8 @@ std::string StringHandle::replace(std::string &s)
 
 std::string StringHandle::StringUper(std::string str )
 {
-	char chBuffer[255] = {0};
-	strcpy_s(chBuffer, str.c_str());
+	char *chBuffer = (char*)calloc(1, str.size()+1);
+	strcpy(chBuffer, str.c_str());
 
     char *ptr = chBuffer;
     while (*ptr != '\0')
@@ -73,7 +73,9 @@ std::string StringHandle::StringUper(std::string str )
     }
 
 	//return std::string(strupr(chBuffer));
-    return std::string(chBuffer);
+	std::string ret(chBuffer);
+	free(chBuffer);
+    return ret;
 }
 
 std::vector<std::string> StringHandle::StringSplit(const std::string &s, const char tag)
@@ -322,7 +324,7 @@ bool StringHandle::IsEng(std::string strIn,int nLen)
 		}
 	}
 
-	if(bOk && strIn.length()==nLen)
+	if(bOk && strIn.size()==(size_t)nLen)
 	{
 		return true;
 	}
@@ -358,7 +360,7 @@ bool StringHandle::IsEng2(std::string strIn,int nLen)
 		}
 	}
 
-	if(bOk && strIn.length()==nLen)
+	if(bOk && strIn.size()==(size_t)nLen)
 	{
 		return true;
 	}
@@ -599,7 +601,7 @@ void StringHandle::utf8_cut(std::string &strContent, unsigned unLength)
 
 char *StringHandle::utf8_find_prev_char(const char *str, const char *p)
 {
-	for (p; p >= str; --p)
+	for (; p >= str; --p)
 	{
 		if ((*p & 0xc0) != 0x80)
 			return (char *)p;
@@ -609,9 +611,11 @@ char *StringHandle::utf8_find_prev_char(const char *str, const char *p)
 
 std::string StringHandle::strMakerUper( std::string str )
 {
-	char chBuffer[255] = {0};
-	strcpy_s(chBuffer, str.c_str());
-	return std::string(_strupr(chBuffer));
+	char *chBuffer = (char*)calloc(1, str.size()+1);
+	strcpy(chBuffer, str.c_str());
+	std::string ret(_strupr(chBuffer));
+	free(chBuffer);
+	return ret;
 }
 
 std::wstring StringHandle::IPUL2STR(unsigned long ulIP)
@@ -724,7 +728,7 @@ std::string StringHandle::CutData(std::string strIn,int nLen)
 	//	data=strIn;
 	//}
 
-	if(nLen<strIn.length())
+	if((size_t)nLen<strIn.length())
 	{
 		data = strIn;
 		utf8_cut(data,nLen);
@@ -781,9 +785,9 @@ std::string StringHandle::dec2hex(int i)
 
 bool StringHandle::isSubStr(std::string str1, std::string str2)
 {
-	int a = str1.size();
+	size_t a = str1.size();
 	if(a > str2.size()) a = str2.size();
-	for (int i=0; i<a; ++i)
+	for (size_t i=0; i<a; ++i)
 	{
 		if(str1[i] != str2[i])
 			return false;

@@ -45,6 +45,7 @@ endif
 #创建输出目录
 $(shell mkdir -p $(OUT_DIR))
 $(shell mkdir -p $(TMP_DIR)utilc/)
+$(shell mkdir -p $(TMP_DIR)util/)
 $(shell mkdir -p $(TMP_DIR)ssl/)
 $(shell mkdir -p $(TMP_DIR)cjson/)
 $(shell mkdir -p $(TMP_DIR)pugixml/)
@@ -183,6 +184,7 @@ UVNETPLUS_OBJSD = $(addprefix $(TMP_DIR)uvnetplus/,$(UVNETPLUS_OBJS))
 UVNETPLUS_INCLUDE = -I ./thirdparty/libuv/include
 UVNETPLUS_INCLUDE += -I ./thirdparty/cjson
 UVNETPLUS_INCLUDE += -I ./thirdparty/pugixml
+UVNETPLUS_INCLUDE += -I ./uvmoudles/uvlogplus
 UVNETPLUS_INCLUDE += -I ./common/utilc
 UVNETPLUS_INCLUDE += -I ./common/util
 
@@ -251,4 +253,5 @@ clean:
 	rm -rf $(TMP_DIR)libuv/*.o
 	rm -rf $(TMP_DIR)uvipc/*.o
 	rm -rf $(TMP_DIR)uvlogplus/*.o
+	rm -rf $(TMP_DIR)uvnetplus/*.o
 

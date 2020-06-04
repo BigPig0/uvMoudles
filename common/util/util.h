@@ -1,7 +1,7 @@
 #pragma once
 
 #include "util_def.h"
-#include "Mutex.h"
+#include "mutex.h"
 #include "Clock.h"
 #include "Endian.h"
 #include "guid.h"

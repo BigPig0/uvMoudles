@@ -2,5 +2,6 @@
 *.sdf
 *.opensdf
 *.vs/
+*.vscode/
 *.user
 /out

@@ -1,10 +1,11 @@
-#include <stdint.h>
 #include "NetStreamMaker.h"
+#include <stdint.h>
+#include <string.h>
 
 CNetStreamMaker::CNetStreamMaker()
-    : m_nMax(0)
+    : m_pData(nullptr)
     , m_nCurrent(0)
-    , m_pData(nullptr)
+    , m_nMax(0)
 {
 
 }
@@ -91,7 +92,7 @@ void CNetStreamMaker::append_be64(uint64_t val)
 
 void CNetStreamMaker::append_bytes(uint8_t val, uint32_t num)
 {
-    for (int i=0; i<num; i++)
+    for (uint32_t i=0; i<num; i++)
     {
         append_byte(val);
     }
@@ -104,11 +105,11 @@ void CNetStreamMaker::append_double(double val)
 
 void CNetStreamMaker::rewrite_data(uint32_t start, char* data, uint32_t size)
 {
-    unsigned ns = start + size;
+    uint32_t ns = start + size;
 
     if( ns > m_nMax ) {
         void *dp;
-        unsigned dn = 16;
+        uint32_t dn = 16;
        
         while( ns > dn ) {
             dn <<= 1;
