@@ -72,7 +72,7 @@ void print(Level level, const char *file, int line, const char *func, const char
         va_start(arg, fmt);
         vsnprintf(buffer_p, size, fmt, arg);
         va_end(arg);
-        log->Write("commonLog", lv, file, line, file, buffer_p);
+        log->Write("commonLog", lv, file, line, func, buffer_p);
     }
 }
 

@@ -276,7 +276,7 @@ static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMsg* resp
     }
     delete data;
 }
-static void OnHttpRequest(Http::CHttpRequest *req, void* usr, std::string error) {
+static void OnSendHttpRequest(Http::CHttpRequest *req, void* usr, std::string error) {
     clientData* data = (clientData*)usr;
     if(error.empty()) {
         Log::debug("new http request %x", req);
@@ -310,14 +310,14 @@ void testHttpRequest()
         data->tid = i;
         data->err = false;
         data->ref = 2;
-        http->Request("www.baidu.com", 80, data, OnHttpRequest);
-        //http->Request("127.0.0.1", 80, data, OnHttpRequest);
+        http->Request("www.baidu.com", 80, data, OnSendHttpRequest);
+        //http->Request("127.0.0.1", 80, data, OnSendHttpRequest);
         if(i%100==99)
             sleep(1);
     }
 }
 
-static void OnHttpRequest(Http::CHttpServer *server, Http::CIncomingMsg *request, Http::CHttpResponse *response) {
+static void OnRcvHttpRequest(Http::CHttpServer *server, Http::CIncomingMsg *request, Http::CHttpResponse *response) {
     Log::debug("%d %s %d", request->method, request->path.c_str(), request->version);
     for(auto &h:request->headers) {
         Log::debug("%s: %s", h.first.c_str(), h.second.c_str());
@@ -337,7 +337,7 @@ void testHttpServer()
 {
     net = CNet::Create();
     svr = Http::CHttpServer::Create(net);
-    svr->OnRequest = OnHttpRequest;
+    svr->OnRequest = OnRcvHttpRequest;
     svr->Listen("0.0.0.0", svrport);
 }
 
@@ -367,16 +367,12 @@ void CtrlCHandler(int sig) {
 }
 #endif
 
-int main(int argc, char* argv[])
+int main()
 {
-    printf("000");
     /** 设置控制台消息回调 */
     //SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlCHandler, TRUE); 
-printf("111");
     uv_mutex_init(&_mutex);
-printf("222");
     Log::open(Log::Print::both, Log::Level::debug, "./log/log.txt");
-printf("333");
     //testServer();
     //testTcpPool();
     //testHttpServer();

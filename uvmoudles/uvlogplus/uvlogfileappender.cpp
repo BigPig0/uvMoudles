@@ -77,7 +77,7 @@ void FileAppender::Write() {
     char *pos = msg_req->buff;
     //线程ID
     char *szThread = pos;
-    sprintf(szThread, "%08d ", item->tid);
+    sprintf(szThread, "%08u ", item->tid);
     pos += 20;
     //时间
     char *szTime = pos;

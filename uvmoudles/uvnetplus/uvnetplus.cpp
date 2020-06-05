@@ -88,7 +88,11 @@ void CUVNetPlus::LoopThread() {
 
 void CUVNetPlus::AsyncEvent() {
     uv_mutex_lock(&m_uvMtxAsEvts);
-    for(auto e : m_listAsyncEvents) {
+    list<UV_EVET> tmp = m_listAsyncEvents;
+    m_listAsyncEvents.clear();
+    uv_mutex_unlock(&m_uvMtxAsEvts);
+
+    for(auto e : tmp) {
         if(e.event == ASYNC_EVENT_LOOP_CLOSE) {
             uv_close((uv_handle_t*)&m_uvAsync, on_uv_close);
         } else if(e.event == ASYNC_EVENT_TCP_CONNECT) {
@@ -123,8 +127,6 @@ void CUVNetPlus::AsyncEvent() {
             pool->syncClose();
         } 
     }
-    m_listAsyncEvents.clear();
-    uv_mutex_unlock(&m_uvMtxAsEvts);
 }
 
 void CUVNetPlus::CloseHandle() {
