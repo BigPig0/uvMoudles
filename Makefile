@@ -1,5 +1,5 @@
 #配置编译参数
-DEBUG = 0
+DEBUG = 1
 SHARED = 0
 BITS64 = 1
 
@@ -55,11 +55,13 @@ $(shell mkdir -p $(TMP_DIR)uvlogplus/)
 $(shell mkdir -p $(TMP_DIR)uvnetplus/)
 $(shell mkdir -p $(TMP_DIR)demo/)
 
-thirdparty:libuv$(BITS) cjson$(BITS) pugixml$(BITS)
-uvmoudles:uvipc$(BITS) uvlogplus$(BITS) uvnetplus$(BITS)
-common:ssl$(BITS) utilc$(BITS) util$(BITS)
-demo:uvlogplustest$(BITS) uvnetplustest$(BITS)
+all:thirdparty uvmoudles common demo
 
+thirdparty:libuv cjson pugixml
+uvmoudles:uvipc uvlogplus uvnetplus
+common:ssl utilc util
+demo:uvlogplustest uvnetplustest
+	#
 ################################################
 
 #thirdparty/libuv
@@ -104,6 +106,8 @@ LIBUV_UNIX_OBJSD = $(addprefix $(TMP_DIR)libuv/,$(LIBUV_UNIX_OBJS))
 
 LIBUV_INCLUDE = -I ./thirdparty/libuv/include -I ./thirdparty/libuv/src -I ./thirdparty/libuv/src/unix
 
+libuv:libuv$(BITS)
+	#
 libuv_static:$(LIBUV_OBJS) $(LIBUV_UNIX_OBJS)
 	$(AR) $(OUT_DIR)libuv.a $(LIBUV_OBJSD) $(LIBUV_UNIX_OBJSD)
 
@@ -122,6 +126,8 @@ CJSON_SOURCES = $(wildcard thirdparty/cjson/*.c)
 CJSON_OBJS = $(patsubst %.c,%.o,$(notdir $(CJSON_SOURCES)))
 CJSON_OBJSD = $(addprefix $(TMP_DIR)cjson/,$(CJSON_OBJS))
 
+cjson:cjson$(BITS)
+	#
 cjson_static:$(CJSON_OBJS)
 	$(AR) $(OUT_DIR)cjson.a $(CJSON_OBJSD)
 
@@ -137,6 +143,8 @@ PUGIXML_SOURCES = $(wildcard thirdparty/pugixml/*.cpp)
 PUGIXML_OBJS = $(patsubst %.cpp,%.o,$(notdir $(PUGIXML_SOURCES)))
 PUGIXML_OBJSD = $(addprefix $(TMP_DIR)pugixml/,$(PUGIXML_OBJS))
 
+pugixml:pugixml$(BITS)
+	#
 pugixml_static:$(PUGIXML_OBJS)
 	$(AR) $(OUT_DIR)pugixml.a $(PUGIXML_OBJSD)
 
@@ -152,6 +160,8 @@ $(PUGIXML_OBJS):%.o:$(PUGIXML_SRC_DIR)%.cpp
 UVIPC_SRC_DIR = uvmoudles/uvipc/
 UVIPC_INCLUDE = -I ./thirdparty/libuv/include -I ./common/utilc
 
+uvipc:uvipc$(BITS)
+	#
 uvipc_static:uvipc.o
 	$(AR) $(OUT_DIR)uvipc.a $(TMP_DIR)uvipc/uvipc.o
 
@@ -173,6 +183,8 @@ UVLOGPLUS_INCLUDE += -I ./common/utilc
 UVLOGPLUS_INCLUDE += -I ./common/util
 UVLOGPLUS_INCLUDE += -I ./common/util/lock_free
 
+uvlogplus:uvlogplus$(BITS)
+	#
 uvlogplus_static:$(UVLOGPLUS_OBJS)
 	$(AR) $(OUT_DIR)uvlogplus.a $(UVLOGPLUS_OBJSD)
 
@@ -194,6 +206,8 @@ UVNETPLUS_INCLUDE += -I ./uvmoudles/uvlogplus
 UVNETPLUS_INCLUDE += -I ./common/utilc
 UVNETPLUS_INCLUDE += -I ./common/util
 
+uvnetplus:uvnetplus$(BITS)
+	#
 uvnetplus_static:$(UVNETPLUS_OBJS)
 	$(AR) $(OUT_DIR)uvnetplus.a $(UVNETPLUS_OBJSD)
 
@@ -211,6 +225,8 @@ UTILC_SOURCES = $(wildcard common/utilc/*.c)
 UTILC_OBJS = $(patsubst %.c,%.o,$(notdir $(UTILC_SOURCES)))
 UTILC_OBJSD = $(addprefix $(TMP_DIR)utilc/,$(UTILC_OBJS))
 
+utilc:utilc$(BITS)
+	#
 utilc_static:$(UTILC_OBJS)
 	$(AR) $(OUT_DIR)utilc.a $(UTILC_OBJSD)
 
@@ -226,6 +242,8 @@ UTIL_SOURCES = $(wildcard common/util/*.cpp)
 UTIL_OBJS = $(patsubst %.cpp,%.o,$(notdir $(UTIL_SOURCES)))
 UTIL_OBJSD = $(addprefix $(TMP_DIR)util/,$(UTIL_OBJS))
 
+util:util$(BITS)
+	#
 util_static:$(UTIL_OBJS)
 	$(AR) $(OUT_DIR)util.a $(UTIL_OBJSD)
 
@@ -241,6 +259,8 @@ SSL_SOURCES = $(wildcard common/ssl/*.cpp)
 SSL_OBJS = $(patsubst %.cpp,%.o,$(notdir $(SSL_SOURCES)))
 SSL_OBJSD = $(addprefix $(TMP_DIR)ssl/,$(SSL_OBJS))
 
+ssl:ssl$(BITS)
+	#
 ssl_static:$(SSL_OBJS)
 	$(AR) $(OUT_DIR)ssl.a $(SSL_OBJSD)
 
@@ -259,6 +279,8 @@ DEMO_INC += -I ./common/utilc
 DEMO_INC += -I ./common/util
 
 #demo/uvipctest
+uvipctest:uvipctest$(BITS)
+	#
 uvipctest_static:uvipctest.o
 	$(CC) $(TMP_DIR)demo/uvipctest.o -o $(OUT_DIR)uvipctests -L $(OUT_DIR) -l:uvipc.a -l:libuv.a -l:utilc.a -pthread -ldl
 
@@ -269,6 +291,8 @@ uvipctest.o:demo/uvIpcTest.c
 	$(CC) $(CFLAGS) $(DEMO_INC) -c demo/uvIpcTest.c -o $(TMP_DIR)demo/uvipctest.o
 
 #demo/uvlogplustest
+uvlogplustest:uvlogplustest$(BITS)
+	#
 uvlogplustest_static:uvlogplustest.o
 	$(GG) $(TMP_DIR)demo/uvlogplustest.o -o $(OUT_DIR)uvlogplustests -L $(OUT_DIR) -l:uvlogplus.a -l:libuv.a -l:utilc.a -l:util.a -l:cjson.a -l:pugixml.a -pthread -ldl
 
@@ -279,6 +303,8 @@ uvlogplustest.o:demo/uvLogPlusTest.cpp
 	$(GG) $(GFLAGS) $(DEMO_INC) -c demo/uvLogPlusTest.cpp -o $(TMP_DIR)demo/uvlogplustest.o
 
 #demo/uvnetplustest
+uvnetplustest:uvnetplustest$(BITS)
+	#
 uvnetplustest_static:uvnetplustest.o
 	$(GG) $(TMP_DIR)demo/uvnetplustest.o -o $(OUT_DIR)uvnetplustests -L $(OUT_DIR) -l:uvnetplus.a -l:uvlogplus.a -l:libuv.a -l:utilc.a -l:util.a -l:cjson.a -l:pugixml.a -pthread -ldl
 
