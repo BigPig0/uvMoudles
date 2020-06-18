@@ -29,8 +29,10 @@ endif
 ifeq ($(DEBUG),0)
 	#release
 	CFLAGS += -O -DNDEBUG
+	GFLAGS += -O -DNDEBUG
 else
 	CFLAGS += -g
+	GFLAGS += -g
 endif
 
 ifeq ($(SHARED),0)
