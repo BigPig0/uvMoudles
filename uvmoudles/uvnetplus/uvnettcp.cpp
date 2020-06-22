@@ -1,6 +1,7 @@
 #include "uvnettcp.h"
 #include "Log.h"
 #include <string.h>
+#include <time.h>
 
 namespace uvNetPlus {
 
@@ -183,6 +184,8 @@ CUNTcpSocket::CUNTcpSocket(CUVNetPlus* net)
     , m_bConnect(false)
     , bytesRead(0)
     , m_bUserClose(false)
+    , m_nSendTime(0)
+    , m_nRecvTime(0)
 {
     readBuff = (char *)calloc(1, 1024*1024);
     uv_mutex_init(&sendMtx);
@@ -538,5 +541,69 @@ void CUNTcpServer::removeClient(CUNTcpSocket* c)
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+static void on_timer_cb(uv_timer_t* handle) {
+    CUNTcpAgent *agent = (CUNTcpAgent*)handle->data;
+    time_t now = time(NULL);
+
+    //timeout设置了超时，需要将空闲连接中空闲时间过长的连接断开
+    while(!agent->m_listIdleConns.empty() && agent->timeOut){
+        CUNTcpSocket *conn = agent->m_listIdleConns.back();
+        if(difftime(now, conn->m_nSendTime) < agent->timeOut && difftime(now, conn->m_nRecvTime) < agent->timeOut)
+            break;
+
+        conn->CUNTcpSocket::Delete();
+        agent->m_listIdleConns.pop_back();
+    }
+
+}
+
+static void on_timer_close(uv_handle_t* handle) {
+    uv_timer_t* t = (uv_timer_t*)handle;
+    delete t;
+}
+
+CTcpAgent::CTcpAgent()
+    : timeOut(20)
+{}
+
+CTcpAgent::~CTcpAgent(){}
+
+CTcpAgent* CTcpAgent::Create(CNet* net)
+{
+    return new CUNTcpAgent((CUVNetPlus*)net);
+}
+
+CUNTcpAgent::CUNTcpAgent(CUVNetPlus* net)
+{
+    m_pNet->AddEvent(ASYNC_EVENT_TCP_AGENT, this);
+}
+
+CUNTcpAgent::~CUNTcpAgent(){}
+
+bool CUNTcpAgent::Put(CTcpSocket *skt) 
+{
+
+}
+
+void CUNTcpAgent::Delete()
+{
+    m_pNet->AddEvent(ASYNC_EVENT_TCP_AGTCLOSE, this);
+}
+
+void CUNTcpAgent::syncInit()
+{
+    m_uvTimer = new uv_timer_t;
+    m_uvTimer->data = this;
+    uv_timer_init(&m_pNet->m_uvLoop, m_uvTimer);
+    uv_timer_start(m_uvTimer, on_timer_cb, 5000, 5000);
+}
+
+void CUNTcpAgent::syncClose()
+{
+    uv_timer_stop(m_uvTimer);
+    uv_close((uv_handle_t*)m_uvTimer, on_timer_close);
+    delete this;
+}
 
 }

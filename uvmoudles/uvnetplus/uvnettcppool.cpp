@@ -185,7 +185,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
 
         // 使用现有的连接进行发送请求
         //Log::debug("use a idle connect send");
-        skt->m_nLastTime = time(NULL);
+        skt->m_nSendTime = time(NULL);
         skt->m_bBusy     = true;
         m_listBusyConns.push_back(skt);
         skt->m_pReq = req;
@@ -207,7 +207,7 @@ bool CTcpPoolAgent::Request(CTcpRequest *req) {
         m_pNet->AddEvent(ASYNC_EVENT_TCPAGENT_REQUEST, this);
 
         CUNTcpPoolSocket *skt = new CUNTcpPoolSocket(m_pNet);
-        skt->m_nLastTime = time(NULL);
+        skt->m_nSendTime = time(NULL);
         skt->m_pReq      = req;
         skt->m_pAgent    = this;
         skt->m_bBusy     = true;
@@ -258,7 +258,7 @@ static void on_timer_cb(uv_timer_t* handle) {
         //timeout设置了超时，需要将空闲连接中空闲时间过长的连接断开
         while(!agent->m_listIdleConns.empty() && agent->timeOut){
             CUNTcpPoolSocket *conn = agent->m_listIdleConns.back();
-            if(difftime(now, conn->m_nLastTime) < agent->timeOut)
+            if(difftime(now, conn->m_nSendTime) < agent->timeOut)
                 break;
 
             // 空闲连接超时

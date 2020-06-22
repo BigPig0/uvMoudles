@@ -19,6 +19,18 @@ protected:
     CNet(){};
 };
 
+//声明用到的所有类
+class CTcpSocket;
+class CTcpServer;
+class CTcpAgent;
+class CTcpConnPool;
+
+class CIncomingMsg;
+class CHttpRequest;
+class CHttpResponse;
+class CHttpClientEnv;
+class CHttpServer;
+
 //////////////////////////////////////////////////////////////////////////
 
 /** TCP客户端 */
@@ -118,8 +130,23 @@ protected:
     virtual ~CTcpServer() = 0;
 };
 
+/** 简单的TCP连接管理 */
+class CTcpAgent
+{
+public:
+    static CTcpAgent* Create(CNet* net);
+
+    virtual bool Put(CTcpSocket *skt) = 0;
+
+    virtual void Delete() = 0;
+
+    uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
+protected:
+    CTcpAgent();
+    virtual ~CTcpAgent() = 0;
+};
+
 //////////////////////////////////////////////////////////////////////////
-class CTcpConnPool;
 
 /** TCP连接池 请求结构 */
 struct CTcpRequest {

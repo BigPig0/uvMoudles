@@ -23,6 +23,7 @@ using namespace std;
 
 namespace uvNetPlus {
 
+class CUNTcpPoolSocket;
 class CTcpPoolAgent;
 class CUNTcpConnPool;
 
@@ -49,7 +50,6 @@ public:
     CTcpPoolAgent  *m_pAgent;     //连接所在的agent
     CUNTcpConnPool *connPool;     //连接所在的连接池
     CTcpRequest    *m_pReq;       //当前执行的请求
-    time_t          m_nLastTime;  //最后通讯时间
     bool            m_bBusy;      //true:使用中 false:空闲中
 };
 

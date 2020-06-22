@@ -9,7 +9,10 @@ extern bool net_is_ipv4(const char* input);
 extern bool net_is_ipv6(const char* input);
 extern int  net_is_ip(const char* input);
 
+class CUNTcpSocket;
 class CUNTcpServer;
+class CUNTcpAgent;
+
 //////////////////////////////////////////////////////////////////////////
 
 class CUNTcpSocket : public CTcpSocket
@@ -46,6 +49,9 @@ public:
     list<uv_buf_t>    sendingList;      // 正在发送
     uv_mutex_t        sendMtx;          // 发送锁
     bool              m_bUserClose;     // 进入关闭流程
+    time_t            m_nSendTime;      // 最后发送时间
+    time_t            m_nRecvTime;      // 最后接收时间
+};
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -75,6 +81,28 @@ public:
 
 
     list<CUNTcpSocket*> m_listClients;
+};
+
+//////////////////////////////////////////////////////////////////////////
+
+class CUNTcpAgent : public CTcpAgent
+{
+public:
+    CUNTcpAgent(CUVNetPlus* net);
+    ~CUNTcpAgent();
+
+    virtual bool Put(CTcpSocket *skt);
+    virtual void Delete();
+
+    void syncInit();
+    void syncClose();
+
+public:
+    CUVNetPlus           *m_pNet;         //事件线程句柄
+    list<CUNTcpSocket*>   m_listBusyConns;    //正在使用中的连接
+    list<CUNTcpSocket*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
+
+    uv_timer_t           *m_uvTimer;     //定时器用来判断空闲连接是否超时
 };
 
 }

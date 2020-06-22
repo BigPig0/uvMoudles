@@ -16,6 +16,8 @@ enum UV_ASYNC_EVENT
     ASYNC_EVENT_TCP_LISTEN,     //tcp服务端监听
     ASYNC_EVENT_TCP_CLTCLOSE,   //tcp客户端关闭
     ASYNC_EVENT_TCP_SVRCLOSE,   //tcp服务端关闭
+    ASYNC_EVENT_TCP_AGENT,      //新建一个tcp agent
+    ASYNC_EVENT_TCP_AGTCLOSE,   //tcp agent关闭
     ASYNC_EVENT_TCPCONN_INIT,   //tcp连接池初始化定时器
     ASYNC_EVENT_TCPCONN_REQUEST,//tcp连接池中获取socket
     ASYNC_EVENT_TCPCONN_CLOSE,  //tcp连接池关闭
