@@ -15,7 +15,7 @@ using namespace std;
 using namespace uvNetPlus;
 
 #ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
-#include "vld.h"
+//#include "vld.h"
 #endif
 
 #ifndef INFINITE
@@ -25,7 +25,7 @@ using namespace uvNetPlus;
 const int svrport = 8080;
 CNet* net = NULL;
 Http::CHttpServer *svr = NULL;
-Http::CHttpClientEnv *http = NULL;
+Http::CHttpClient *http = NULL;
 uv_mutex_t _mutex;
 
 //////////////////////////////////////////////////////////////////////////
@@ -265,7 +265,7 @@ static void OnHttpError(Http::CHttpRequest *request, string error) {
     //uv_mutex_unlock(&_mutex);
     delete data;
 }
-static void OnHttpResponse(Http::CHttpRequest *request, Http::CIncomingMsg* response) {
+static void OnHttpResponse(Http::CHttpRequest *request, Http::CHttpMsg* response) {
     clientData* data = (clientData*)request->usrData;
     Log::debug("http response %d %x", data->tid, data);
     Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
@@ -304,7 +304,7 @@ static void OnSendHttpRequest(Http::CHttpRequest *req, void* usr, std::string er
 void testHttpRequest()
 {
     net = CNet::Create();
-    http = new Http::CHttpClientEnv(net, 10, 5, 2, 0);
+    http = new Http::CHttpClient(net, 10, 5, 2, 0);
     for (int i=0; i<10000; i++) {
         clientData* data = new clientData();
         data->tid = i;
@@ -317,7 +317,7 @@ void testHttpRequest()
     }
 }
 
-static void OnRcvHttpRequest(Http::CHttpServer *server, Http::CIncomingMsg *request, Http::CHttpResponse *response) {
+static void OnRcvHttpRequest(Http::CHttpServer *server, Http::CHttpMsg *request, Http::CHttpResponse *response) {
     Log::debug("%d %s %d", request->method, request->path.c_str(), request->version);
     for(auto &h:request->headers) {
         Log::debug("%s: %s", h.first.c_str(), h.second.c_str());

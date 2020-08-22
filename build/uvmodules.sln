@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{8652
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{3FB1C448-6027-41ED-932B-D80D19933632}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvIpc", "uvmoudles\uvIpc.vcxproj", "{241FC295-0331-4A57-921B-7407ED1EA3BB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvIpc", "uvmodules\uvIpc.vcxproj", "{241FC295-0331-4A57-921B-7407ED1EA3BB}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C00F783B-0E57-400D-A1B7-9FE3985A1B1D} = {C00F783B-0E57-400D-A1B7-9FE3985A1B1D}
 		{49A2A162-E5B1-46E9-BF47-CF66A728661A} = {49A2A162-E5B1-46E9-BF47-CF66A728661A}
@@ -26,7 +26,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvIpcTest", "demo\uvIpcTest
 		{241FC295-0331-4A57-921B-7407ED1EA3BB} = {241FC295-0331-4A57-921B-7407ED1EA3BB}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvnetplus", "uvmoudles\uvnetplus.vcxproj", "{F619C109-3255-4794-AB1C-218A94E7F2BC}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvnetplus", "uvmodules\uvnetplus.vcxproj", "{F619C109-3255-4794-AB1C-218A94E7F2BC}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{B277D2BE-4837-4F3F-A549-278CF542D463}"
 EndProject
@@ -36,9 +36,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvNetPlusTest", "demo\uvNet
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cjson", "thirdparty\cjson.vcxproj", "{63CD9CE1-6D07-43D5-8795-B9909FA8D05E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvlogplus", "uvmoudles\uvlogplus.vcxproj", "{053C306C-2522-47DF-A4CA-4910086670C8}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvlogplus", "uvmodules\uvlogplus.vcxproj", "{053C306C-2522-47DF-A4CA-4910086670C8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvLog", "uvmoudles\uvLog.vcxproj", "{E8360DC8-679B-4B04-8B8D-3758D605D739}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uvLog", "uvmodules\uvLog.vcxproj", "{E8360DC8-679B-4B04-8B8D-3758D605D739}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pugixml", "thirdparty\pugixml.vcxproj", "{BDF57317-F779-4B3B-8CC4-E908E729C9D5}"
 EndProject

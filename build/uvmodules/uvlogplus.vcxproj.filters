@@ -26,9 +26,6 @@
     <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogutil.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmodules\uvlogplus\Log.h">
-      <Filter>include</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogplus.cpp">
@@ -47,9 +44,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogutil.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmodules\uvlogplus\Log.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
