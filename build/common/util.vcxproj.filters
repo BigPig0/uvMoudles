@@ -47,9 +47,6 @@
     <ClInclude Include="..\..\common\util\Singleton.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\common\util\StringHandle.h">
-      <Filter>include</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\common\util\TimeFormat.h">
       <Filter>include</Filter>
     </ClInclude>
@@ -74,6 +71,12 @@
     <ClInclude Include="..\..\common\util\lock_free\readerwriterqueue.h">
       <Filter>lock_free</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Common\util\Log.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\util\util_string.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\util\EncodeConvert.cpp">
@@ -97,9 +100,6 @@
     <ClCompile Include="..\..\common\util\Settings.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\common\util\StringHandle.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\common\util\Clock.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -107,6 +107,12 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\common\util\TimeFormat.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\util\Log.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\common\util\util_string.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

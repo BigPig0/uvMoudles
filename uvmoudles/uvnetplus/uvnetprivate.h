@@ -36,6 +36,8 @@ public:
     CUVNetPlus();
     ~CUVNetPlus();
 
+    virtual void* Loop();
+
     /**
      * 添加loop事件
      * @param e 事件定义

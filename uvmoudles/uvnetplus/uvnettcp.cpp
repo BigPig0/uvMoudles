@@ -61,6 +61,7 @@ static void on_uv_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 
 static void on_uv_read(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
     CUNTcpSocket *skt = (CUNTcpSocket*)stream->data;
+    skt->m_nRecvTime = time(NULL);
     if(nread < 0) {
         skt->m_bUserClose = true;   //进入关闭
         skt->m_bConnect = false;    //连接断开
@@ -104,6 +105,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
     }
 
     skt->m_bConnect = true;
+    skt->m_nSendTime = time(NULL);
 
     // 自动开始接收数据
     if(skt->autoRecv){
@@ -125,6 +127,7 @@ static void on_uv_connect(uv_connect_t* req, int status){
 /** 数据发送完成 */
 static void on_uv_write(uv_write_t* req, int status) {
     CUNTcpSocket* skt = (CUNTcpSocket*)req->data;
+    skt->m_nSendTime = time(NULL);
     delete req;
     //Log::debug("%llu write finish %d", skt->fd, status);
     if(status != 0) {
@@ -478,6 +481,7 @@ void CUNTcpServer::syncConnection(uv_stream_t* server, int status)
             OnConnection(this, uv_strerror(ret), nullptr);
         return;
     }
+    client->m_nRecvTime = time(NULL);
 
     // socket本地ip和端口
     struct sockaddr sockname;
@@ -548,12 +552,12 @@ static void on_timer_cb(uv_timer_t* handle) {
 
     //timeout设置了超时，需要将空闲连接中空闲时间过长的连接断开
     while(!agent->m_listIdleConns.empty() && agent->timeOut){
-        CUNTcpSocket *conn = agent->m_listIdleConns.back();
+        CUNTcpSocket *conn = agent->m_listIdleConns.front();
         if(difftime(now, conn->m_nSendTime) < agent->timeOut && difftime(now, conn->m_nRecvTime) < agent->timeOut)
             break;
 
-        conn->CUNTcpSocket::Delete();
-        agent->m_listIdleConns.pop_back();
+        if(agent->onTimeOut)
+            agent->onTimeOut(agent, conn);
     }
 
 }
@@ -565,6 +569,7 @@ static void on_timer_close(uv_handle_t* handle) {
 
 CTcpAgent::CTcpAgent()
     : timeOut(20)
+    , onTimeOut(NULL)
 {}
 
 CTcpAgent::~CTcpAgent(){}
@@ -575,6 +580,7 @@ CTcpAgent* CTcpAgent::Create(CNet* net)
 }
 
 CUNTcpAgent::CUNTcpAgent(CUVNetPlus* net)
+    : m_pNet(net)
 {
     m_pNet->AddEvent(ASYNC_EVENT_TCP_AGENT, this);
 }
@@ -583,7 +589,14 @@ CUNTcpAgent::~CUNTcpAgent(){}
 
 bool CUNTcpAgent::Put(CTcpSocket *skt) 
 {
+    m_listIdleConns.push_back((CUNTcpSocket*)skt);
+    return true;
+}
 
+bool CUNTcpAgent::Remove(CTcpSocket *skt)
+{
+    m_listIdleConns.remove((CUNTcpSocket*)skt);
+    return true;
 }
 
 void CUNTcpAgent::Delete()

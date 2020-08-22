@@ -52,7 +52,6 @@ public:
     time_t            m_nSendTime;      // 最后发送时间
     time_t            m_nRecvTime;      // 最后接收时间
 };
-};
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -92,6 +91,7 @@ public:
     ~CUNTcpAgent();
 
     virtual bool Put(CTcpSocket *skt);
+    virtual bool Remove(CTcpSocket *skt);
     virtual void Delete();
 
     void syncInit();
@@ -99,8 +99,7 @@ public:
 
 public:
     CUVNetPlus           *m_pNet;         //事件线程句柄
-    list<CUNTcpSocket*>   m_listBusyConns;    //正在使用中的连接
-    list<CUNTcpSocket*>   m_listIdleConns;    //空闲连接 front时间较近 back时间较久
+    list<CUNTcpSocket*>   m_listIdleConns;    //连接 front时间较久 back时间较新
 
     uv_timer_t           *m_uvTimer;     //定时器用来判断空闲连接是否超时
 };

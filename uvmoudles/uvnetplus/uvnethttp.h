@@ -67,7 +67,7 @@ private:
     /** 解析内容，已经接收完整内容或块返回true，否则false */
     bool ParseContent();
 
-    CIncomingMsg    *incMsg;        //解析出的应答数据
+    CHttpMsg    *incMsg;        //解析出的应答数据
     bool                 parseHeader;   //请求报文中解析出http头。默认false
 
     uv_mutex_t           mutex;         //write和end线程安全
@@ -141,7 +141,7 @@ public:
     CTcpServer      *server;
     CTcpSocket      *client;
     std::string      buff;   //接收数据缓存
-    CIncomingMsg *inc;    //保存解析到的请求数据
+    CHttpMsg        *inc;    //保存解析到的请求数据
     CUNHttpResponse *res;    //应答
     bool             parseHeader;   //请求报文中解析出http头。默认false，请求完成后要重置为false。
 };
@@ -153,14 +153,17 @@ public:
     CUNHttpServer(CNet* net);
     ~CUNHttpServer();
 
+    /** 设备长连接保活时间，超过保活时间而没有新请求则断开连接 */
+    virtual void SetKeepAlive(uint32_t secends);
     /** 服务器启动监听 */
-    bool Listen(std::string strIP, uint32_t nPort);
+    virtual bool Listen(std::string strIP, uint32_t nPort);
     /** 服务器关闭 */
-    void Close();
+    virtual void Close();
     /** 服务器是否在监听连接 */
-    bool Listening();
+    virtual bool Listening();
 
 private:
+    static void OnTimeOut(CTcpAgent *agent, CTcpSocket *skt);
     static void OnListen(CTcpServer* svr, std::string err);
     static void OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client);
     static void OnSvrCltRecv(CTcpSocket* skt, char *data, int len);
@@ -172,8 +175,9 @@ private:
 private:
     int           m_nPort;      //服务监听端口
     CTcpServer   *m_pTcpSvr;    //tcp监听服务
+    CTcpAgent    *m_pAgent;     //socket连接池
 #ifdef WIN32
-    std::unordered_multimap<std::string,CSvrConn*> m_pConns;   //所有连接的客户端请求
+    //std::unordered_multimap<std::string,CSvrConn*> m_pConns;   //所有连接的客户端请求
 #else
     std::multimap<std::string,CSvrConn*> m_pConns;   //所有连接的客户端请求
 #endif

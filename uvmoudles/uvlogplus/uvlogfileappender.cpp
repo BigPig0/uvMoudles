@@ -104,7 +104,7 @@ void FileAppender::Write() {
     uv_fs_t * req = new uv_fs_t;
     req->data = msg_req;
     uv_buf_t buff[10];
-    buff[0] = uv_buf_init(szThread, 10);
+    buff[0] = uv_buf_init(szThread, 9);
     buff[1] = uv_buf_init(szTime, strlen(szTime));
     buff[2] = uv_buf_init(szLevel, strlen(szLevel));
     buff[3] = uv_buf_init((char*)"\t", 1);

@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "bnf.h"
 #include "utilc_string.h"
-#include "StringHandle.h"
+#include "util.h"
 #include <set>
 #include <sstream>
 
@@ -128,11 +128,11 @@ namespace Http {
     //////////////////////////////////////////////////////////////////////////
 
     struct HttpConnReq {
-        CHttpClientEnv *env;
+        CHttpClient *env;
         std::string     host;
         int             port;
         void           *usr;
-        CHttpClientEnv::ReqCB cb;
+        CHttpClient::ReqCB cb;
     };
 
     /**
@@ -179,7 +179,7 @@ namespace Http {
         delete httpconn;
     }
 
-    CHttpClientEnv::CHttpClientEnv(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest)
+    CHttpClient::CHttpClient(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest)
         : OnRequest(NULL)
     {
         connPool = CTcpConnPool::Create(net, OnPoolSocket);
@@ -190,11 +190,11 @@ namespace Http {
         connPool->OnError  = OnPoolError;
     }
 
-    CHttpClientEnv::~CHttpClientEnv() {
+    CHttpClient::~CHttpClient() {
         connPool->Delete();
     }
 
-    bool CHttpClientEnv::Request(std::string host, int port, void* usr /*= NULL*/, ReqCB cb /*= NULL*/) {
+    bool CHttpClient::Request(std::string host, int port, void* usr /*= NULL*/, ReqCB cb /*= NULL*/) {
         HttpConnReq *req = new HttpConnReq();
         req->env  = this;
         req->host = host;
@@ -208,22 +208,20 @@ namespace Http {
     //////////////////////////////////////////////////////////////////////////
     /** 基础发送消息 */
 
-    CHttpMsg::CHttpMsg()
+    CHttpConnect::CHttpConnect()
         : tcpSocket(NULL)
         , m_bHeadersSent(false)
         , m_bFinished(false)
         , m_nContentLen(0){}
 
-    CHttpMsg::~CHttpMsg(){
-        if(tcpSocket)
-            tcpSocket->Delete();
+    CHttpConnect::~CHttpConnect(){
     }
 
-    void CHttpMsg::WriteHead(std::string headers) {
+    void CHttpConnect::WriteHead(std::string headers) {
         m_strHeaders = headers;
     }
 
-    std::vector<std::string> CHttpMsg::GetHeader(std::string name) {
+    std::vector<std::string> CHttpConnect::GetHeader(std::string name) {
         std::vector<std::string> ret;
         auto first = m_Headers.lower_bound(name);
         auto last = m_Headers.upper_bound(name);
@@ -233,7 +231,7 @@ namespace Http {
         return ret;
     }
 
-    std::vector<std::string> CHttpMsg::GetHeaderNames() {
+    std::vector<std::string> CHttpConnect::GetHeaderNames() {
         std::set<std::string> tmp;
         std::vector<std::string> ret;
         for(auto &it : m_Headers){
@@ -245,17 +243,17 @@ namespace Http {
         return ret;
     }
 
-    bool CHttpMsg::HasHeader(std::string name) {
+    bool CHttpConnect::HasHeader(std::string name) {
         return m_Headers.count(name) > 0;
     }
 
-    void CHttpMsg::RemoveHeader(std::string name) {
+    void CHttpConnect::RemoveHeader(std::string name) {
         auto pos = m_Headers.equal_range(name);
         for(auto it=pos.first; it!=pos.second; ++it)
             m_Headers.erase(it);
     }
 
-    void CHttpMsg::SetHeader(std::string name, std::string value) {
+    void CHttpConnect::SetHeader(std::string name, std::string value) {
         if(!strcasecmp(name.c_str(), "Content-Length")) {
             m_nContentLen = stoi(value);
             return;
@@ -264,7 +262,7 @@ namespace Http {
         m_Headers.insert(make_pair(name, value));
     }
 
-    void CHttpMsg::SetHeader(std::string name, char **values) {
+    void CHttpConnect::SetHeader(std::string name, char **values) {
         RemoveHeader(name);
         
         for(int i = 0; values[i]; i++) {
@@ -272,15 +270,15 @@ namespace Http {
         }
     }
 
-    void CHttpMsg::SetContentLen(uint32_t len) {
+    void CHttpConnect::SetContentLen(uint32_t len) {
         m_nContentLen = len;
     }
 
-    bool CHttpMsg::Finished() {
+    bool CHttpConnect::Finished() {
         return m_bFinished;
     }
 
-    std::string CHttpMsg::getImHeaderString() {
+    std::string CHttpConnect::getImHeaderString() {
         std::stringstream ss;
         for(auto &h:m_Headers) {
             ss << h.first << ": " << h.second << "\r\n";
@@ -318,7 +316,7 @@ namespace Http {
         : parseHeader(false)
     {
         uv_mutex_init(&mutex);
-        incMsg = new CIncomingMsg();
+        incMsg = new CHttpMsg();
     }
 
     CUNHttpRequest::~CUNHttpRequest(){
@@ -495,7 +493,7 @@ namespace Http {
         else
             incMsg->keepAlive = true;
 
-        vector<string> headers = StringHandle::StringSplit(incMsg->rawHeaders, "\r\n");
+        vector<string> headers = util::String::split(incMsg->rawHeaders, "\r\n");
         for(auto &hh : headers) {
             string name, value;
             bool b = false;
@@ -605,7 +603,7 @@ namespace Http {
             ss << STATUS_CODES(statusCode);
         ss << "\r\n"
             << headers;
-        CHttpMsg::WriteHead(ss.str());
+        CHttpConnect::WriteHead(ss.str());
     }
 
     void CUNHttpResponse::Write(const char* chunk, int len, ResCb cb) {
@@ -670,7 +668,7 @@ namespace Http {
     //////////////////////////////////////////////////////////////////////////
     /** 服务端接收到的请求或客户端接收到的应答 */
 
-    CIncomingMsg::CIncomingMsg()
+    CHttpMsg::CHttpMsg()
         : aborted(false)
         , complete(false)
         , keepAlive(true)
@@ -678,7 +676,7 @@ namespace Http {
         , contentLen(-1)
     {}
 
-    CIncomingMsg::~CIncomingMsg(){
+    CHttpMsg::~CHttpMsg(){
         //Log::debug("~CIncomingMsg");
     }
 
@@ -709,11 +707,11 @@ namespace Http {
         size_t pos1 = buff.find("\r\n");        //第一行的结尾
         size_t pos2 = buff.find("\r\n\r\n");    //头的结尾位置
         string reqline = buff.substr(0, pos1);  //第一行的内容
-        vector<string> reqlines = StringHandle::StringSplit(reqline, ' ');
+        vector<string> reqlines = util::String::split(reqline, ' ');
         if(reqlines.size() != 3)
             return false;
 
-        inc = new CIncomingMsg();
+        inc = new CHttpMsg();
         res = new CUNHttpResponse();
         res->tcpSocket = client;
 
@@ -728,7 +726,7 @@ namespace Http {
         else
             inc->keepAlive = true;
 
-        vector<string> headers = StringHandle::StringSplit(inc->rawHeaders, "\r\n");
+        vector<string> headers = util::String::split(inc->rawHeaders, "\r\n");
         for(auto &hh : headers) {
             string name, value;
             bool b = false;
@@ -796,6 +794,12 @@ namespace Http {
         return false;
     }
 
+    void CUNHttpServer::OnTimeOut(CTcpAgent *agent, CTcpSocket *skt) {
+        agent->Remove(skt);
+        //CSvrConn *conn = (CSvrConn*)skt->userData;
+        skt->Delete();
+    }
+
     void CUNHttpServer::OnListen(CTcpServer* svr, std::string err) {
         CUNHttpServer *http = (CUNHttpServer*)svr->userData;
         if(err.empty()) {
@@ -810,6 +814,9 @@ namespace Http {
     void CUNHttpServer::OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
         CSvrConn *c = (CSvrConn*)skt->userData;
         c->buff.append(data, len);
+        //agent根据时间排序
+        c->http->m_pAgent->Remove(skt);
+        c->http->m_pAgent->Put(skt);
         // http头解析
         if(!c->parseHeader && c->buff.find("\r\n\r\n") != std::string::npos) {
             if(!c->ParseHeader()) {
@@ -835,6 +842,7 @@ namespace Http {
                         c->buff.clear();
                         OnSvrCltRecv(skt, (char*)tmp.c_str(), (int)tmp.size());
                     }
+                    break;
                 }
             }
         } else {
@@ -863,6 +871,7 @@ namespace Http {
     void CUNHttpServer::OnSvrCltClose(CTcpSocket* skt){
         CSvrConn *c = (CSvrConn*)skt->userData;
         //Log::debug("server client close");
+        c->http->m_pAgent->Remove(skt);
         delete c;
     }
 
@@ -885,21 +894,30 @@ namespace Http {
         c->server = svr;
         c->client = client;
         client->userData = c;
-        client->OnRecv = OnSvrCltRecv;
+        client->OnRecv  = OnSvrCltRecv;
         client->OnDrain = OnSvrCltDrain;
         client->OnCLose = OnSvrCltClose;
-        client->OnEnd = OnSvrCltEnd;
+        client->OnEnd   = OnSvrCltEnd;
         client->OnError = OnSvrCltError;
+        http->m_pAgent->Put(client);
     }
 
     CUNHttpServer::CUNHttpServer(CNet* net)
         : m_nPort(0)
     {
+        m_pAgent = CTcpAgent::Create(net);
+        m_pAgent->onTimeOut = OnTimeOut;
+        m_pAgent->timeOut = 20;
         m_pTcpSvr = CTcpServer::Create(net, OnTcpConnection, this);
         m_pTcpSvr->OnListen = OnListen;
     }
 
     CUNHttpServer::~CUNHttpServer(){}
+
+    void CUNHttpServer::SetKeepAlive(uint32_t secends)
+    {
+        m_pAgent->timeOut = secends;
+    }
 
     bool CUNHttpServer::Listen(std::string strIP, uint32_t nPort){
         m_nPort = nPort;

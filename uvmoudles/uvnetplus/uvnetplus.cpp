@@ -51,6 +51,10 @@ CUVNetPlus::~CUVNetPlus()
     uv_loop_close(&m_uvLoop);
 }
 
+void* CUVNetPlus::Loop() {
+    return &m_uvLoop;
+}
+
 void CUVNetPlus::AddEvent(UV_ASYNC_EVENT e, void* param) {
     if(!m_bRun)
         return;
@@ -110,6 +114,12 @@ void CUVNetPlus::AsyncEvent() {
         } else if(e.event == ASYNC_EVENT_TCP_SVRCLOSE) {
             CUNTcpServer *tcp = (CUNTcpServer*)e.param;
             tcp->syncClose();
+        } else if(e.event == ASYNC_EVENT_TCP_AGENT) {
+            CUNTcpAgent *agent = (CUNTcpAgent*)e.param;
+            agent->syncInit();
+        } else if(e.event == ASYNC_EVENT_TCP_AGTCLOSE) {
+            CUNTcpAgent *agent = (CUNTcpAgent*)e.param;
+            agent->syncClose();
         } else if(e.event == ASYNC_EVENT_TCPCONN_INIT) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncInit();
@@ -125,7 +135,7 @@ void CUVNetPlus::AsyncEvent() {
         } else if(e.event == ASYNC_EVENT_TCPCONN_CLOSE) {
             CUNTcpConnPool *pool = (CUNTcpConnPool*)e.param;
             pool->syncClose();
-        } 
+        }
     }
 }
 

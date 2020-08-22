@@ -15,6 +15,7 @@ class CNet
 public:
     static CNet* Create();
     virtual ~CNet(){};
+    virtual void* Loop() = 0;
 protected:
     CNet(){};
 };
@@ -25,10 +26,10 @@ class CTcpServer;
 class CTcpAgent;
 class CTcpConnPool;
 
-class CIncomingMsg;
+class CHttpMsg;
 class CHttpRequest;
 class CHttpResponse;
-class CHttpClientEnv;
+class CHttpClient;
 class CHttpServer;
 
 //////////////////////////////////////////////////////////////////////////
@@ -130,16 +131,24 @@ protected:
     virtual ~CTcpServer() = 0;
 };
 
-/** 简单的TCP连接管理 */
+/** 简单的TCP连接池管理 */
 class CTcpAgent
 {
+    typedef void (*EventCB)(CTcpAgent *agent, CTcpSocket *skt);
 public:
+    /** 创建连接池 */
     static CTcpAgent* Create(CNet* net);
 
+    /** 向连接池放入一个socket */
     virtual bool Put(CTcpSocket *skt) = 0;
 
+    /** 从连接池移除一个socket */
+    virtual bool Remove(CTcpSocket *skt) = 0;
+
+    /** 销毁连接池 */
     virtual void Delete() = 0;
 
+    EventCB    onTimeOut;   //超时回调
     uint32_t   timeOut;     //空闲连接超时时间 秒 默认20s 0为永不超时
 protected:
     CTcpAgent();
@@ -245,7 +254,7 @@ enum VERSION {
     HTTP3
 };
 
-class CIncomingMsg {
+class CHttpMsg {
 public:
     bool aborted;   //请求终止时设置为true
     bool complete;  //http消息接收完整时设置为true
@@ -266,14 +275,14 @@ public:
     uint32_t    contentLen;     // chunked为false时：内容长度；chunked为true时，块长度
     std::string content;        // 一次的接收内容
 
-    CIncomingMsg();
-    ~CIncomingMsg();
-};
-
-class CHttpMsg {
-public:
     CHttpMsg();
     ~CHttpMsg();
+};
+
+class CHttpConnect {
+public:
+    CHttpConnect();
+    ~CHttpConnect();
 
     /**
      * 显示填写http头，调用后隐式http头的接口就无效了
@@ -335,9 +344,9 @@ protected:
     uint32_t            m_nContentLen;  // 设置内容的长度
 };
 
-class CHttpRequest : public CHttpMsg {
+class CHttpRequest : public CHttpConnect {
     typedef void(*ErrorCB)(CHttpRequest *req, std::string error);
-    typedef void(*ResCB)(CHttpRequest *req, CIncomingMsg* response);
+    typedef void(*ResCB)(CHttpRequest *req, CHttpMsg* response);
 public:
     typedef void(*DrainCB)(CHttpRequest *req);
 
@@ -396,7 +405,7 @@ protected:
     virtual ~CHttpRequest() = 0;
 };
 
-class CHttpClientEnv {
+class CHttpClient {
 public:
     typedef void(*ReqCB)(CHttpRequest *req, void* usr, std::string error);
 
@@ -408,8 +417,8 @@ public:
      * @param timeOut 空闲连接超时时间
      * @param maxRequest 同一个地址请求最大缓存
      */
-    CHttpClientEnv(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
-    ~CHttpClientEnv();
+    CHttpClient(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
+    ~CHttpClient();
     bool Request(std::string host, int port, void* usr = NULL, ReqCB cb = NULL);
 
     /**
@@ -419,7 +428,7 @@ public:
     CTcpConnPool        *connPool;
 };
 
-class CHttpResponse : public CHttpMsg {
+class CHttpResponse : public CHttpConnect {
 public:
     typedef void(*ResCb)(CHttpResponse *response);
 
@@ -481,7 +490,7 @@ protected:
 };
 
 class CHttpServer {
-    typedef void(*ReqCb)(CHttpServer *server, CIncomingMsg *request, CHttpResponse *response);
+    typedef void(*ReqCb)(CHttpServer *server, CHttpMsg *request, CHttpResponse *response);
 public:
     /** 接受到一个包含'Expect: 100-continue'的请求时调用，如果没有指定，自动发送'100 Continue' */
     ReqCb OnCheckContinue;
@@ -495,6 +504,8 @@ public:
     /** 创建一个实例 */
     static CHttpServer* Create(CNet* net);
 
+    /** 设备长连接保活时间，超过保活时间而没有新请求则断开连接 */
+    virtual void SetKeepAlive(uint32_t secends) = 0;
     /** 服务器启动监听 */
     virtual bool Listen(std::string strIP, uint32_t nPort) = 0;
     /** 服务器关闭 */

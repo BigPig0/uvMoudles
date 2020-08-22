@@ -1,6 +1,6 @@
 #include "MiniDump.h"
 
-string  g_szDumpFileName = nullptr;
+string  g_szDumpFileName;
 
 void (*callback)() = nullptr;
 

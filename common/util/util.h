@@ -10,8 +10,8 @@
 
 #include "Settings.h"
 #include "memfile.h"
-#include "StringHandle.h"
+#include "util_string.h"
 #include "EncodeConvert.h"
 #include "TimeFormat.h"
 
-//#include "Log.h"
+#include "Log.h"

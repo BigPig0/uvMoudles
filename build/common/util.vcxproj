@@ -16,6 +16,7 @@
     <ClInclude Include="..\..\common\util\lock_free\blockingconcurrentqueue.h" />
     <ClInclude Include="..\..\common\util\lock_free\concurrentqueue.h" />
     <ClInclude Include="..\..\common\util\lock_free\readerwriterqueue.h" />
+    <ClInclude Include="..\..\Common\util\Log.h" />
     <ClInclude Include="..\..\common\util\util_def.h" />
     <ClInclude Include="..\..\common\util\EncodeConvert.h" />
     <ClInclude Include="..\..\common\util\Endian.h" />
@@ -28,22 +29,23 @@
     <ClInclude Include="..\..\common\util\NetStreamMaker.h" />
     <ClInclude Include="..\..\common\util\Settings.h" />
     <ClInclude Include="..\..\common\util\Singleton.h" />
-    <ClInclude Include="..\..\common\util\StringHandle.h" />
     <ClInclude Include="..\..\common\util\TimeFormat.h" />
     <ClInclude Include="..\..\common\util\util.h" />
+    <ClInclude Include="..\..\common\util\util_string.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\util\Clock.cpp" />
     <ClCompile Include="..\..\common\util\EncodeConvert.cpp" />
     <ClCompile Include="..\..\common\util\guid.cpp" />
+    <ClCompile Include="..\..\Common\util\Log.cpp" />
     <ClCompile Include="..\..\common\util\MailSlot.cpp" />
     <ClCompile Include="..\..\common\util\memfile.cpp" />
     <ClCompile Include="..\..\common\util\MiniDump.cpp" />
     <ClCompile Include="..\..\common\util\mutex.cpp" />
     <ClCompile Include="..\..\common\util\NetStreamMaker.cpp" />
     <ClCompile Include="..\..\common\util\Settings.cpp" />
-    <ClCompile Include="..\..\common\util\StringHandle.cpp" />
     <ClCompile Include="..\..\common\util\TimeFormat.cpp" />
+    <ClCompile Include="..\..\common\util\util_string.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{642077F6-2CA8-4E04-9B0D-9CFA1E5EFA49}</ProjectGuid>
