@@ -10,22 +10,8 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnethttp.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetplus.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetpuclic.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcp.h" />
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcppool.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnethttp.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcppool.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{F619C109-3255-4794-AB1C-218A94E7F2BC}</ProjectGuid>
+    <ProjectGuid>{2B6B51C0-0783-4CC7-AE9B-A6554750BC0A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>uvHttp</RootNamespace>
   </PropertyGroup>
@@ -61,7 +47,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../uvmoudles/uvlogplus;../../common/utilc;../../common/util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmodules/uvnet;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -79,7 +65,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../uvmoudles/uvlogplus;../../common/utilc;../../common/util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../thirdParty/libUV/include;../../thirdParty/libcstl;../../uvmodules/uvnet;../../common/utilc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -89,6 +75,20 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\uvmodules\uvnet\dns.c" />
+    <ClCompile Include="..\..\uvmodules\uvnet\net.c" />
+    <ClCompile Include="..\..\uvmodules\uvnet\uvnet.c" />
+    <ClCompile Include="..\..\uvmodules\uvnet\http.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\uvmodules\uvnet\dns.h" />
+    <ClInclude Include="..\..\uvmodules\uvnet\net.h" />
+    <ClInclude Include="..\..\uvmodules\uvnet\public.h" />
+    <ClInclude Include="..\..\uvmodules\uvnet\private.h" />
+    <ClInclude Include="..\..\uvmodules\uvnet\uvnet.h" />
+    <ClInclude Include="..\..\uvmodules\uvnet\http.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

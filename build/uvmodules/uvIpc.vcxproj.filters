@@ -11,22 +11,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvLog\uvLog.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvLog\st.h">
-      <Filter>include</Filter>
-    </ClInclude>
+    <ClCompile Include="..\..\uvmodules\uvipc\uvIpc.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvLog\uvLog.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvLog\logconfig.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlog\logtask.c">
-      <Filter>src</Filter>
-    </ClCompile>
+    <ClInclude Include="..\..\uvmodules\uvipc\uvIpc.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

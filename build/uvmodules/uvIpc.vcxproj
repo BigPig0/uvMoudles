@@ -11,10 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvipc\uvIpc.c" />
+    <ClCompile Include="..\..\uvmodules\uvipc\uvIpc.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvipc\uvIpc.h" />
+    <ClInclude Include="..\..\uvmodules\uvipc\uvIpc.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{241FC295-0331-4A57-921B-7407ED1EA3BB}</ProjectGuid>

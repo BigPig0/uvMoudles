@@ -11,45 +11,45 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogplus.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogplus.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogpublic.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogpublic.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogprivate.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogprivate.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogconf.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogconf.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogutil.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogutil.h">
       <Filter>include</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\Log.h">
+    <ClInclude Include="..\..\uvmodules\uvlogplus\Log.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogplus.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogplus.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogconf.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogconf.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogconsolappender.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogconsolappender.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogfileappender.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogfileappender.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogrollingfileappender.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogrollingfileappender.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogutil.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogutil.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\Log.cpp">
+    <ClCompile Include="..\..\uvmodules\uvlogplus\Log.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

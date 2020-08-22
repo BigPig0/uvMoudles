@@ -11,21 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\Log.h" />
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogconf.h" />
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogplus.h" />
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogprivate.h" />
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogpublic.h" />
-    <ClInclude Include="..\..\uvmoudles\uvlogplus\uvlogutil.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\Log.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogconf.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogplus.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogprivate.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogpublic.h" />
+    <ClInclude Include="..\..\uvmodules\uvlogplus\uvlogutil.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\Log.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogconf.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogconsolappender.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogfileappender.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogplus.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogrollingfileappender.cpp" />
-    <ClCompile Include="..\..\uvmoudles\uvlogplus\uvlogutil.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\Log.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogconf.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogconsolappender.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogfileappender.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogplus.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogrollingfileappender.cpp" />
+    <ClCompile Include="..\..\uvmodules\uvlogplus\uvlogutil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\util.vcxproj">

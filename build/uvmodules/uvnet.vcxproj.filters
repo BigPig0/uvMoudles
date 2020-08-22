@@ -11,37 +11,37 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetplus.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetpuclic.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcp.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnetprivate.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnethttp.h">
-      <Filter>include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\uvmoudles\uvnetplus\uvnettcppool.h">
-      <Filter>include</Filter>
-    </ClInclude>
+    <ClCompile Include="..\..\uvmodules\uvnet\dns.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmodules\uvnet\http.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmodules\uvnet\uvnet.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmodules\uvnet\net.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnetplus.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnethttp.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\uvmoudles\uvnetplus\uvnettcppool.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
+    <ClInclude Include="..\..\uvmodules\uvnet\dns.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnet\net.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnet\http.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnet\uvnet.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnet\public.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnet\private.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
