@@ -29,6 +29,9 @@
     <ClInclude Include="..\..\uvmodules\uvnetplus\uvnettcppool.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\uvmodules\uvnetplus\uvnetftp.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\uvmodules\uvnetplus\uvnetplus.cpp">
@@ -41,6 +44,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\uvmodules\uvnetplus\uvnettcppool.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\uvmodules\uvnetplus\uvnetftp.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
