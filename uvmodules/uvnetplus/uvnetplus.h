@@ -518,5 +518,107 @@ protected:
 };
 }; //namespace Http
 
+//////////////////////////////////////////////////////////////////////////
+namespace Ftp {
+enum FTP_CMD {
+    FTP_CMD_ABOR = 0, //中断数据连接程序
+    FTP_CMD_ACCT, //系统特权帐号
+    FTP_CMD_ALLO, //为服务器上的文件存储器分配字节
+    FTP_CMD_APPE, //添加文件到服务器同名文件
+    FTP_CMD_CDUP, //改变服务器上的父目录
+    FTP_CMD_CWD, //改变服务器上的工作目录
+    FTP_CMD_DELE, //删除服务器上的指定文件
+    FTP_CMD_HELP, //返回指定命令信息
+    FTP_CMD_LIST, //如果是文件名列出文件信息，如果是目录则列出文件列表
+    FTP_CMD_MODE, //传输模式（S=流模式，B=块模式，C=压缩模式）
+    FTP_CMD_MKD, //在服务器上建立指定目录
+    FTP_CMD_NLST, //列出指定目录内容
+    FTP_CMD_NOOP, //无动作，除了来自服务器上的承认
+    FTP_CMD_PASS, //系统登录密码
+    FTP_CMD_PASV, //请求服务器等待数据连接
+    FTP_CMD_PORT, //IP 地址和两字节的端口 ID
+    FTP_CMD_PWD, //显示当前工作目录
+    FTP_CMD_QUIT, //从 FTP 服务器上退出登录
+    FTP_CMD_REIN, //重新初始化登录状态连接
+    FTP_CMD_REST, //由特定偏移量重启文件传递
+    FTP_CMD_RETR, //从服务器上找回（复制）文件
+    FTP_CMD_RMD, //在服务器上删除指定目录
+    FTP_CMD_RNFR, //对旧路径重命名
+    FTP_CMD_RNTO, //对新路径重命名
+    FTP_CMD_SITE, //由服务器提供的站点特殊参数
+    FTP_CMD_SMNT, //挂载指定文件结构
+    FTP_CMD_STAT, //在当前程序或目录上返回信息
+    FTP_CMD_STOR, //储存（复制）文件到服务器上
+    FTP_CMD_STOU, //储存文件到服务器名称上
+    FTP_CMD_STRU, //数据结构（F=文件，R=记录，P=页面）
+    FTP_CMD_SYST, //返回服务器使用的操作系统
+    FTP_CMD_TYPE, //数据类型（A=ASCII，E=EBCDIC，I=binary）
+    FTP_CMD_USER  //系统登录的用户名
+};
+
+class CFtpMsg {
+    FTP_CMD cmd;
+    int ret;
+    std::string msg;
+};
+
+class CFtpRequest {
+    typedef void(*ResCB)(CFtpRequest *req, CFtpMsg msg);
+public:
+    std::string         host;      // 域名或IP
+    int                 port;      // 端口
+    bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
+    void               *usrData;   // 用户自定义数据
+    bool                autodel;   // 接收完成后自动删除，不需要手动释放。
+    std::string         path;      // 当前目录
+
+    /**
+     * 改变服务器上的工作目录CWD
+     */
+    virtual void ChangeWorkingDirectory(std::string path, ResCB cb) = 0;
+
+    /**
+     * 获取服务器文件列表NLST
+     */
+    virtual void FileList(ResCB cb) = 0;
+
+    /**
+     * 获取文件信息或文件列表LIST
+     */
+    virtual void List(ResCB cb) = 0;
+
+    /**
+     * 下载文件
+     */
+    virtual void Download(string file, ResCB cb) = 0;
+
+    /**
+     * 上传文件
+     */
+    virtual void Upload(string file, char *data, int size, ResCB cb) = 0;
+};
+
+class CFtpClient {
+    typedef void(*ReqCB)(CFtpRequest *req, void* usr, std::string error);
+
+    /**
+     * 创建一个ftp客户端环境
+     * @param net 环境句柄
+     * @param maxConns 同一个地址最大连接数
+     * @param maxIdle 同一个地址最大空闲连接
+     * @param timeOut 空闲连接超时时间
+     * @param maxRequest 同一个地址请求最大缓存
+     */
+    CFtpClient(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
+    ~CFtpClient();
+    bool Request(std::string host, int port, std::string user, std::string pwd, void* usr = NULL, ReqCB cb = NULL);
+
+    /**
+     * 默认请求获取成功回调函数，如果Request设置了指定回调，则优先使用指定的回调
+     */
+    ReqCB                OnRequest;
+    CTcpConnPool        *connPool;
+};
+}
 }
 

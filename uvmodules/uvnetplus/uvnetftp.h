@@ -16,6 +16,15 @@
 
 namespace uvNetPlus {
 namespace Ftp {
+class CUNFtpRequest : public CFtpRequest 
+{
+
+};
+
+class CUNFtpClient: public CFtpClient
+{
+
+};
 
 }
 }
