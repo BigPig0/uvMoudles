@@ -574,6 +574,12 @@ public:
 
     CTcpSocket         *tcpSocket; //user-PI
 
+    /** 客户端收到应答时回调 */
+    ResCB OnResponse;
+
+    /** 删除实例 */
+    virtual void Delete() = 0;
+
     /**
      * 改变服务器上的工作目录CWD
      */
@@ -598,6 +604,9 @@ public:
      * 上传文件
      */
     virtual void Upload(string file, char *data, int size, ResCB cb) = 0;
+protected:
+    CFtpRequest();
+    virtual ~CFtpRequest() = 0;
 };
 
 class CFtpClient {

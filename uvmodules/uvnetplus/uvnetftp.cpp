@@ -39,39 +39,101 @@ namespace Ftp {
     };
 
     //////////////////////////////////////////////////////////////////////////
+    CFtpRequest::CFtpRequest()
+        : port(21)
+        , keepAlive(true)
+        , usrData(NULL)
+        , autodel(true)
+        , path("/")
+    {}
+
+    CFtpRequest::~CFtpRequest() {}
+
+    CUNFtpRequest::CUNFtpRequest() {
+        uv_mutex_init(&mutex);
+    }
+
+    CUNFtpRequest::~CUNFtpRequest() {
+        uv_mutex_destroy(&mutex);
+    }
+
+    /** 删除实例 */
+    void CUNFtpRequest::Delete() {
+        delete this;
+    }
+
     /**
      * 改变服务器上的工作目录CWD
      */
     void CUNFtpRequest::ChangeWorkingDirectory(std::string path, ResCB cb) {
-
+        uv_mutex_lock(&mutex);
     }
 
     /**
      * 获取服务器文件列表NLST
      */
     void CUNFtpRequest::FileList(ResCB cb) {
-
+        uv_mutex_lock(&mutex);
     }
 
     /**
      * 获取文件信息或文件列表LIST
      */
     void CUNFtpRequest::List(ResCB cb) {
-
+        uv_mutex_lock(&mutex);
+        tcpSocket->Send(szFtpCmd[FTP_CMD_LIST], strlen(szFtpCmd[FTP_CMD_LIST]));
     }
 
     /**
      * 下载文件
      */
     void CUNFtpRequest::Download(string file, ResCB cb) {
-
+        uv_mutex_lock(&mutex);
     }
 
     /**
      * 上传文件
      */
     void CUNFtpRequest::Upload(string file, char *data, int size, ResCB cb) {
+        uv_mutex_lock(&mutex);
+    }
 
+    /* 收到的数据处理 */
+    void CUNFtpRequest::DoReceive(const char *data, int len) {
+
+    }
+
+    /** 发生错误处理 */
+    void CUNFtpRequest::DoError(string err) {
+
+    }
+
+    /** 客户端数据全部发送 */
+    void CUNFtpRequest::DoDrain() {
+
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+    /** Http客户端环境 */
+    static void OnClientRecv(CTcpSocket* skt, char *data, int len){
+        CUNFtpRequest* req = (CUNFtpRequest*)skt->userData;
+        req->DoReceive(data, len);
+    }
+
+    static void OnClientDrain(CTcpSocket* skt){
+        //Log::debug("client drain");
+        CUNFtpRequest* req = (CUNFtpRequest*)skt->userData;
+        req->DoDrain();
+    }
+
+    static void OnClientClose(CTcpSocket* skt){
+        //Log::debug("client close");
+    }
+
+    static void OnClientError(CTcpSocket* skt, string err){
+        Log::error("client error: %s ", err.c_str());
+        CUNFtpRequest* req = (CUNFtpRequest*)skt->userData;
+        req->DoError(err);
     }
 
     //////////////////////////////////////////////////////////////////////////

@@ -18,6 +18,14 @@ namespace uvNetPlus {
 namespace Ftp {
 class CUNFtpRequest : public CFtpRequest 
 {
+public:
+    CUNFtpRequest();
+
+    ~CUNFtpRequest();
+
+    /** 删除实例 */
+    virtual void Delete();
+
     /**
      * 改变服务器上的工作目录CWD
      */
@@ -42,6 +50,20 @@ class CUNFtpRequest : public CFtpRequest
      * 上传文件
      */
     virtual void Upload(string file, char *data, int size, ResCB cb);
+
+    /* 收到的数据处理 */
+    void DoReceive(const char *data, int len);
+
+    /** 发生错误处理 */
+    void DoError(string err);
+
+    /** 客户端数据全部发送 */
+    void DoDrain();
+
+private:
+    CFtpMsg              msg;
+    uv_mutex_t           mutex;         //一个实例的多个请求不能并发
+    std::string          recvBuff;      //接收数据缓存
 };
 
 class CUNFtpClient: public CFtpClient
