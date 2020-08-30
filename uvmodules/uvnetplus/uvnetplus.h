@@ -563,14 +563,16 @@ class CFtpMsg {
 };
 
 class CFtpRequest {
-    typedef void(*ResCB)(CFtpRequest *req, CFtpMsg msg);
 public:
+    typedef void(*ResCB)(CFtpRequest *req, CFtpMsg msg);
     std::string         host;      // 域名或IP
     int                 port;      // 端口
     bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
     void               *usrData;   // 用户自定义数据
     bool                autodel;   // 接收完成后自动删除，不需要手动释放。
     std::string         path;      // 当前目录
+
+    CTcpSocket         *tcpSocket; //user-PI
 
     /**
      * 改变服务器上的工作目录CWD
@@ -599,6 +601,7 @@ public:
 };
 
 class CFtpClient {
+public:
     typedef void(*ReqCB)(CFtpRequest *req, void* usr, std::string error);
 
     /**

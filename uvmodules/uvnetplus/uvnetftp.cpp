@@ -38,13 +38,61 @@ namespace Ftp {
         "USER"  //系统登录的用户名
     };
 
-        /**
+    //////////////////////////////////////////////////////////////////////////
+    /**
+     * 改变服务器上的工作目录CWD
+     */
+    void CUNFtpRequest::ChangeWorkingDirectory(std::string path, ResCB cb) {
+
+    }
+
+    /**
+     * 获取服务器文件列表NLST
+     */
+    void CUNFtpRequest::FileList(ResCB cb) {
+
+    }
+
+    /**
+     * 获取文件信息或文件列表LIST
+     */
+    void CUNFtpRequest::List(ResCB cb) {
+
+    }
+
+    /**
+     * 下载文件
+     */
+    void CUNFtpRequest::Download(string file, ResCB cb) {
+
+    }
+
+    /**
+     * 上传文件
+     */
+    void CUNFtpRequest::Upload(string file, char *data, int size, ResCB cb) {
+
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+
+    struct FtpConnReq {
+        CFtpClient     *client;
+        std::string     host;
+        int             port;
+        std::string     user;
+        std::string     pwd;
+        void           *usrData;
+        CFtpClient::ReqCB cb;
+    };
+
+    /**
      * 从连接池获取socket成功
      * @param req 连接池获取socket的请求
      * @param skt 获取到的socket实例
      */
     static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt) {
-        HttpConnReq    *httpconn = (HttpConnReq*)req->usr;
+        FtpConnReq    *connReq = (FtpConnReq*)req->usr;
         CUNFtpRequest *ftp     = new CUNFtpRequest();
 
         skt->OnRecv     = OnClientRecv;
@@ -54,32 +102,31 @@ namespace Ftp {
         skt->OnError    = OnClientError;
         skt->autoRecv   = true;
         skt->copy       = true;
-        skt->userData   = http;
+        skt->userData   = ftp;
 
-        http->host      = httpconn->host;
-        http->port      = httpconn->port;
-        http->usrData   = httpconn->usr;
-        http->tcpSocket = skt;
-        http->fd        = skt->fd;
+        ftp->host      = connReq->host;
+        ftp->port      = connReq->port;
+        ftp->usrData   = connReq->usrData;
+        ftp->tcpSocket = skt;
 
-        if(httpconn->cb)
-            httpconn->cb(http, httpconn->usr, "");
-        else if(httpconn->env && httpconn->env->OnRequest)
-            httpconn->env->OnRequest(http, httpconn->usr, "");
+        if(connReq->cb)
+            connReq->cb(ftp, connReq->usrData, "");
+        else if(connReq->client && connReq->client->OnRequest)
+            connReq->client->OnRequest(ftp, connReq->usrData, "");
         else
             skt->Delete();
 
-        delete httpconn;
+        delete connReq;
     }
 
     //从连接池获取socket失败
     static void OnPoolError(CTcpRequest* req, string error) {
-        HttpConnReq *httpconn = (HttpConnReq*)req->usr;
-        if(httpconn->cb)
-            httpconn->cb(NULL, httpconn->usr, error);
-        else if(httpconn->env && httpconn->env->OnRequest)
-            httpconn->env->OnRequest(NULL, httpconn->usr, error);
-        delete httpconn;
+        FtpConnReq *connReq = (FtpConnReq*)req->usr;
+        if(connReq->cb)
+            connReq->cb(NULL, connReq->usrData, error);
+        else if(connReq->client && connReq->client->OnRequest)
+            connReq->client->OnRequest(NULL, connReq->client, error);
+        delete connReq;
     }
 
     CFtpClient::CFtpClient(CNet* net, uint32_t maxConns, uint32_t maxIdle, uint32_t timeOut, uint32_t maxRequest)
@@ -97,12 +144,14 @@ namespace Ftp {
         connPool->Delete();
     }
 
-    bool CFtpClient::Request(std::string host, int port, std::string user, std::string pwd, void* usr /*= NULL*/, ReqCB cb /*= NULL*/) {
-        HttpConnReq *req = new HttpConnReq();
-        req->env  = this;
+    bool CFtpClient::Request(std::string host, int port, std::string user, std::string pwd, void* usrData /*= NULL*/, ReqCB cb /*= NULL*/) {
+        FtpConnReq *req = new FtpConnReq();
+        req->client  = this;
         req->host = host;
         req->port = port;
-        req->usr  = usr;
+        req->user = user;
+        req->pwd  = pwd;
+        req->usrData = usrData;
         req->cb   = cb;
         return connPool->Request(host, port, "", req, true, true);
     }

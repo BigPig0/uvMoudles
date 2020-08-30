@@ -18,7 +18,30 @@ namespace uvNetPlus {
 namespace Ftp {
 class CUNFtpRequest : public CFtpRequest 
 {
+    /**
+     * 改变服务器上的工作目录CWD
+     */
+    virtual void ChangeWorkingDirectory(std::string path, ResCB cb);
 
+    /**
+     * 获取服务器文件列表NLST
+     */
+    virtual void FileList(ResCB cb);
+
+    /**
+     * 获取文件信息或文件列表LIST
+     */
+    virtual void List(ResCB cb);
+
+    /**
+     * 下载文件
+     */
+    virtual void Download(string file, ResCB cb);
+
+    /**
+     * 上传文件
+     */
+    virtual void Upload(string file, char *data, int size, ResCB cb);
 };
 
 class CUNFtpClient: public CFtpClient
