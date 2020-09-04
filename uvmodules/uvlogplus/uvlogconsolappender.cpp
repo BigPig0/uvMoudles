@@ -67,13 +67,13 @@ void ConsolAppender::Write() {
         if(msg_req->item->level > Level::Debug){
             uv_buf_t buff[4];
             if(msg_req->item->level == Level::Fatal)
-                buff[0] = uv_buf_init((char*)color_fatal, 10);
+                buff[0] = uv_buf_init((char*)color_fatal, 9);
             else if(msg_req->item->level == Level::Error)
-                buff[0] = uv_buf_init((char*)color_error, 10);
+                buff[0] = uv_buf_init((char*)color_error, 9);
             else if(msg_req->item->level == Level::Warn)
-                buff[0] = uv_buf_init((char*)color_warn, 10);
+                buff[0] = uv_buf_init((char*)color_warn, 9);
             else if(msg_req->item->level == Level::Info)
-                buff[0] = uv_buf_init((char*)color_info, 10);
+                buff[0] = uv_buf_init((char*)color_info, 9);
             buff[1] = uv_buf_init((char*)item->msg.c_str(), item->msg.size());
             buff[2] = uv_buf_init((char*)color_end, 4);
             buff[3] = uv_buf_init((char*)"\n", 1);

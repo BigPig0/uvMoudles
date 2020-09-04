@@ -97,6 +97,25 @@ static void on_uv_connect(uv_connect_t* req, int status){
 #endif
     delete req;
     //Log::debug("On connect %llu %d %s", skt->fd, status, uv_strerror(status));
+    if(!skt->m_bSetLocal) {
+        //没有设备绑定本地端口，获取随机获得的端口
+        struct sockaddr sockname;
+        int namelen = sizeof(struct sockaddr);
+        uv_tcp_getsockname(&skt->uvTcp, &sockname, &namelen);
+        if(sockname.sa_family == AF_INET) {
+            struct sockaddr_in* sin = (struct sockaddr_in*)&sockname;
+            char addr[46] = {0};
+            uv_ip4_name(sin, addr, 46);
+            skt->m_strLocalIP = addr;
+            skt->m_nLocalPort = sin->sin_port;
+        } else if(sockname.sa_family == AF_INET6) {
+            struct sockaddr_in6* sin6 = (struct sockaddr_in6*)&sockname;
+            char addr[46] = {0};
+            uv_ip6_name(sin6, addr, 46);
+            skt->m_strLocalIP = addr;
+            skt->m_nLocalPort = sin6->sin6_port;
+        }
+    }
 
     if(status != 0){
         if(skt->OnConnect)
@@ -237,6 +256,19 @@ void CUNTcpSocket::syncInit()
             OnError(this,uv_strerror(ret));
         return;
     }
+    //如果设置了本地绑定
+    if(m_bSetLocal) {
+        int t = net_is_ip(m_strLocalIP.c_str());
+        if(t == 4) {
+            struct sockaddr_in addr;
+            ret = uv_ip4_addr(m_strLocalIP.c_str(), m_nLocalPort, &addr);
+            ret = uv_tcp_bind(&uvTcp, (struct sockaddr*)&addr, 0);
+        } else if(t == 6) {
+            struct sockaddr_in6 addr;
+            ret = uv_ip6_addr(m_strLocalIP.c_str(), m_nLocalPort, &addr);
+            ret = uv_tcp_bind(&uvTcp, (struct sockaddr*)&addr, 0);
+        }
+    }
     m_bInit = true;
     if(OnReady) // 创建tcp句柄完成回调
         OnReady(this);
@@ -338,6 +370,11 @@ void CUNTcpSocket::SetLocal(std::string strIP, uint32_t nPort)
     m_strLocalIP = strIP;
     m_nLocalPort = nPort;
     m_bSetLocal = true;
+}
+
+void CUNTcpSocket::GetLocal(std::string &strIP, uint32_t &nPort) {
+    strIP = m_strLocalIP;
+    nPort = m_nLocalPort;
 }
 
 void CUNTcpSocket::Send(const char *pData, uint32_t nLen)

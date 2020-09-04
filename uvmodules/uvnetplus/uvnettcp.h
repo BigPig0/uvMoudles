@@ -23,6 +23,7 @@ public:
     virtual void Delete();
     virtual void Connect(std::string strIP, uint32_t nPort);
     virtual void SetLocal(std::string strIP, uint32_t nPort);
+    virtual void GetLocal(std::string &strIP, uint32_t &nPort);
     virtual void Send(const char *pData, uint32_t nLen);
 
     void syncInit();

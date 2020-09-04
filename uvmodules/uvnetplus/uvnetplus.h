@@ -81,6 +81,11 @@ public:
     virtual void SetLocal(std::string strIP, uint32_t nPort) = 0; 
 
     /**
+     * 建立一个socket后，可以获取其本地地址
+     */
+    virtual void GetLocal(std::string &strIP, uint32_t &nPort) = 0;
+
+    /**
      * 发送数据。将数据放到本地缓存起来
      */
     virtual void Send(const char *pData, uint32_t nLen) = 0;
@@ -553,57 +558,96 @@ enum FTP_CMD {
     FTP_CMD_STRU, //数据结构（F=文件，R=记录，P=页面）
     FTP_CMD_SYST, //返回服务器使用的操作系统
     FTP_CMD_TYPE, //数据类型（A=ASCII，E=EBCDIC，I=binary）
-    FTP_CMD_USER  //系统登录的用户名
+    FTP_CMD_USER, //系统登录的用户名
+    FTP_CMD_OPTS, //设置选项
+    FTP_CONN      //tcp连接
 };
 
-class CFtpMsg {
-    FTP_CMD cmd;
-    int ret;
-    std::string msg;
+enum FTP_DATA_MOD {
+    FTP_DATA_MOD_PASV = 0,
+    FTP_DATA_MOD_PORT
+};
+
+enum FTP_FILE_TYPE {
+    FTP_FILE_TYPE_ASCII = 0,
+    FTP_FILE_TYPE_EBCDIC,
+    FTP_FILE_TYPE_BINARY
+};
+
+struct CFtpFile {
+    std::string rawData;    //服务器返回的数据，没有解析
+    bool        isDir;      //是否为目录
+    std::string permission; //权限字符串,10位，第一位d代表目录，后面代表用户、组、其他的rwx权限
+    std::string owner;
+    std::string group;
+    uint64_t    size;
+    std::string date;
+    time_t      dateTime;
+    std::string name;
+};
+
+struct CFtpMsg {
+    FTP_CMD cmd;          //请求命令
+    std::string cmdParam; //参数
+    std::string cmdStr;   //完整请求命令
+    int replyCode;        //服务器返回码
+    std::string replyStr; //返回消息内容
+    CFtpMsg():replyCode(0){}
+    void Init(FTP_CMD c, std::string p);
 };
 
 class CFtpRequest {
 public:
-    typedef void(*ResCB)(CFtpRequest *req, CFtpMsg msg);
+    typedef void(*ReqCB)(CFtpRequest *req, CFtpMsg *msg);
+    typedef void(*SuccessCB)(CFtpRequest *req);
+    typedef void(*NameListCB)(CFtpRequest *req, std::list<std::string> names);
+    typedef void(*ListCB)(CFtpRequest *req, std::list<CFtpFile> files);
+    typedef void(*DownloadCB)(CFtpRequest *req, char* data, uint32_t size);
     std::string         host;      // 域名或IP
     int                 port;      // 端口
-    bool                keepAlive; // 是否使用长连接, true时，使用CTcpConnPool管理连接
+    std::string         user;      // 用户名
+    std::string         pwd;       // 密码
     void               *usrData;   // 用户自定义数据
-    bool                autodel;   // 接收完成后自动删除，不需要手动释放。
     std::string         path;      // 当前目录
-
-    CTcpSocket         *tcpSocket; //user-PI
-
-    /** 客户端收到应答时回调 */
-    ResCB OnResponse;
+    FTP_DATA_MOD        dataMod;   // 被动模式还是主动模式
 
     /** 删除实例 */
     virtual void Delete() = 0;
 
     /**
-     * 改变服务器上的工作目录CWD
+     * 获取当前工作目录
      */
-    virtual void ChangeWorkingDirectory(std::string path, ResCB cb) = 0;
+    virtual void GetWorkingDictionary(ReqCB cb) = 0;
 
     /**
-     * 获取服务器文件列表NLST
+     * 改变服务器上的工作目录CWD
      */
-    virtual void FileList(ResCB cb) = 0;
+    virtual void ChangeWorkingDirectory(std::string path, ReqCB cb) = 0;
+
+    /**
+     * 切换文件类型
+     */
+    virtual void SetFileType(FTP_FILE_TYPE t, ReqCB cb) = 0;
+
+    /**
+     * 获取服务器文件名称列表NLST
+     */
+    virtual void NameList(NameListCB cb) = 0;
 
     /**
      * 获取文件信息或文件列表LIST
      */
-    virtual void List(ResCB cb) = 0;
+    virtual void List(ListCB cb) = 0;
 
     /**
      * 下载文件
      */
-    virtual void Download(string file, ResCB cb) = 0;
+    virtual void Download(std::string file, DownloadCB cb) = 0;
 
     /**
      * 上传文件
      */
-    virtual void Upload(string file, char *data, int size, ResCB cb) = 0;
+    virtual void Upload(std::string file, char *data, int size, SuccessCB cb) = 0;
 protected:
     CFtpRequest();
     virtual ~CFtpRequest() = 0;
@@ -611,25 +655,26 @@ protected:
 
 class CFtpClient {
 public:
-    typedef void(*ReqCB)(CFtpRequest *req, void* usr, std::string error);
-
     /**
      * 创建一个ftp客户端环境
      * @param net 环境句柄
-     * @param maxConns 同一个地址最大连接数
-     * @param maxIdle 同一个地址最大空闲连接
-     * @param timeOut 空闲连接超时时间
-     * @param maxRequest 同一个地址请求最大缓存
      */
-    CFtpClient(CNet* net, uint32_t maxConns=512, uint32_t maxIdle=100, uint32_t timeOut=20, uint32_t maxRequest=0);
+    static CFtpClient* Create(CNet* net);
     ~CFtpClient();
-    bool Request(std::string host, int port, std::string user, std::string pwd, void* usr = NULL, ReqCB cb = NULL);
 
     /**
-     * 默认请求获取成功回调函数，如果Request设置了指定回调，则优先使用指定的回调
+     * 创建一个ftp客户端连接，并进行登陆
+     * @param host 服务器地址
+     * @param port 服务器端口
+     * @param user 用户名
+     * @param pwd  密码
+     * @param onLogin ftp登陆成功后回调
+     * @param onError 异常时的回调
+     * @param usrData 回调中返回的CFtpRequest实例绑定的一个用户数据
      */
-    ReqCB                OnRequest;
-    CTcpConnPool        *connPool;
+    virtual void Request(std::string host, int port, std::string user, std::string pwd, CFtpRequest::SuccessCB onLogin, CFtpRequest::ReqCB onError, void* usrData = NULL) = 0;
+protected:
+    CFtpClient();
 };
 }
 }

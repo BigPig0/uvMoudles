@@ -41,4 +41,9 @@ public:
 
     static string printTime(time_t time, const char *fmt);
 
+    /**
+     * 将一个时间转为结构
+     */
+    static struct tm getTimeInfo(time_t time);
+
 };

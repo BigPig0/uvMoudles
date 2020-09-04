@@ -27,48 +27,93 @@ public:
     virtual void Delete();
 
     /**
+     * 获取当前工作目录
+     */
+    virtual void GetWorkingDictionary(ReqCB cb);
+
+    /**
      * 改变服务器上的工作目录CWD
      */
-    virtual void ChangeWorkingDirectory(std::string path, ResCB cb);
+    virtual void ChangeWorkingDirectory(std::string path, ReqCB cb);
+
+    /**
+     * 切换文件类型
+     */
+    virtual void SetFileType(FTP_FILE_TYPE t, ReqCB cb);
 
     /**
      * 获取服务器文件列表NLST
      */
-    virtual void FileList(ResCB cb);
+    virtual void NameList(NameListCB cb);
 
     /**
      * 获取文件信息或文件列表LIST
      */
-    virtual void List(ResCB cb);
+    virtual void List(ListCB cb);
 
     /**
      * 下载文件
      */
-    virtual void Download(string file, ResCB cb);
+    virtual void Download(string file, DownloadCB cb);
 
     /**
      * 上传文件
      */
-    virtual void Upload(string file, char *data, int size, ResCB cb);
+    virtual void Upload(string file, char *data, int size, SuccessCB cb);
 
-    /* 收到的数据处理 */
+    /** 开启数据传输 */
+    void BeginDataTrans();
+
+    /** 完成数据传输 */
+    void FinishDataTrans();
+
+    /* User-Pi收到的应答数据处理 */
     void DoReceive(const char *data, int len);
 
-    /** 发生错误处理 */
+    /** User-Pi连接发生错误处理 */
     void DoError(string err);
 
-    /** 客户端数据全部发送 */
+    /** User-Pi数据全部发送 */
     void DoDrain();
 
-private:
-    CFtpMsg              msg;
-    uv_mutex_t           mutex;         //一个实例的多个请求不能并发
-    std::string          recvBuff;      //接收数据缓存
+    /** DTP连接成功，发送传输控制命令 */
+    void DoDtp();
+
+public:
+    CUVNetPlus          *m_pNet;         // 事件线程句柄
+    CUNTcpSocket        *m_tcpUserPI;    // user-PI
+    CFtpMsg              m_ftpMsg;       // 控制命令
+    std::string          m_strRecvBuff;  // 接收数据缓存
+    std::string          m_strPiHost;
+    uint32_t             m_nPiPort;
+
+    CUNTcpSocket        *m_tcpUserDTP;   // user-DTP
+    CFtpMsg              m_ftpData;      // 传输命令
+    char                *m_dtpUploadData;// DTP上传内容
+    int                  m_dtpUploadSize;// DTP上传大小
+    std::string          m_strRecvData;  // 接收数据缓存
+    uint32_t             m_nDataPort;    // 数据传输端口
+
+    bool                 m_bLoginCb;     // 是否已经调用的登陆回调，在未调用之前，有一些命令收到应答后自动发起新的命令来完成初始话，否则回调
+
+    /** 异常回调 */
+    ReqCB                OnCB;
+    /** 登陆,上传文件 成功的回调 */
+    SuccessCB            OnSuccess;
+    /** 获取文件名称列表应答 */
+    NameListCB           OnNameListCB;
+    /** 获取文件列表应答 */
+    ListCB               OnListCB;
+    /** 下载成功回调 */
+    DownloadCB           OnDownloadCB;
 };
 
 class CUNFtpClient: public CFtpClient
 {
+public:
+    CUVNetPlus       *m_pNet;      //事件线程句柄
 
+    virtual void Request(std::string host, int port, std::string user, std::string pwd, CFtpRequest::SuccessCB onLogin, CFtpRequest::ReqCB onError, void* usrData = NULL);
 };
 
 }

@@ -73,3 +73,13 @@ string CTimeFormat::printTime(time_t time, const char *fmt) {
     strftime(buf, 32, fmt, &tm);
     return buf;
 }
+
+struct tm CTimeFormat::getTimeInfo(time_t time) {
+    struct tm tm;
+#if defined(WINDOWS_IMPL)
+    localtime_s(&tm, &time);
+#elif defined(LINUX_IMPL)
+    localtime_r(&time, &tm);
+#endif
+    return tm;
+}
