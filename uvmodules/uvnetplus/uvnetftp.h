@@ -61,6 +61,21 @@ public:
      */
     virtual void Upload(string file, char *data, int size, SuccessCB cb);
 
+    /**
+     * 创建目录
+     */
+    virtual void MakeDirectory(std::string path, SuccessCB cb);
+
+    /**
+     * 删除目录
+     */
+    virtual void RemoveDirectory(std::string path, SuccessCB cb);
+
+    /**
+     * 删除文件
+     */
+    virtual void DeleteFile(std::string path, SuccessCB cb);
+
     /** 开启数据传输 */
     void BeginDataTrans();
 

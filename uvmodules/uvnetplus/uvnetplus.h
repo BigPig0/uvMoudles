@@ -648,6 +648,21 @@ public:
      * 上传文件
      */
     virtual void Upload(std::string file, char *data, int size, SuccessCB cb) = 0;
+
+    /**
+     * 创建目录
+     */
+    virtual void MakeDirectory(std::string path, SuccessCB cb) = 0;
+
+    /**
+     * 删除目录
+     */
+    virtual void RemoveDirectory(std::string path, SuccessCB cb) = 0;
+
+    /**
+     * 删除文件
+     */
+    virtual void DeleteFile(std::string path, SuccessCB cb) = 0;
 protected:
     CFtpRequest();
     virtual ~CFtpRequest() = 0;
@@ -675,6 +690,27 @@ public:
     virtual void Request(std::string host, int port, std::string user, std::string pwd, CFtpRequest::SuccessCB onLogin, CFtpRequest::ReqCB onError, void* usrData = NULL) = 0;
 protected:
     CFtpClient();
+};
+
+class CFtpResponse
+{
+
+};
+
+class CFtpServer
+{
+    typedef void(*ReqCb)(CFtpServer *server, CFtpMsg *request, CFtpResponse *response);
+public:
+    ReqCb OnRequest;
+
+    CFtpServer* Create(CNet* net);
+    /** 服务器启动监听 */
+    virtual bool Listen(std::string strIP, uint32_t nPort) = 0;
+    /** 服务器关闭 */
+    virtual void Close() = 0;
+protected:
+    CFtpServer();
+    virtual ~CFtpServer() = 0;
 };
 }
 }

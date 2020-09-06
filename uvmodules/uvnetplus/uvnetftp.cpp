@@ -237,6 +237,33 @@ namespace Ftp {
         BeginDataTrans();
     }
 
+    /**
+     * 创建目录
+     */
+    void CUNFtpRequest::MakeDirectory(std::string path, SuccessCB cb) {
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_MKD, ""); //创建目录
+        Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
+        m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
+    }
+
+    /**
+     * 删除目录
+     */
+    void CUNFtpRequest::RemoveDirectory(std::string path, SuccessCB cb) {
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_RMD, ""); //删除目录
+        Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
+        m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
+    }
+
+    /**
+     * 删除文件
+     */
+    void CUNFtpRequest::DeleteFile(std::string path, SuccessCB cb) {
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_DELE, ""); //删除文件
+        Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
+        m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
+    }
+
     /** 开启数据传输 */
     void CUNFtpRequest::BeginDataTrans() {
         if(dataMod == FTP_DATA_MOD_PASV) {
