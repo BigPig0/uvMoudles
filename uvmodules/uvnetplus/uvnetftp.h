@@ -29,17 +29,17 @@ public:
     /**
      * 获取当前工作目录
      */
-    virtual void GetWorkingDictionary(ReqCB cb);
+    virtual void GetWorkingDirectory(SuccessCB cb);
 
     /**
      * 改变服务器上的工作目录CWD
      */
-    virtual void ChangeWorkingDirectory(std::string path, ReqCB cb);
+    virtual void ChangeWorkingDirectory(std::string path, SuccessCB cb);
 
     /**
      * 切换文件类型
      */
-    virtual void SetFileType(FTP_FILE_TYPE t, ReqCB cb);
+    virtual void SetFileType(FTP_FILE_TYPE t, SuccessCB cb);
 
     /**
      * 获取服务器文件列表NLST
@@ -69,12 +69,12 @@ public:
     /**
      * 删除目录
      */
-    virtual void RemoveDirectory(std::string path, SuccessCB cb);
+    virtual void RmDirectory(std::string path, SuccessCB cb);
 
     /**
      * 删除文件
      */
-    virtual void DeleteFile(std::string path, SuccessCB cb);
+    virtual void DelFile(std::string path, SuccessCB cb);
 
     /** 开启数据传输 */
     void BeginDataTrans();

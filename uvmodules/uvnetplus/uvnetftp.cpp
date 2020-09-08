@@ -172,8 +172,8 @@ namespace Ftp {
     /**
      * 获取当前工作目录
      */
-    void CUNFtpRequest::GetWorkingDictionary(ReqCB cb) {
-        OnCB = cb;
+    void CUNFtpRequest::GetWorkingDirectory(SuccessCB cb) {
+        OnSuccess = cb;
         m_ftpMsg.Init(FTP_CMD::FTP_CMD_PWD, ""); //获取当前目录
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
@@ -182,9 +182,9 @@ namespace Ftp {
     /**
      * 改变服务器上的工作目录CWD
      */
-    void CUNFtpRequest::ChangeWorkingDirectory(std::string p, ReqCB cb) {
-        OnCB = cb;
-        m_ftpMsg.Init(FTP_CMD::FTP_CMD_CWD, "\""+p+"\"");
+    void CUNFtpRequest::ChangeWorkingDirectory(std::string p, SuccessCB cb) {
+        OnSuccess = cb;
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_CWD, p);
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
     }
@@ -192,8 +192,8 @@ namespace Ftp {
     /**
      * 切换文件类型
      */
-    void CUNFtpRequest::SetFileType(FTP_FILE_TYPE t, ReqCB cb) {
-        OnCB = cb;
+    void CUNFtpRequest::SetFileType(FTP_FILE_TYPE t, SuccessCB cb) {
+        OnSuccess = cb;
         m_ftpMsg.Init(FTP_CMD::FTP_CMD_TYPE, szFtpFileType[t]);
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
@@ -241,7 +241,8 @@ namespace Ftp {
      * 创建目录
      */
     void CUNFtpRequest::MakeDirectory(std::string path, SuccessCB cb) {
-        m_ftpMsg.Init(FTP_CMD::FTP_CMD_MKD, ""); //创建目录
+        OnSuccess = cb;
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_MKD, path); //创建目录
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
     }
@@ -249,8 +250,9 @@ namespace Ftp {
     /**
      * 删除目录
      */
-    void CUNFtpRequest::RemoveDirectory(std::string path, SuccessCB cb) {
-        m_ftpMsg.Init(FTP_CMD::FTP_CMD_RMD, ""); //删除目录
+    void CUNFtpRequest::RmDirectory(std::string path, SuccessCB cb) {
+        OnSuccess = cb;
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_RMD, path); //删除目录
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
     }
@@ -258,8 +260,9 @@ namespace Ftp {
     /**
      * 删除文件
      */
-    void CUNFtpRequest::DeleteFile(std::string path, SuccessCB cb) {
-        m_ftpMsg.Init(FTP_CMD::FTP_CMD_DELE, ""); //删除文件
+    void CUNFtpRequest::DelFile(std::string path, SuccessCB cb) {
+        OnSuccess = cb;
+        m_ftpMsg.Init(FTP_CMD::FTP_CMD_DELE, path); //删除文件
         Log::info("%s %s", szFtpCmd[m_ftpMsg.cmd], m_ftpMsg.cmdParam.c_str());
         m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
     }
@@ -449,13 +452,17 @@ namespace Ftp {
                     m_tcpUserPI->Send(m_ftpMsg.cmdStr.c_str(), m_ftpMsg.cmdStr.size());
                     return;
                 }
+
+                OnSuccess(this);
+            }
+        } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_CWD) {
+            if(m_ftpMsg.replyCode == 250) {
+                OnSuccess(this);
             }
         } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_TYPE) {
-            if(!m_bLoginCb) {
-                if(m_ftpMsg.replyCode == 200) {
-                    m_bLoginCb = true;
-                    OnSuccess(this);
-                }
+            if(m_ftpMsg.replyCode == 200) {
+                m_bLoginCb = true;
+                OnSuccess(this);
             }
         } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_PASV) { // 被动模式请求收到成功应答，user-DTP发起连接
             if(m_ftpMsg.replyCode == 227) { //进入被动监听
@@ -516,6 +523,24 @@ namespace Ftp {
                     m_tcpUserDTP=NULL;
                 }
             } 
+        } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_MKD) { //创建目录
+            if(m_ftpMsg.replyCode == 257) {
+                OnSuccess(this);
+                return;
+            } else if(m_ftpMsg.replyCode == 550) { //创建目录失败
+            }
+        } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_RMD) { //删除目录
+            if(m_ftpMsg.replyCode == 250) {
+                OnSuccess(this);
+                return;
+            } else if(m_ftpMsg.replyCode == 550) { //删除目录失败
+            }
+        } else if(m_ftpMsg.cmd == FTP_CMD::FTP_CMD_DELE) { //删除文件
+            if(m_ftpMsg.replyCode == 250) {
+                OnSuccess(this);
+                return;
+            } else if(m_ftpMsg.replyCode == 550) { //删除文件失败
+            }
         }
 
         //其他为解析到的回调

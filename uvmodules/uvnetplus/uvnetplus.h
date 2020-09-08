@@ -617,17 +617,17 @@ public:
     /**
      * 获取当前工作目录
      */
-    virtual void GetWorkingDictionary(ReqCB cb) = 0;
+    virtual void GetWorkingDirectory(SuccessCB cb) = 0;
 
     /**
      * 改变服务器上的工作目录CWD
      */
-    virtual void ChangeWorkingDirectory(std::string path, ReqCB cb) = 0;
+    virtual void ChangeWorkingDirectory(std::string path, SuccessCB cb) = 0;
 
     /**
      * 切换文件类型
      */
-    virtual void SetFileType(FTP_FILE_TYPE t, ReqCB cb) = 0;
+    virtual void SetFileType(FTP_FILE_TYPE t, SuccessCB cb) = 0;
 
     /**
      * 获取服务器文件名称列表NLST
@@ -657,12 +657,12 @@ public:
     /**
      * 删除目录
      */
-    virtual void RemoveDirectory(std::string path, SuccessCB cb) = 0;
+    virtual void RmDirectory(std::string path, SuccessCB cb) = 0;
 
     /**
      * 删除文件
      */
-    virtual void DeleteFile(std::string path, SuccessCB cb) = 0;
+    virtual void DelFile(std::string path, SuccessCB cb) = 0;
 protected:
     CFtpRequest();
     virtual ~CFtpRequest() = 0;
