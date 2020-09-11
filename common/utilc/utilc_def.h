@@ -13,6 +13,14 @@
 #define CHECK_POINT_NULLPTR(p)    if(NULL == (p)){printf("NULL == "#p);return NULL;}
 #define CHECK_POINT_INT(p,r)      if(NULL == (p)){printf("NULL == "#p);return (r);}
 
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+
+#ifndef INFINITE
+#define INFINITE 0xFFFFFFFF 
+#endif
+
 #ifndef __cplusplus
 #define bool int
 #define true  1

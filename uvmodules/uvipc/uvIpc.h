@@ -53,6 +53,7 @@ typedef void (*uv_ipc_recv_cb)(uv_ipc_handle_t* h, void* user, char* name, char*
  * @param name 客户端名字，不包含','的字符串
  * @param cb 接收到消息的回调方法
  * @param user 用户自定义数据
+ * @note 外部指定uv_loop_t时，需要外部处理线程间的关系
  */
 _UV_IPC_API int uv_ipc_client(uv_ipc_handle_t** h, char* ipc, void* uv, char* name, uv_ipc_recv_cb cb, void* user);
 
