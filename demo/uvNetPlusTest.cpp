@@ -1,13 +1,11 @@
 // uvHttpClient.cpp : 定义控制台应用程序的入口点。
 //
 
-#include "uvnetplus.h"
-#include "Log.h"
-#include "uv.h"
+#include "util.h"
 #include "utilc_api.h"
+#include "uv.h"
+#include "uvnetplus.h"
 #include <stdio.h>
-//#include <tchar.h>
-//#include <windows.h>
 #include <string.h>
 #include <string>
 #include <thread>
