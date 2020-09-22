@@ -7,3 +7,6 @@
 [submodule "thirdparty/libuv"]
 	path = thirdparty/libuv
 	url = https://gitee.com/ztwlla/libuv.git
+[submodule "thirdparty/pugixml"]
+	path = thirdparty/pugixml
+	url = https://gitee.com/ztwlla/pugixml.git
