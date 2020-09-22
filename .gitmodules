@@ -1,3 +1,6 @@
 [submodule "thirdparty/cjson"]
 	path = thirdparty/cjson
 	url = https://gitee.com/ztwlla/cjson.git
+[submodule "thirdparty/libcstl"]
+	path = thirdparty/libcstl
+	url = https://gitee.com/ztwlla/libcstl.git
