@@ -19,3 +19,12 @@
 [submodule "uvmodules/uvlogplus"]
 	path = uvmodules/uvlogplus
 	url = https://gitee.com/ztwlla/uvlogplus.git
+[submodule "common/util"]
+	path = common/util
+	url = https://gitee.com/ztwlla/util.git
+[submodule "common/utilc"]
+	path = common/utilc
+	url = https://gitee.com/ztwlla/utilc.git
+[submodule "common/crypto"]
+	path = common/crypto
+	url = https://gitee.com/ztwlla/crypto.git
