@@ -1,5 +1,5 @@
-#./Common/Makefile
-SUBDIR = utilc util ssl pm
+#./common/Makefile
+SUBDIR = utilc util crypto
 
 all:$(SUBDIR)
 	

@@ -1,5 +1,5 @@
-#./ThirdParty/Makefile
-SUBDIR = cjson libcstl libuv pugixml
+#./uvmodules/Makefile
+SUBDIR = uvipc uvlogplus uvnetplus
 
 all:$(SUBDIR)
 	
