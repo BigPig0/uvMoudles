@@ -10,3 +10,12 @@
 [submodule "thirdparty/pugixml"]
 	path = thirdparty/pugixml
 	url = https://gitee.com/ztwlla/pugixml.git
+[submodule "uvmodules/uvipc"]
+	path = uvmodules/uvipc
+	url = https://gitee.com/ztwlla/uvipc.git
+[submodule "uvmodules/uvnetplus"]
+	path = uvmodules/uvnetplus
+	url = https://gitee.com/ztwlla/uvnetplus.git
+[submodule "uvmodules/uvlogplus"]
+	path = uvmodules/uvlogplus
+	url = https://gitee.com/ztwlla/uvlogplus.git
