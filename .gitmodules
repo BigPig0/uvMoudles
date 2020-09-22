@@ -4,3 +4,6 @@
 [submodule "thirdparty/libcstl"]
 	path = thirdparty/libcstl
 	url = https://gitee.com/ztwlla/libcstl.git
+[submodule "thirdparty/libuv"]
+	path = thirdparty/libuv
+	url = https://gitee.com/ztwlla/libuv.git
