@@ -28,3 +28,6 @@
 [submodule "common/crypto"]
 	path = common/crypto
 	url = https://gitee.com/ztwlla/crypto.git
+[submodule "thirdparty/mbedtls"]
+	path = thirdparty/mbedtls
+	url = https://gitee.com/ztwlla/mbedtls.git

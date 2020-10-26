@@ -4,3 +4,4 @@
 *.vs/
 *.user
 /out
+/demo/log
