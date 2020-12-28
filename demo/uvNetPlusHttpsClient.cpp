@@ -68,8 +68,9 @@ static void OnSendHttpRequest(Http::CHttpRequest *req, void* usr, std::string er
 void testHttpRequest()
 {
     net = CNet::Create();
-    http = new Http::CHttpClient(net, 10, 5, 2, 0, true);
-    for (int i=0; i<1; i++) {
+    http = new Http::CHttpClient(net, 10, 5, 2, 0);
+    http->UseTls();
+    for (int i=0; i<100; i++) {
         clientData* data = new clientData();
         data->tid = i;
         data->err = false;
