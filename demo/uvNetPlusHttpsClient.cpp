@@ -70,7 +70,7 @@ void testHttpRequest()
     net = CNet::Create();
     http = new Http::CHttpClient(net, 10, 5, 2, 0);
     http->UseTls();
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<1; i++) {
         clientData* data = new clientData();
         data->tid = i;
         data->err = false;
