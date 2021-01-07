@@ -10,6 +10,8 @@
 using namespace std;
 using namespace uvNetPlus;
 
+#define USE_CRT_FILE
+
 const int svrport = 6789;
 CNet* net = NULL;
 CTcpServer *server = NULL;
@@ -82,12 +84,16 @@ void OnClientError(CTcpSocket* skt, string err){
 void testClient()
 {
     CNet* net = CNet::Create();
-    for (int i=0; i<1; i++) {
+    for (int i=0; i<100; i++) {
         clientData* data = new clientData;
         data->tid = i+1;
         data->finishNum = 0;
         CTcpSocket* client = CTcpSocket::Create(net, (void*)data);
-        client->UseTls("localhost");
+#ifdef USE_CRT_FILE
+        const char *caArray[] = {"./ssl/ca.crt", NULL};
+        client->SetTlsCaFile(caArray);
+#endif
+        client->UseTls("localhost", true);
         client->OnReady = OnClientReady;
         client->OnRecv = OnClientRecv;
         client->OnDrain = OnClientDrain;
@@ -132,11 +138,16 @@ static void testTcpPool(){
     std::thread t([&](){
         CNet* net = CNet::Create();
         CTcpConnPool* pool = CTcpConnPool::Create(net, OnPoolSocket);
+#ifdef USE_CRT_FILE
+        const char *caArray[] = {"./ssl/ca.crt", NULL};
+        pool->SetTlsPemFile(caArray);
+        pool->verify = true;
+#endif
         pool->useTls = true;
         pool->maxConns = 5;
         pool->maxIdle  = 5;
         pool->timeOut  = 2;
-        pool->maxRequest = 10;
+        pool->maxRequest = 0;
         pool->OnError  = OnPoolError;
         for (int i=0; i<1; i++) {
             Log::debug("new request %d", i);
@@ -228,6 +239,11 @@ void testServer()
 {
     CNet* net = CNet::Create();
     CTcpServer* svr = CTcpServer::Create(net, OnTcpConnection);
+#ifdef USE_CRT_FILE
+    svr->SetCAFile("./ssl/ca.crt");
+    svr->SetCrtFile("./ssl/server.crt");
+    svr->SetKeyFile("./ssl/server.key");
+#endif
     svr->UseTls();
     svr->OnClose = OnTcpSvrClose;
     svr->OnError = OnTcpError;
