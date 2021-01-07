@@ -1,24 +1,17 @@
-// uvHttpClient.cpp : 定义控制台应用程序的入口点。
-//
-
 #include "util.h"
-#include "utilc_api.h"
-#include "uv.h"
+#include "utilc.h"
 #include "uvnetplus.h"
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <thread>
+#include <windows.h>
+
 using namespace std;
 using namespace uvNetPlus;
 
-#ifdef _DEBUG    //在Release模式下，不会链接Visual Leak Detector
-//#include "vld.h"
-#endif
-
-#ifndef INFINITE
-#define INFINITE 0XFFFFFFFF
-#endif
+//定义客户端请求次数
+#define CLIENT_NUM 100
 
 CNet* net = NULL;
 Http::CHttpClient *http = NULL;
@@ -69,8 +62,8 @@ void testHttpRequest()
 {
     net = CNet::Create();
     http = new Http::CHttpClient(net, 10, 5, 2, 0);
-    http->UseTls();
-    for (int i=0; i<1; i++) {
+    http->UseTls(); // 没有设置CA，verify=false不检查服务器的证书是否有效
+    for (int i=0; i<CLIENT_NUM; i++) {
         clientData* data = new clientData();
         data->tid = i;
         data->err = false;
@@ -83,7 +76,7 @@ void testHttpRequest()
 
 int main()
 {
-    Log::open(Log::Print::both, Log::Level::debug, "./log/httpsclient.txt");
+    Log::open(Log::Print::both, Log::Level::debug, "./log/uvNetPlusHttpsClient/log.txt");
     testHttpRequest();
 
 	Sleep(INFINITE);

@@ -10,12 +10,16 @@
 using namespace std;
 using namespace uvNetPlus;
 
+//开启这个宏的时候，使用项目路径下的证书文件；不开启的时候使用tls库里的默认测试证书内容
+//证书里的域名是localhost
 #define USE_CRT_FILE
-
+//开启这个宏的时候，客户端使用连接池
+#define USE_TCP_POOL
+//定义客户端请求次数
+#define CLIENT_NUM 100
+//定义服务端监听端口
 const int svrport = 6789;
-CNet* net = NULL;
-CTcpServer *server = NULL;
-CTcpConnPool *pool = NULL;
+
 
 struct clientData {
     int tid;
@@ -84,7 +88,7 @@ void OnClientError(CTcpSocket* skt, string err){
 void testClient()
 {
     CNet* net = CNet::Create();
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<CLIENT_NUM; i++) {
         clientData* data = new clientData;
         data->tid = i+1;
         data->finishNum = 0;
@@ -140,7 +144,7 @@ static void testTcpPool(){
         CTcpConnPool* pool = CTcpConnPool::Create(net, OnPoolSocket);
 #ifdef USE_CRT_FILE
         const char *caArray[] = {"./ssl/ca.crt", NULL};
-        pool->SetTlsPemFile(caArray);
+        pool->SetTlsCaFile(caArray);
         pool->verify = true;
 #endif
         pool->useTls = true;
@@ -149,12 +153,12 @@ static void testTcpPool(){
         pool->timeOut  = 2;
         pool->maxRequest = 0;
         pool->OnError  = OnPoolError;
-        for (int i=0; i<1; i++) {
+        for (int i=0; i<CLIENT_NUM; i++) {
             Log::debug("new request %d", i);
             clientData* data = new clientData;
             data->tid = i+1;
             data->finishNum = 0;
-            pool->Request("127.0.0.1", svrport, "", data, true, true);
+            pool->Request("localhost", svrport, "", data, true, true);
         }
     });
     t.detach();
@@ -228,8 +232,11 @@ void OnTcpError(CTcpServer* svr, std::string err) {
 void OnTcpListen(CTcpServer* svr, std::string err) {
     if(err.empty()) {
         Log::debug("tcp server start success");
+#ifdef USE_TCP_POOL
+        testTcpPool();
+#else
         testClient();
-        //testTcpPool();
+#endif
     } else {
         Log::error("tcp server start failed: %s ", err.c_str());
     }
