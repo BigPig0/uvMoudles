@@ -100,7 +100,7 @@ int main()
     Log::open(Log::Print::both, uvLogPlus::Level::Debug, "./log/unNetPlusFtp/log.txt");
     net = CNet::Create();
     CFtpClient* ftpClient = CFtpClient::Create(net);
-    ftpClient->Connect("192.168.2.111", 21, "ftp", "123", OnFtpLogin, OnFtpCb);
+    ftpClient->Connect("127.0.0.1", 21, "ftp", "123", OnFtpLogin, OnFtpCb);
 
     sleep(INFINITE);
 }

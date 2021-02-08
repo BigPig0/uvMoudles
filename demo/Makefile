@@ -11,6 +11,7 @@ INCLUDE = -I $(PWD) \
 STATIC_LIB = -L $(OUT_DIR) \
              -l:uvnetplus.a \
 			 -l:uvlogplus.a \
+			 -l:uvipc.a \
 			 -l:util.a \
 			 -l:utilc.a \
 			 -l:libuv.a \
@@ -26,9 +27,10 @@ SHARED_LIB = -L $(OUT_DIR) \
 			 -l:mbedtls.so \
 			 -l:util.so \
 			 -l:utilc.so \
+			 -l:uvipv.so \
 			 -l:uvlogplus.so \
 			 -l:uvnetplus.so \
-			 -lrt -lresolv -lssl -lcrypto -lpthread -ldl
+			 -lrt -lresolv -lpthread -ldl
 
 all:chkdir uvipctest$(TAGTYPE) \
            uvlogplustest$(TAGTYPE) \
@@ -42,7 +44,7 @@ chkdir:
 	$(shell mkdir -p $(TMP_DIR)demo/)
 
 uvipctest_static:uvIpcTest.c
-	#$(CC) $(INCLUDE) $(CFLAGS) uvIpcTest.c -o $(OUT_DIR)uvipctest $(STATIC_LIB)
+	$(CC) $(INCLUDE) $(CFLAGS) uvIpcTest.c -o $(OUT_DIR)uvipctest $(STATIC_LIB)
 
 uvipctest_shared:uvIpcTest.c
 	$(CC) $(INCLUDE) $(CFLAGS) uvIpcTest.c -o $(OUT_DIR)uvipctest $(SHARED_LIB)

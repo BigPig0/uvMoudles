@@ -1,5 +1,5 @@
 #./ThirdParty/Makefile
-SUBDIR = mbedtls #cjson libcstl libuv pugixml
+SUBDIR = cjson libcstl libuv pugixml mbedtls
 
 all:$(SUBDIR)
 	
