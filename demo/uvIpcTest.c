@@ -1,6 +1,6 @@
 #include <stdio.h>
 //#include <tchar.h>
-#include "uvIpc.h"
+#include "uvipc.h"
 #include "uv.h"
 #include "utilc_api.h"
 
