@@ -1,10 +1,9 @@
 // uvHttpClient.cpp : 定义控制台应用程序的入口点。
 //
 
-#include <stdio.h>
-//#include <tchar.h>
-#include "utilc_api.h"
+#include "utilc.h"
 #include "uvlogplus.h"
+#include <stdio.h>
 #include <stdarg.h>
 //#include <windows.h>
 
@@ -133,7 +132,8 @@ int main(int argc, char* argv[])
         sleep(1);
     }
     delete log;
-	//sleep(INFINITE);
+
+	sleep(INFINITE);
 	return 0;
 }
 

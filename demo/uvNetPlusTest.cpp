@@ -2,9 +2,10 @@
 //
 
 #include "util.h"
-#include "utilc_api.h"
-#include "uv.h"
+#include "utilc.h"
+#include "easylog.h"
 #include "uvnetplus.h"
+#include "uv.h"
 #include <stdio.h>
 #include <string.h>
 #include <string>
@@ -370,7 +371,7 @@ int main()
     /** 设置控制台消息回调 */
     //SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlCHandler, TRUE); 
     uv_mutex_init(&_mutex);
-    Log::open(Log::Print::both, Log::Level::debug, "./log/log.txt");
+    Log::open(Log::Print::both, uvLogPlus::Level::Debug, "./log/log.txt");
     //testServer();
     //testTcpPool();
     //testHttpServer();

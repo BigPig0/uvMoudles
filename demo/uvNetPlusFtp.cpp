@@ -1,5 +1,6 @@
 #include "util.h"
 #include "utilc.h"
+#include "easylog.h"
 #include "uv.h"
 #include "uvnetplus.h"
 #include <stdio.h>
@@ -96,7 +97,7 @@ static void OnFtpLogin(CFtpConnect *req) {
 
 int main()
 {
-    Log::open(Log::Print::both, Log::Level::debug, "./log/unNetPlusFtp/log.txt");
+    Log::open(Log::Print::both, uvLogPlus::Level::Debug, "./log/unNetPlusFtp/log.txt");
     net = CNet::Create();
     CFtpClient* ftpClient = CFtpClient::Create(net);
     ftpClient->Connect("192.168.2.111", 21, "ftp", "123", OnFtpLogin, OnFtpCb);

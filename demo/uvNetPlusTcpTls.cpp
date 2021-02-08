@@ -1,11 +1,12 @@
 #include "util.h"
 #include "utilc.h"
+#include "easylog.h"
 #include "uvnetplus.h"
 #include <stdio.h>
 #include <string.h>
 #include <string>
 #include <thread>
-#include <windows.h>
+//#include <windows.h>
 
 using namespace std;
 using namespace uvNetPlus;
@@ -260,10 +261,10 @@ void testServer()
 
 int main()
 {
-    Log::open(Log::Print::both, Log::Level::debug, "./log/uvNetTcpTls/log.txt");
+    Log::open(Log::Print::both, uvLogPlus::Level::Debug, "./log/uvNetTcpTls/log.txt");
     testServer();
 
-	Sleep(INFINITE);
+	sleep(INFINITE);
 	return 0;
 }
 
