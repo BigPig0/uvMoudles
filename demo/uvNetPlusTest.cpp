@@ -42,19 +42,6 @@ void OnClientReady(CTcpSocket* skt){
     Log::debug("client %d ready", data->tid);
 }
 
-void OnClientConnect(CTcpSocket* skt, string err){
-    clientData* data = (clientData*)skt->userData;
-    if(err.empty()){
-        char buff[1024] = {0};
-        sprintf(buff, "client%d %d",data->tid, data->finishNum+1);
-        skt->Send(buff, strlen(buff));
-        skt->Send(" 111", 4);
-    } else {
-        Log::error("client%d connect err: %s", data->tid, err.c_str());
-        skt->Delete();
-    }
-}
-
 void OnClientRecv(CTcpSocket* skt, char *data, int len){
     clientData* c = (clientData*)skt->userData;
     c->finishNum++;
@@ -107,7 +94,19 @@ void testClient()
         client->OnCLose = OnClientClose;
         client->OnEnd = OnClientEnd;
         client->OnError = OnClientError;
-        client->OnConnect = OnClientConnect;
+
+        client->OnConnect = [](CTcpSocket* skt, string err){
+            clientData* data = (clientData*)skt->userData;
+            if(err.empty()){
+                char buff[1024] = {0};
+                sprintf(buff, "client%d %d",data->tid, data->finishNum+1);
+                skt->Send(buff, strlen(buff));
+                skt->Send(" 111", 4);
+            } else {
+                Log::error("client%d connect err: %s", data->tid, err.c_str());
+                skt->Delete();
+            }
+        };
         client->Connect("127.0.0.1", svrport );
     }
 }
@@ -115,50 +114,44 @@ void testClient()
 //////////////////////////////////////////////////////////////////////////
 /////////////     tcp客户端连接池      ///////////////////////////////////
 
-static void OnPoolSocket(CTcpRequest* req, CTcpSocket* skt){
-    clientData* data = (clientData*)req->usr;
-    //delete req;
-
-    skt->OnRecv    = OnClientRecv;
-    skt->OnDrain   = OnClientDrain;
-    skt->OnCLose   = OnClientClose;
-    skt->OnEnd     = OnClientEnd;
-    skt->OnError   = OnClientError;
-    skt->autoRecv  = true;
-    skt->copy      = true;
-    skt->userData  = data;
-
-    //clientData* ddd = (clientData*)skt->userData;
-    //if(ddd){
-    //    data->finishNum = ddd->finishNum;
-    //    delete ddd;
-    //}
-    skt->Send("123456789", 9);
-    skt->Send("987654321", 9);
-}
-
-//从连接池获取socket失败
-static void OnPoolError(CTcpRequest* req, string error) {
-    clientData* data = (clientData*)req->usr;
-    Log::error("get pool socket fail %d %s",data->tid, error.c_str());
-    delete data;
-}
-
 static void testTcpPool(){
     std::thread t([&](){
         CNet* net = CNet::Create();
-        CTcpConnPool* pool = CTcpConnPool::Create(net, OnPoolSocket);
+        CTcpConnPool* pool = CTcpConnPool::Create(net);
         pool->maxConns = 5;
         pool->maxIdle  = 5;
         pool->timeOut  = 2;
         pool->maxRequest = 10;
-        pool->OnError  = OnPoolError;
         for (int i=0; i<100; i++) {
             Log::debug("new request %d", i);
             clientData* data = new clientData;
             data->tid = i+1;
             data->finishNum = 0;
-            pool->Request("127.0.0.1", svrport, "", data, true, true);
+            pool->Request("127.0.0.1", svrport, "", data, true, true, [](CTcpRequest* req, CTcpSocket* skt, string err){
+                clientData* data = (clientData*)req->usr;
+                if(!err.empty()){
+                    Log::error("get pool socket fail %d %s",data->tid, err.c_str());
+                    delete data;
+                    return;
+                }
+
+                skt->OnRecv    = OnClientRecv;
+                skt->OnDrain   = OnClientDrain;
+                skt->OnCLose   = OnClientClose;
+                skt->OnEnd     = OnClientEnd;
+                skt->OnError   = OnClientError;
+                skt->autoRecv  = true;
+                skt->copy      = true;
+                skt->userData  = data;
+
+                //clientData* ddd = (clientData*)skt->userData;
+                //if(ddd){
+                //    data->finishNum = ddd->finishNum;
+                //    delete ddd;
+                //}
+                skt->Send("123456789", 9);
+                skt->Send("987654321", 9);
+            });
         }
     });
     t.detach();
@@ -170,135 +163,67 @@ struct sclientData {
     int id;
 };
 
-void OnSvrCltRecv(CTcpSocket* skt, char *data, int len){
-    sclientData *c = (sclientData*)skt->userData;
-    Log::debug("server client%d recv: %s ", c->id, data);
-    char buff[1024] = {0};
-    sprintf(buff, "server client%d answer",c->id);
-    skt->Send(buff, strlen(buff));
-    skt->Send("123456", 6);
-}
-
-void OnSvrCltDrain(CTcpSocket* skt){
-    sclientData *c = (sclientData*)skt->userData;
-    Log::debug("server client%d drain", c->id);
-}
-
-void OnSvrCltClose(CTcpSocket* skt){
-    sclientData *c = (sclientData*)skt->userData;
-    Log::debug("server client%d close", c->id);
-    delete c;
-}
-
-void OnSvrCltEnd(CTcpSocket* skt){
-    sclientData *c = (sclientData*)skt->userData;
-    Log::debug("server client%d end", c->id);
-}
-
-void OnSvrCltError(CTcpSocket* skt, string err){
-    sclientData *c = (sclientData*)skt->userData;
-    Log::error("server client%d error:%s ",c->id, err.c_str());
-}
-
-void OnTcpConnection(CTcpServer* svr, std::string err, CTcpSocket* client) {
-    if(!err.empty()){
-        Log::error("tcp server error: %s ", err.c_str());
-        return;
-    }
-    Log::debug("tcp server recv new connection");
-    static int sid = 1;
-    sclientData *c = new sclientData();
-    c->id = sid++;
-    client->userData = c;
-    client->OnRecv = OnSvrCltRecv;
-    client->OnDrain = OnSvrCltDrain;
-    client->OnCLose = OnSvrCltClose;
-    client->OnEnd = OnSvrCltEnd;
-    client->OnError = OnSvrCltError;
-}
-
-void OnTcpSvrClose(CTcpServer* svr, std::string err) {
-    if(err.empty()) {
-        Log::debug("tcp server closed");
-    } else {
-        Log::error("tcp server closed with error: %s", err.c_str());
-    }
-}
-
-void OnTcpError(CTcpServer* svr, std::string err) {
-    Log::error("tcp server error: %s", err.c_str());
-}
-
-void OnTcpListen(CTcpServer* svr, std::string err) {
-    if(err.empty()) {
-        Log::debug("tcp server start success");
-        //testClient();
-        testTcpPool();
-    } else {
-        Log::error("tcp server start failed: %s ", err.c_str());
-    }
-}
-
-void testServer()
-{
+void testServer() {
     CNet* net = CNet::Create();
-    CTcpServer* svr = CTcpServer::Create(net, OnTcpConnection);
-    svr->OnClose = OnTcpSvrClose;
-    svr->OnError = OnTcpError;
-    svr->OnListen = OnTcpListen;
+    CTcpServer* svr = CTcpServer::Create(net, [](CTcpServer* svr, std::string err, CTcpSocket* client) {
+        if(!err.empty()){
+            Log::error("tcp server error: %s ", err.c_str());
+            return;
+        }
+        Log::debug("tcp server recv new connection");
+        static int sid = 1;
+        sclientData *c = new sclientData();
+        c->id = sid++;
+        client->userData = c;
+        client->OnRecv = [](CTcpSocket* skt, char *data, int len){
+            sclientData *c = (sclientData*)skt->userData;
+            Log::debug("server client%d recv: %s ", c->id, data);
+            char buff[1024] = {0};
+            sprintf(buff, "server client%d answer",c->id);
+            skt->Send(buff, strlen(buff));
+            skt->Send("123456", 6);
+        };
+        client->OnDrain = [](CTcpSocket* skt){
+            sclientData *c = (sclientData*)skt->userData;
+            Log::debug("server client%d drain", c->id);
+        };
+        client->OnCLose = [](CTcpSocket* skt){
+            sclientData *c = (sclientData*)skt->userData;
+            Log::debug("server client%d close", c->id);
+            delete c;
+        };
+        client->OnEnd = [](CTcpSocket* skt){
+            sclientData *c = (sclientData*)skt->userData;
+            Log::debug("server client%d end", c->id);
+        };
+        client->OnError = [](CTcpSocket* skt, string err){
+            sclientData *c = (sclientData*)skt->userData;
+            Log::error("server client%d error:%s ",c->id, err.c_str());
+        };
+    });
+    svr->OnClose = [](CTcpServer* svr, std::string err) {
+        if(err.empty()) {
+            Log::debug("tcp server closed");
+        } else {
+            Log::error("tcp server closed with error: %s", err.c_str());
+        }
+    };
+    svr->OnError = [](CTcpServer* svr, std::string err) {
+        Log::error("tcp server error: %s", err.c_str());
+    };
+    svr->OnListen = [](CTcpServer* svr, std::string err) {
+        if(err.empty()) {
+            Log::debug("tcp server start success");
+            //testClient();
+            testTcpPool();
+        } else {
+            Log::error("tcp server start failed: %s ", err.c_str());
+        }
+    };
     svr->Listen("0.0.0.0", svrport);
 }
 
 //////////////////////////////////////////////////////////////////////////
-static void OnHttpError(Http::CHttpRequest *request, string error) {
-    clientData* data = (clientData*)request->usrData;
-    Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
-    //uv_mutex_lock(&_mutex);
-    //data->err = true;
-    //if(request->Finished()) { //主线程的http请求调用过了end才给删除
-    //    request->Delete();
-    //    data->ref--;
-    //    if(!data->ref)
-    //        delete data;
-    //}
-    //uv_mutex_unlock(&_mutex);
-    delete data;
-}
-static void OnHttpResponse(Http::CHttpRequest *request, Http::CHttpMsg* response) {
-    clientData* data = (clientData*)request->usrData;
-    Log::debug("http response %d %x", data->tid, data);
-    Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
-    Log::debug(response->rawHeaders.c_str());
-    Log::debug(response->content.c_str());
-    if(response->complete && !request->autodel) {
-        request->Delete();
-    }
-    delete data;
-}
-static void OnSendHttpRequest(Http::CHttpRequest *req, void* usr, std::string error) {
-    clientData* data = (clientData*)usr;
-    if(error.empty()) {
-        Log::debug("new http request %x", req);
-        req->usrData    = usr;
-        req->OnError    = OnHttpError;
-        req->OnResponse = OnHttpResponse;
-        req->host       = "www.baidu.com";
-        //req->host     = "127.0.0.1";
-        req->protocol   = PROTOCOL::HTTP;
-        //req->method   = Http::METHOD::GET;
-        req->method     = Http::METHOD::POST;
-        //req->path     = "/s?wd=http+content+len";
-        req->path       = "/imageServer/image?name=111111.jpg&type=1";
-        req->version    = Http::VERSION::HTTP1_1;
-
-        req->SetHeader("myheader","????????\0");
-        string content = "123456789\0";
-        req->End(content.c_str(), content.length());
-
-    } else {
-        Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
-    }
-}
 
 void testHttpRequest()
 {
@@ -309,34 +234,82 @@ void testHttpRequest()
         data->tid = i;
         data->err = false;
         data->ref = 2;
-        http->Request("www.baidu.com", 80, data, OnSendHttpRequest);
+        http->Request("www.baidu.com", 80, data, [](Http::CHttpRequest *req, void* usr, std::string error) {
+            clientData* data = (clientData*)usr;
+            if(error.empty()) {
+                Log::debug("new http request %x", req);
+                req->usrData    = usr;
+                req->OnError    = [](Http::CHttpRequest *request, string error) {
+                    clientData* data = (clientData*)request->usrData;
+                    Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
+                    //uv_mutex_lock(&_mutex);
+                    //data->err = true;
+                    //if(request->Finished()) { //主线程的http请求调用过了end才给删除
+                    //    request->Delete();
+                    //    data->ref--;
+                    //    if(!data->ref)
+                    //        delete data;
+                    //}
+                    //uv_mutex_unlock(&_mutex);
+                    delete data;
+                };
+                req->OnResponse = [](Http::CHttpRequest *request, Http::CHttpMsg* response) {
+                    clientData* data = (clientData*)request->usrData;
+                    Log::debug("http response %d %x", data->tid, data);
+                    Log::debug("%d %s", response->statusCode, response->statusMessage.c_str());
+                    Log::debug(response->rawHeaders.c_str());
+                    Log::debug(response->content.c_str());
+                    if(response->complete && !request->autodel) {
+                        request->Delete();
+                    }
+                    delete data;
+                };
+
+                if(1){
+                    req->host       = "www.baidu.com";
+                    req->protocol   = PROTOCOL::HTTP;
+                    req->method     = Http::METHOD::GET;
+                    req->path     = "/s?wd=http+content+len";
+                    req->version    = Http::VERSION::HTTP1_1;
+                    req->End();
+                } else {
+                    req->host     = "127.0.0.1";
+                    req->method   = Http::METHOD::POST;
+                    req->path       = "/imageServer/image?name=111111.jpg&type=1";
+                    req->version    = Http::VERSION::HTTP1_1;
+                    req->SetHeader("myheader","????????\0");
+                    string content = "123456789\0";
+                    req->End(content.c_str(), content.length());
+                }
+            } else {
+                Log::error("http error[%d] %x: %s",data->tid, data, error.c_str());
+            }
+        });
         //http->Request("127.0.0.1", 80, data, OnSendHttpRequest);
         if(i%100==99)
             sleep(1);
     }
 }
 
-static void OnRcvHttpRequest(Http::CHttpServer *server, Http::CHttpMsg *request, Http::CHttpResponse *response) {
-    Log::debug("%d %s %d", request->method, request->path.c_str(), request->version);
-    for(auto &h:request->headers) {
-        Log::debug("%s: %s", h.first.c_str(), h.second.c_str());
-    }
-    Log::debug("Content len: %d", request->contentLen);
-    Log::debug("Chunked: %d", request->chunked);
-    Log::debug("Keep alive: %d", request->keepAlive);
-    Log::debug("Complete: %d", request->complete);
-    Log::debug(request->rawHeaders.c_str());
-
-    response->statusCode = 200;
-    response->SetHeader("myheader", "1111111111111");
-    response->End("123456789",9);
-}
-
 void testHttpServer()
 {
     net = CNet::Create();
     svr = Http::CHttpServer::Create(net);
-    svr->OnRequest = OnRcvHttpRequest;
+    svr->OnRequest = [](Http::CHttpServer *server, Http::CHttpMsg *request, Http::CHttpResponse *response) {
+        Log::debug("%d %s %d", request->method, request->path.c_str(), request->version);
+        for(auto &h:request->headers) {
+            Log::debug("%s: %s", h.first.c_str(), h.second.c_str());
+        }
+        Log::debug("Content len: %d", request->contentLen);
+        Log::debug("Chunked: %d", request->chunked);
+        Log::debug("Keep alive: %d", request->keepAlive);
+        Log::debug("Complete: %d", request->complete);
+        Log::debug(request->rawHeaders.c_str());
+
+        response->statusCode = 200;
+        response->SetHeader("myheader", "1111111111111");
+        response->End("123456789",9);
+    };
     svr->Listen("0.0.0.0", svrport);
 }
 
@@ -372,10 +345,10 @@ int main()
     //SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlCHandler, TRUE); 
     uv_mutex_init(&_mutex);
     Log::open(Log::Print::both, uvLogPlus::Level::Debug, "./log/log.txt");
-    //testServer();
+    testServer();
     //testTcpPool();
     //testHttpServer();
-    testHttpRequest();
+    //testHttpRequest();
 
 	sleep(INFINITE);
 	return 0;
