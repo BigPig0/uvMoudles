@@ -7,6 +7,11 @@
 #include <stdarg.h>
 //#include <windows.h>
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+static _CrtMemState s1, s2, s3;
+
 
 //class CLog
 //{
@@ -58,9 +63,9 @@ const char* const LOG_CONFIG = "{"
         "\"File\":{\"name\":\"FileAppd\", \"fileName\":\"./logs/fileappd.txt\", \"append\":\"no\"}"
     "},\"loggers\":{"
         "\"root\":{\"level\":\"DEBUG\","
-            "\"appender-ref\":{\"ref\":\"ConsoleAppd\"},"
-            "\"appender-ref\":{\"ref\":\"RollingFileAppd\"},"
-            "\"appender-ref\":{\"ref\":\"FileAppd\"}"
+            "\"appender-ref\":{\"ref\":\"ConsoleAppd\"}"
+            //"\"appender-ref\":{\"ref\":\"RollingFileAppd\"},"
+            //"\"appender-ref\":{\"ref\":\"FileAppd\"}"
         "},\"testInfo\":{\"level\":\"INFO\","
             "\"appender-ref\":{\"ref\":\"ConsoleAppd\"},"
             "\"appender-ref\":{\"ref\":\"RollingFileAppd\"},"
@@ -122,17 +127,24 @@ using namespace uvLogPlus;
 int main(int argc, char* argv[])
 {
     CLog *log = CLog::Create(LOG_CONFIG);
-    for(;;){
+
+    _CrtMemCheckpoint( &s1 );
+
+    for(int i=0; i<10; ++i){
         MODULE_1_LOGDEBUG("this is a test %d", 1);
         MODULE_2_LOGDEBUG("this is a test %d", 2);
         MODULE_1_LOGINFO("info 1");
         MODULE_2_LOGINFO("info2");
         MODULE_2_LOGERROR("error2");
         MODULE_1_LOGFATAL("fatal1");
-        sleep(1);
+        //sleep(1);
     }
-    delete log;
+    //delete log;
 
+    sleep(5);
+    _CrtMemCheckpoint( &s2 );
+    if ( _CrtMemDifference( &s3, &s1, &s2) )
+        _CrtMemDumpStatistics( &s3 );
 	sleep(INFINITE);
 	return 0;
 }
